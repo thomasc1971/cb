@@ -1,0 +1,11 @@
+# Build artifacts
+cb
+*.o
+
+# Test binaries
+tests/test_json
+tests/test_http
+tests/test_config
+tests/test_validate
+tests/test_api
+tests/test_cli
