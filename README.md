@@ -218,4 +218,4 @@ cb/
 
 ## License
 
-GPLv3+ (aligning with the Forgejo ecosystem, which is GPLv3+ from v9.0)
+GPLv3+ — see [COPYING](COPYING) for the full text. Aligning with the Forgejo ecosystem, which is GPLv3+ from v9.0.
