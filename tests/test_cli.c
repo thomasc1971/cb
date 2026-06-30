@@ -291,6 +291,174 @@ static void test_cli_json_flag(void)
     teardown_server();
 }
 
+/* ===== Help tests ===== */
+
+/* Run cli_run with stdout captured into a buffer. Returns exit code. */
+static int run_cli_captured(const char *args[], char *buf, size_t bufsize)
+{
+    fflush(stdout);
+    FILE *orig = stdout;
+    stdout = fmemopen(buf, bufsize, "w");
+    if (!stdout) {
+        stdout = orig;
+        return -1;
+    }
+
+    int argc = 0;
+    while (args[argc])
+        argc++;
+    char **argv = malloc((argc + 2) * sizeof(char *));
+    argv[0] = (char *)"cb";
+    for (int i = 0; i < argc; i++)
+        argv[i + 1] = (char *)args[i];
+    argv[argc + 1] = NULL;
+
+    int rc = cli_run(argc + 1, argv);
+    free(argv);
+
+    fflush(stdout);
+    fclose(stdout);
+    stdout = orig;
+    return rc;
+}
+
+static void test_help_top_level(void)
+{
+    char buf[4096];
+    const char *args[] = { "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb — Codeberg") != NULL);
+    ASSERT_TRUE(strstr(buf, "--help, -h") != NULL);
+}
+
+static void test_help_top_level_short(void)
+{
+    char buf[4096];
+    const char *args[] = { "-h", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb — Codeberg") != NULL);
+}
+
+static void test_help_repo(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "Repository management.") != NULL);
+    ASSERT_TRUE(strstr(buf, "create") != NULL);
+    ASSERT_TRUE(strstr(buf, "topic") != NULL);
+}
+
+static void test_help_repo_short(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "-h", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "Repository management.") != NULL);
+}
+
+static void test_help_repo_create(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "create", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo create <name>") != NULL);
+    ASSERT_TRUE(strstr(buf, "--private") != NULL);
+    ASSERT_TRUE(strstr(buf, "--license") != NULL);
+}
+
+static void test_help_repo_edit(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "edit", "-h", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo edit <owner/repo>") != NULL);
+    ASSERT_TRUE(strstr(buf, "--website") != NULL);
+    ASSERT_TRUE(strstr(buf, "--allow-squash") != NULL);
+}
+
+static void test_help_repo_delete(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "delete", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo delete") != NULL);
+    ASSERT_TRUE(strstr(buf, "--yes") != NULL);
+}
+
+static void test_help_repo_rename(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "rename", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo rename") != NULL);
+}
+
+static void test_help_repo_show(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "show", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo show") != NULL);
+}
+
+static void test_help_repo_list(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "list", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo list") != NULL);
+    ASSERT_TRUE(strstr(buf, "--org") != NULL);
+}
+
+static void test_help_repo_transfer(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "transfer", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo transfer") != NULL);
+}
+
+static void test_help_repo_topic(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "topic", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "Manage repository topics.") != NULL);
+    ASSERT_TRUE(strstr(buf, "add") != NULL);
+    ASSERT_TRUE(strstr(buf, "set") != NULL);
+}
+
+static void test_help_topic_add(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "topic", "add", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo topic add") != NULL);
+}
+
+static void test_help_topic_set(void)
+{
+    char buf[4096];
+    const char *args[] = { "repo", "topic", "set", "-h", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb repo topic set") != NULL);
+}
+
 int main(int argc, char *argv[])
 {
     test_parse_args(argc, argv);
@@ -310,6 +478,21 @@ int main(int argc, char *argv[])
     RUN_TEST(test_cli_unknown_command);
     RUN_TEST(test_cli_missing_args);
     RUN_TEST(test_cli_json_flag);
+
+    RUN_TEST(test_help_top_level);
+    RUN_TEST(test_help_top_level_short);
+    RUN_TEST(test_help_repo);
+    RUN_TEST(test_help_repo_short);
+    RUN_TEST(test_help_repo_create);
+    RUN_TEST(test_help_repo_edit);
+    RUN_TEST(test_help_repo_delete);
+    RUN_TEST(test_help_repo_rename);
+    RUN_TEST(test_help_repo_show);
+    RUN_TEST(test_help_repo_list);
+    RUN_TEST(test_help_repo_transfer);
+    RUN_TEST(test_help_repo_topic);
+    RUN_TEST(test_help_topic_add);
+    RUN_TEST(test_help_topic_set);
 
     TEST_SUMMARY();
 }

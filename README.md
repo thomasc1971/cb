@@ -33,7 +33,7 @@ make test     # Run all tests
 ### Test
 
 ```bash
-make test     # 119 tests, all under ASan+UBSan
+make test     # 133 tests, all under ASan+UBSan
 ```
 
 ## Configuration
@@ -78,6 +78,20 @@ cb [global flags] <command> [subcommand] [args] [flags]
 | `--quiet`, `-q`  | Suppress non-essential output             |
 | `--base-url URL` | Override API base URL                     |
 | `--yes`          | Skip confirmation prompts                 |
+| `--help`, `-h`   | Show help at any command level            |
+
+### Getting help
+
+`--help` / `-h` works at every level of the command tree:
+
+```bash
+cb --help                    # top-level help
+cb repo --help               # repo subcommands
+cb repo create --help         # create flags
+cb repo edit --help           # edit flags
+cb repo topic --help          # topic subcommands
+cb repo topic add --help      # topic add usage
+```
 
 ### Commands
 
@@ -181,7 +195,7 @@ cb/
 │   ├── cb_api.c      # ~420 lines: all repo + topic API operations
 │   ├── cb_cli.c      # ~750 lines: command parsing, flag dispatch, output
 │   └── main.c        # Entry point
-└── tests/            # 119 tests, all under ASan+UBSan
+└── tests/            # 133 tests, all under ASan+UBSan
     ├── test_helpers.h  # Custom assert macros (coffer pattern)
     ├── mock_server.h/c # Minimal HTTP mock server for offline tests
     ├── test_json.c     # 36 tests
@@ -189,7 +203,7 @@ cb/
     ├── test_config.c   # 14 tests
     ├── test_validate.c # 24 tests
     ├── test_api.c      # 21 tests
-    └── test_cli.c      # 14 tests
+    └── test_cli.c      # 28 tests
 ```
 
 ### Key design decisions
@@ -200,7 +214,7 @@ cb/
 
 - **Mock HTTP server for tests**: A minimal `socket` + `pthread` server in the test harness. Tests are fully offline — no network calls, no TLS. Each test configures canned responses per method+path.
 
-- **TDD**: Every module was built test-first. Tests run under ASan+UBSan to catch memory leaks and undefined behavior. 119 tests, 0 leaks.
+- **TDD**: Every module was built test-first. Tests run under ASan+UBSan to catch memory leaks and undefined behavior. 133 tests, 0 leaks.
 
 ## License
 

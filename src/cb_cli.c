@@ -30,6 +30,7 @@ static const FlagDef CREATE_FLAGS[] = {
     { "--template", NULL, 0 },
     { "--org", NULL, 1 },
     { "--object-format", NULL, 1 },
+    { "--help", "-h", 0 },
     { NULL, NULL, 0 }
 };
 
@@ -70,6 +71,7 @@ static const FlagDef EDIT_FLAGS[] = {
     { "--no-delete-branch-after-merge", NULL, 0 },
     { "--allow-maintainer-edit", NULL, 0 },
     { "--no-allow-maintainer-edit", NULL, 0 },
+    { "--help", "-h", 0 },
     { NULL, NULL, 0 }
 };
 
@@ -80,6 +82,25 @@ static const FlagDef GLOBAL_FLAGS[] = {
     { "--yes", NULL, 0 },
     { NULL, NULL, 0 }
 };
+
+/* Help flag sentinel — checked before parse_flags in every handler. */
+static int is_help_arg(const char *arg)
+{
+    return strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0;
+}
+
+/* Print all flags in a table as aligned "  --name, -alias  description" lines. */
+static void print_flag_table(const FlagDef *table)
+{
+    for (int i = 0; table[i].name; i++) {
+        if (strcmp(table[i].name, "--help") == 0)
+            continue;
+        if (table[i].alias)
+            printf("  %s, %s\n", table[i].name, table[i].alias);
+        else
+            printf("  %s\n", table[i].name);
+    }
+}
 
 /* Check if a string matches a flag definition (by name or alias). */
 static int matches_flag(const char *arg, const FlagDef *def)
@@ -105,6 +126,128 @@ static int find_flag(const char *arg, const FlagDef *table)
 static int is_global_flag(const char *arg)
 {
     return find_flag(arg, GLOBAL_FLAGS) >= 0;
+}
+
+/* ===== Help text ===== */
+
+static void help_repo_create(void)
+{
+    printf("Usage: cb repo create <name> [flags]\n\n");
+    printf("Create a new repository.\n\n");
+    printf("Flags:\n");
+    print_flag_table(CREATE_FLAGS);
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo_delete(void)
+{
+    printf("Usage: cb repo delete <owner/repo> [--yes]\n\n");
+    printf("Delete a repository. Requires --yes or interactive confirmation.\n\n");
+    printf("Flags:\n");
+    printf("  --yes                   Skip confirmation prompt\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo_rename(void)
+{
+    printf("Usage: cb repo rename <owner/repo> <new-name>\n\n");
+    printf("Rename a repository.\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo_edit(void)
+{
+    printf("Usage: cb repo edit <owner/repo> [flags]\n\n");
+    printf("Edit repository settings. Only provided flags are sent; unset\n");
+    printf("fields are not modified.\n\n");
+    printf("Flags:\n");
+    print_flag_table(EDIT_FLAGS);
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo_show(void)
+{
+    printf("Usage: cb repo show <owner/repo>\n\n");
+    printf("Show repository details.\n\n");
+    printf("Flags:\n");
+    printf("  --json                  Output raw JSON\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo_list(void)
+{
+    printf("Usage: cb repo list [--user U | --org O]\n\n");
+    printf("List repositories. With no flags, lists your own repos.\n\n");
+    printf("Flags:\n");
+    printf("  --user U                List repos for a specific user\n");
+    printf("  --org O                 List repos for an organization\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo_transfer(void)
+{
+    printf("Usage: cb repo transfer <owner/repo> <new-owner> [--yes]\n\n");
+    printf("Transfer a repository to a new owner. Requires --yes or\n");
+    printf("interactive confirmation.\n\n");
+    printf("Flags:\n");
+    printf("  --yes                   Skip confirmation prompt\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo_topic(void)
+{
+    printf("Usage: cb repo topic <add|rm|list|set> ...\n\n");
+    printf("Manage repository topics.\n\n");
+    printf("Subcommands:\n");
+    printf("  add    <owner/repo> <topic>          Add a topic\n");
+    printf("  rm     <owner/repo> <topic>          Remove a topic\n");
+    printf("  list   <owner/repo>                  List topics\n");
+    printf("  set    <owner/repo> <t1,t2,...>      Replace all topics\n");
+    printf("\nRun 'cb repo topic <subcommand> --help' for details.\n");
+}
+
+static void help_topic_add(void)
+{
+    printf("Usage: cb repo topic add <owner/repo> <topic>\n\n");
+    printf("Add a topic to a repository.\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_topic_rm(void)
+{
+    printf("Usage: cb repo topic rm <owner/repo> <topic>\n\n");
+    printf("Remove a topic from a repository.\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_topic_list(void)
+{
+    printf("Usage: cb repo topic list <owner/repo>\n\n");
+    printf("List topics on a repository.\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_topic_set(void)
+{
+    printf("Usage: cb repo topic set <owner/repo> <topic1,topic2,...>\n\n");
+    printf("Replace all topics on a repository with the given list.\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_repo(void)
+{
+    printf("Usage: cb repo <subcommand> [args] [flags]\n\n");
+    printf("Repository management.\n\n");
+    printf("Subcommands:\n");
+    printf("  create     Create a new repository\n");
+    printf("  delete     Delete a repository\n");
+    printf("  rename     Rename a repository\n");
+    printf("  edit       Edit repository settings\n");
+    printf("  show       Show repository details\n");
+    printf("  list       List repositories\n");
+    printf("  transfer   Transfer ownership\n");
+    printf("  topic      Manage topics (add, rm, list, set)\n");
+    printf("\nRun 'cb repo <subcommand> --help' for details.\n");
 }
 
 /* ===== Output helpers ===== */
@@ -362,6 +505,12 @@ static int find_flag_idx(const FlagDef *table, const char *name)
 
 static int cmd_repo_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_repo_create();
+            return CLI_OK;
+        }
+    }
     const char **positional;
     const char **fv;
     int *fb;
@@ -369,7 +518,7 @@ static int cmd_repo_create(int argc, char **argv, ApiClient *api, GlobalFlags *g
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Usage: cb repo create <name> [flags]\n");
+        help_repo_create();
         free(positional);
         free(fv);
         free(fb);
@@ -458,6 +607,12 @@ static int cmd_repo_create(int argc, char **argv, ApiClient *api, GlobalFlags *g
 
 static int cmd_repo_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_repo_delete();
+            return CLI_OK;
+        }
+    }
     const char **positional;
     const char **fv;
     int *fb;
@@ -465,7 +620,7 @@ static int cmd_repo_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Usage: cb repo delete <owner/repo> [--yes]\n");
+        help_repo_delete();
         free(positional);
         free(fv);
         free(fb);
@@ -521,8 +676,14 @@ static int cmd_repo_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
 
 static int cmd_repo_rename(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_repo_rename();
+            return CLI_OK;
+        }
+    }
     if (argc < 2) {
-        fprintf(stderr, "Usage: cb repo rename <owner/repo> <new-name>\n");
+        help_repo_rename();
         return CLI_USAGE;
     }
 
@@ -562,6 +723,12 @@ static int cmd_repo_rename(int argc, char **argv, ApiClient *api, GlobalFlags *g
 
 static int cmd_repo_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_repo_edit();
+            return CLI_OK;
+        }
+    }
     const char **positional;
     const char **fv;
     int *fb;
@@ -569,7 +736,7 @@ static int cmd_repo_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Usage: cb repo edit <owner/repo> [flags]\n");
+        help_repo_edit();
         free(positional);
         free(fv);
         free(fb);
@@ -697,8 +864,14 @@ static int cmd_repo_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 static int cmd_repo_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_repo_show();
+            return CLI_OK;
+        }
+    }
     if (argc < 1) {
-        fprintf(stderr, "Usage: cb repo show <owner/repo>\n");
+        help_repo_show();
         return CLI_USAGE;
     }
 
@@ -731,6 +904,10 @@ static int cmd_repo_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     int is_org = 0;
 
     for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_repo_list();
+            return CLI_OK;
+        }
         if (strcmp(argv[i], "--org") == 0) {
             if (i + 1 >= argc) {
                 fprintf(stderr, "Error: --org requires a value\n");
@@ -768,8 +945,14 @@ static int cmd_repo_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 static int cmd_repo_transfer(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_repo_transfer();
+            return CLI_OK;
+        }
+    }
     if (argc < 2) {
-        fprintf(stderr, "Usage: cb repo transfer <owner/repo> <new-owner> [--yes]\n");
+        help_repo_transfer();
         return CLI_USAGE;
     }
 
@@ -810,8 +993,14 @@ static int cmd_repo_transfer(int argc, char **argv, ApiClient *api, GlobalFlags 
 
 static int cmd_topic_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_topic_add();
+            return CLI_OK;
+        }
+    }
     if (argc < 2) {
-        fprintf(stderr, "Usage: cb repo topic add <owner/repo> <topic>\n");
+        help_topic_add();
         return CLI_USAGE;
     }
     char owner[128], repo[128], verr[256];
@@ -836,8 +1025,14 @@ static int cmd_topic_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 static int cmd_topic_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_topic_rm();
+            return CLI_OK;
+        }
+    }
     if (argc < 2) {
-        fprintf(stderr, "Usage: cb repo topic rm <owner/repo> <topic>\n");
+        help_topic_rm();
         return CLI_USAGE;
     }
     char owner[128], repo[128], verr[256];
@@ -862,8 +1057,14 @@ static int cmd_topic_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 static int cmd_topic_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_topic_list();
+            return CLI_OK;
+        }
+    }
     if (argc < 1) {
-        fprintf(stderr, "Usage: cb repo topic list <owner/repo>\n");
+        help_topic_list();
         return CLI_USAGE;
     }
     char owner[128], repo[128], verr[256];
@@ -890,8 +1091,14 @@ static int cmd_topic_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf
 
 static int cmd_topic_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_topic_set();
+            return CLI_OK;
+        }
+    }
     if (argc < 2) {
-        fprintf(stderr, "Usage: cb repo topic set <owner/repo> <topic1,topic2,...>\n");
+        help_topic_set();
         return CLI_USAGE;
     }
     char owner[128], repo[128], verr[256];
@@ -952,7 +1159,7 @@ static int cmd_topic_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 static int cmd_repo(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 {
     if (argc < 1) {
-        fprintf(stderr, "Usage: cb repo <create|delete|rename|edit|show|list|transfer|topic> ...\n");
+        help_repo();
         return CLI_USAGE;
     }
 
@@ -960,6 +1167,10 @@ static int cmd_repo(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     int rest_argc = argc - 1;
     char **rest_argv = argv + 1;
 
+    if (is_help_arg(sub)) {
+        help_repo();
+        return CLI_OK;
+    }
     if (strcmp(sub, "create") == 0)
         return cmd_repo_create(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "delete") == 0)
@@ -976,12 +1187,16 @@ static int cmd_repo(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
         return cmd_repo_transfer(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "topic") == 0) {
         if (rest_argc < 1) {
-            fprintf(stderr, "Usage: cb repo topic <add|rm|list|set> ...\n");
+            help_repo_topic();
             return CLI_USAGE;
         }
         const char *topic_sub = rest_argv[0];
         int topic_argc = rest_argc - 1;
         char **topic_argv = rest_argv + 1;
+        if (is_help_arg(topic_sub)) {
+            help_repo_topic();
+            return CLI_OK;
+        }
         if (strcmp(topic_sub, "add") == 0)
             return cmd_topic_add(topic_argc, topic_argv, api, gf);
         if (strcmp(topic_sub, "rm") == 0)
@@ -991,10 +1206,12 @@ static int cmd_repo(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
         if (strcmp(topic_sub, "set") == 0)
             return cmd_topic_set(topic_argc, topic_argv, api, gf);
         fprintf(stderr, "Error: unknown topic subcommand '%s'\n", topic_sub);
+        help_repo_topic();
         return CLI_USAGE;
     }
 
     fprintf(stderr, "Error: unknown repo subcommand '%s'\n", sub);
+    help_repo();
     return CLI_USAGE;
 }
 
@@ -1004,16 +1221,16 @@ void cli_print_help(const char *cmd)
         printf("cb — Codeberg (Forgejo) repository management CLI\n\n");
         printf("Usage: cb [global flags] <command> [subcommand] [args] [flags]\n\n");
         printf("Commands:\n");
-        printf("  repo    Repository management (create, delete, rename, edit, show, list, transfer)\n");
+        printf("  repo    Repository management (create, delete, rename, edit, show, list, transfer, topic)\n");
         printf("\nGlobal flags:\n");
         printf("  --json          Output raw JSON\n");
         printf("  --quiet, -q     Suppress non-essential output\n");
         printf("  --base-url URL  Override API base URL\n");
         printf("  --yes           Skip confirmation prompts\n");
+        printf("  --help, -h      Show this help\n");
         printf("\nRun 'cb repo --help' for subcommand details.\n");
         return;
     }
-    /* TODO: per-command help */
 }
 
 int cli_run(int argc, char **argv)
