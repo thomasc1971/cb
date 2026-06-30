@@ -33,7 +33,7 @@ make test     # Run all tests
 ### Test
 
 ```bash
-make test     # 133 tests, all under ASan+UBSan
+make test     # all under ASan+UBSan
 ```
 
 ## Configuration
@@ -188,33 +188,33 @@ cb/
 │   ├── cb_api.h      # Forgejo API client
 │   └── cb_cli.h      # CLI dispatch
 ├── src/              # Implementation
-│   ├── cb_json.c     # ~450 lines: recursive-descent parser + builder + serializer
-│   ├── cb_http.c     # ~380 lines: plain HTTP + TLS via libtls
-│   ├── cb_config.c   # ~180 lines: TOML-ish config + env + URL parser
-│   ├── cb_validate.c # ~130 lines: repo name, description, merge style validation
-│   ├── cb_api.c      # ~420 lines: all repo + topic API operations
-│   ├── cb_cli.c      # ~750 lines: command parsing, flag dispatch, output
+│   ├── cb_json.c     # recursive-descent parser + builder + serializer
+│   ├── cb_http.c     # plain HTTP + TLS via libtls
+│   ├── cb_config.c   # TOML-ish config + env + URL parser
+│   ├── cb_validate.c # repo name, description, merge style validation
+│   ├── cb_api.c      # all repo + topic API operations
+│   ├── cb_cli.c      # command parsing, flag dispatch, output
 │   └── main.c        # Entry point
-└── tests/            # 133 tests, all under ASan+UBSan
+└── tests/            # all under ASan+UBSan
     ├── test_helpers.h  # Custom assert macros (coffer pattern)
     ├── mock_server.h/c # Minimal HTTP mock server for offline tests
-    ├── test_json.c     # 36 tests
-    ├── test_http.c     # 10 tests
-    ├── test_config.c   # 14 tests
-    ├── test_validate.c # 24 tests
-    ├── test_api.c      # 21 tests
-    └── test_cli.c      # 28 tests
+    ├── test_json.c     # JSON parser/serializer tests
+    ├── test_http.c     # HTTP client tests
+    ├── test_config.c   # Config loading tests
+    ├── test_validate.c # Validation tests
+    ├── test_api.c      # API client tests
+    └── test_cli.c      # CLI integration tests
 ```
 
 ### Key design decisions
 
-- **Custom JSON parser**: No JSON library available on the target system. ~450 lines covers objects, arrays, strings (with escape/Unicode handling), numbers, booleans, null. The serializer's `omit_null` mode is critical for `repo edit` — it ensures unset fields don't appear in the PATCH body, matching Forgejo's `omitempty` pointer semantics.
+- **Custom JSON parser**: Hand-coded to keep dependencies low. Covers objects, arrays, strings (with escape/Unicode handling), numbers, booleans, null. The serializer's `omit_null` mode is critical for `repo edit` — it ensures unset fields don't appear in the PATCH body, matching Forgejo's `omitempty` pointer semantics.
 
-- **libretls for TLS**: Codeberg requires HTTPS. libretls provides the `libtls` API as a thin wrapper over the system OpenSSL, reducing TLS to ~10 lines (`tls_client()` → `tls_connect()` → `tls_read/write()`) vs ~40 for raw OpenSSL.
+- **libretls for TLS**: Codeberg requires HTTPS. libretls provides the `libtls` API as a thin wrapper over the system OpenSSL, keeping TLS setup minimal compared to raw OpenSSL.
 
 - **Mock HTTP server for tests**: A minimal `socket` + `pthread` server in the test harness. Tests are fully offline — no network calls, no TLS. Each test configures canned responses per method+path.
 
-- **TDD**: Every module was built test-first. Tests run under ASan+UBSan to catch memory leaks and undefined behavior. 133 tests, 0 leaks.
+- **TDD**: Every module was built test-first. Tests run under ASan+UBSan to catch memory leaks and undefined behavior. All tests pass with zero leaks.
 
 ## License
 
