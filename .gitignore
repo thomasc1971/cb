@@ -9,3 +9,6 @@ tests/test_config
 tests/test_validate
 tests/test_api
 tests/test_cli
+
+# Agent-generated
+AGENTS.md
