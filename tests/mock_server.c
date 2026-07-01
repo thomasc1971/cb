@@ -1,6 +1,3 @@
-#define _POSIX_C_SOURCE 200809L
-#define _GNU_SOURCE
-
 #include "mock_server.h"
 
 #include <arpa/inet.h>

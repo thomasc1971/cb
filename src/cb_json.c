@@ -17,10 +17,8 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define _POSIX_C_SOURCE 200809L
-#define _GNU_SOURCE
-
 #include "cb_json.h"
+#include "cb_compat.h"
 
 #include <math.h>
 #include <stdbool.h>
@@ -811,10 +809,10 @@ char *json_serialize(const JsonValue *v, bool omit_null)
 {
     char *result = NULL;
     size_t size = 0;
-    FILE *f = open_memstream(&result, &size);
+    FILE *f = cb_open_memstream(&result, &size);
     if (!f)
         return NULL;
     serialize_value(v, f, omit_null);
-    fclose(f);
+    cb_close_memstream(f);
     return result;
 }

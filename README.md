@@ -19,21 +19,45 @@ A command-line tool for managing repositories on Codeberg and any Forgejo or Git
 ### Prerequisites
 
 - GCC or Clang (C11)
-- libretls (`dnf install libretls` on Fedora — provides `libtls` API over system OpenSSL)
-- make
+- libretls (provides `libtls` API over system OpenSSL)
+- autoconf, automake, make
+- pkg-config
+
+| Platform      | Install command                                                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Fedora        | `dnf install gcc libretls-devel pkg-config autoconf automake make`                                                           |
+| Debian/Ubuntu | `apt install gcc libretls-dev pkg-config autoconf automake make`                                                             |
+| MSYS2 UCRT64  | `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl mingw-w64-ucrt-x86_64-pkg-config autoconf automake make` |
+
+> **Note on MSYS2 UCRT64:** The UCRT64 toolchain lacks POSIX socket headers (`netdb.h`, `poll.h`, `sys/socket.h`). `cb_http.c` uses these APIs and requires a Winsock2 port to build on UCRT64. All other modules compile and test cleanly. Set `PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig` before `./configure` (libretls is not packaged; LibreSSL provides libtls).
 
 ### Build
 
 ```bash
-make          # Build with ASan+UBSan (default for development)
-make test     # Run all tests
-./cb          # Run the binary
+autoreconf -i            # Generate configure + Makefile.in (first time only)
+./configure              # Standard build
+make                     # Build the binary
+./cb                     # Run it
 ```
 
 ### Test
 
 ```bash
-make test     # all under ASan+UBSan
+make check               # Run all tests
+```
+
+### Development build with ASan + UBSan
+
+```bash
+./configure --enable-asan
+make check
+```
+
+### Install
+
+```bash
+./configure --prefix=$HOME/.local
+make install
 ```
 
 ## Configuration
@@ -180,6 +204,11 @@ Exit codes: `0` success, `1` error, `2` usage error.
 
 ```
 cb/
+├── configure.ac      # Autotools build configuration
+├── Makefile.am       # Top-level automake
+├── src/Makefile.am   # Binary build rules
+├── tests/Makefile.am # Test binary rules
+├── m4/               # Autoconf macros (ax_pthread, ax_check_compile_flag)
 ├── include/          # Public headers
 │   ├── cb_json.h     # JSON parser/serializer
 │   ├── cb_http.h     # HTTP client (POSIX sockets + libtls)
@@ -195,7 +224,7 @@ cb/
 │   ├── cb_api.c      # all repo + topic API operations
 │   ├── cb_cli.c      # command parsing, flag dispatch, output
 │   └── main.c        # Entry point
-└── tests/            # all under ASan+UBSan
+└── tests/            # Run with: make check (or: ./configure --enable-asan && make check)
     ├── test_helpers.h  # Custom assert macros (coffer pattern)
     ├── mock_server.h/c # Minimal HTTP mock server for offline tests
     ├── test_json.c     # JSON parser/serializer tests
@@ -214,7 +243,7 @@ cb/
 
 - **Mock HTTP server for tests**: A minimal `socket` + `pthread` server in the test harness. Tests are fully offline — no network calls, no TLS. Each test configures canned responses per method+path.
 
-- **TDD**: Every module was built test-first. Tests run under ASan+UBSan to catch memory leaks and undefined behavior. All tests pass with zero leaks.
+- **TDD**: Every module was built test-first. Run `./configure --enable-asan && make check` to test under ASan+UBSan. All tests pass with zero leaks.
 
 ## License
 

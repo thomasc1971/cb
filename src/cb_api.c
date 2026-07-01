@@ -17,8 +17,6 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define _POSIX_C_SOURCE 200809L
-
 #include "cb_api.h"
 #include "cb_config.h"
 #include "cb_json.h"

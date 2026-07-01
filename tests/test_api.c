@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include "cb_api.h"
 #include "mock_server.h"
 #include "test_helpers.h"

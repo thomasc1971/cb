@@ -1,6 +1,8 @@
 # Build artifacts
 cb
+cb.exe
 *.o
+*.a
 
 # Test binaries
 tests/test_json
@@ -9,6 +11,37 @@ tests/test_config
 tests/test_validate
 tests/test_api
 tests/test_cli
+tests/*.exe
+
+# Autotools generated
+aclocal.m4
+autom4te.cache/
+ar-lib
+compile
+config.guess
+config.h
+config.h.in
+config.h.in~
+config.sub
+configure
+configure~
+depcomp
+install-sh
+ltmain.sh
+missing
+test-driver
+Makefile.in
+src/Makefile.in
+tests/Makefile.in
+
+# Autotools build artifacts
+Makefile
+config.h
+config.h.in
+config.log
+config.status
+stamp-h1
+.deps/
 
 # Agent-generated
 AGENTS.md

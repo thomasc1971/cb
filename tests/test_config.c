@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include "cb_config.h"
 #include "test_helpers.h"
 #include <stdio.h>

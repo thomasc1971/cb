@@ -1,5 +1,3 @@
-#define _GNU_SOURCE
-
 #include "cb_api.h"
 #include "cb_cli.h"
 #include "cb_config.h"

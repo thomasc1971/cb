@@ -17,10 +17,8 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define _POSIX_C_SOURCE 200809L
-#define _GNU_SOURCE
-
 #include "cb_http.h"
+#include "cb_compat.h"
 
 #include <errno.h>
 #include <netdb.h>
@@ -342,7 +340,7 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
     /* Build request */
     char *request = NULL;
     size_t req_len = 0;
-    FILE *f = open_memstream(&request, &req_len);
+    FILE *f = cb_open_memstream(&request, &req_len);
     if (!f) {
         snprintf(resp->error, sizeof(resp->error), "open_memstream failed");
         close(fd);
@@ -364,7 +362,7 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
     } else {
         fprintf(f, "\r\n");
     }
-    fclose(f);
+    cb_close_memstream(f);
 
     /* Send request */
     if (send_all(fd, request, req_len) < 0) {

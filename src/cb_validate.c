@@ -17,8 +17,6 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define _POSIX_C_SOURCE 200809L
-
 #include "cb_validate.h"
 
 #include <stdio.h>
