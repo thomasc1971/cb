@@ -106,7 +106,7 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - JSON output mode for scripting (`--json`)
 - Client-side validation with clear error messages
 - Token scope error detection with actionable guidance
-- Cross-platform: Linux, Windows (ZIP with bundled DLLs)
+- Cross-platform: Linux, macOS, and Windows (MSYS2 UCRT64)
 
 ## Download
 
@@ -125,7 +125,7 @@ The Linux and macOS tarballs contain the `cb` binary, GPLv3 license text, and RE
 ### Prerequisites
 
 - GCC or Clang (C11)
-- libretls (provides `libtls` API over system OpenSSL)
+- libretls (Linux/macOS) or LibreSSL (MSYS2) — provides the `libtls` API
 - autoconf, automake, make
 - pkg-config
 
@@ -158,11 +158,13 @@ pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl \
           mingw-w64-ucrt-x86_64-pkg-config autoconf automake make
 
 export PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig
-./autogen.sh
-./configure LDFLAGS=-L/ucrt64/lib/libressl
+autoreconf -i
+./configure CPPFLAGS=-I/ucrt64/include/libressl LDFLAGS=-L/ucrt64/lib/libressl
 make
 make check               # All 8 test suites pass
 ```
+
+> **MSYS2 pkg-config path issue:** The UCRT64 pkg-config rewrites `prefix` paths to Windows-style paths that the MSYS2 GCC cannot resolve. Passing `CPPFLAGS` and `LDFLAGS` with MSYS2-style paths works around this. The `cb_compat.h` header conditionally uses Winsock2 on Windows and POSIX sockets elsewhere, so no source changes are needed.
 
 </details>
 
@@ -731,11 +733,13 @@ Versions are derived from git state — no hardcoded version numbers to update. 
 
 - **Custom JSON parser**: Hand-coded to keep dependencies low. Covers objects, arrays, strings (with escape/Unicode handling), numbers, booleans, null. The serializer's `omit_null` mode is critical for `repo edit` — it ensures unset fields don't appear in the PATCH body, matching Forgejo's `omitempty` pointer semantics.
 
-- **libretls for TLS**: Codeberg requires HTTPS. libretls provides the `libtls` API as a thin wrapper over the system OpenSSL, keeping TLS setup minimal compared to raw OpenSSL.
+- **libtls for TLS**: Codeberg requires HTTPS. libretls (Linux/macOS) or LibreSSL (MSYS2) provides the `libtls` API as a thin wrapper over the system OpenSSL, keeping TLS setup minimal compared to raw OpenSSL.
+
+- **Portable socket layer**: `cb_compat.h` abstracts the differences between POSIX sockets and Winsock2 — socket types, close/errno/poll wrappers, timeout APIs, and shutdown constants. Source code uses `cb_socket_t`, `cb_close_socket()`, `cb_poll()`, etc. throughout, so the same `.c` files compile on both platforms without `#ifdef` clutter.
 
 - **Mock HTTP server for tests**: A minimal `socket` + `pthread` server in the test harness. Tests are fully offline — no network calls, no TLS. Each test configures canned responses per method+path. The server supports sequential responses to the same path (for multi-request flows like log pagination).
 
-- **TDD**: Every module was built test-first. Run `./configure --enable-asan && make check` to test under ASan+UBSan. All 8 test suites pass with zero leaks.
+- **TDD**: Every module was built test-first. Run `./configure --enable-asan && make check` to test under ASan+UBSan. All 8 test suites pass with zero leaks on both Linux and MSYS2 UCRT64.
 
 - **Actions log fetching**: Forgejo does not expose workflow logs through the `/api/v1` REST API. The `actions log` command uses the web UI's JSON endpoint (`POST /{owner}/{repo}/actions/runs/{run_id}/jobs/{job}/attempt/{attempt}`) with token auth, handling cursor-based pagination to fetch complete log output.
 
