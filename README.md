@@ -29,7 +29,7 @@ A command-line tool for managing repositories on Codeberg and any Forgejo or Git
 | Debian/Ubuntu | `apt install gcc libretls-dev pkg-config autoconf automake make`                                                             |
 | MSYS2 UCRT64  | `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl mingw-w64-ucrt-x86_64-pkg-config autoconf automake make` |
 
-> **Note on MSYS2 UCRT64:** The UCRT64 toolchain lacks POSIX socket headers (`netdb.h`, `poll.h`, `sys/socket.h`). `cb_http.c` uses these APIs and requires a Winsock2 port to build on UCRT64. All other modules compile and test cleanly. Set `PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig` before `./configure` (libretls is not packaged; LibreSSL provides libtls).
+> **Note on MSYS2 UCRT64:** libretls is not packaged for MSYS2; LibreSSL provides libtls instead. Set `PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig` before `./configure`. The UCRT64 toolchain uses Winsock2 instead of POSIX sockets — `cb_compat.h` provides a portable socket layer that conditionally uses Winsock2 on Windows and POSIX sockets elsewhere. On UCRT64, pass `LDFLAGS=-L/ucrt64/lib/libressl` to `./configure` if the linker cannot find `-ltls`.
 
 ### Build
 
@@ -39,6 +39,23 @@ autoreconf -i            # Generate configure + Makefile.in (first time only)
 make                     # Build the binary
 ./cb                     # Run it
 ```
+
+<details>
+<summary>Building on MSYS2 UCRT64 (Windows)</summary>
+
+```bash
+# From an MSYS2 UCRT64 shell:
+pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl \
+          mingw-w64-ucrt-x86_64-pkg-config autoconf automake make
+
+export PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig
+autoreconf -i
+./configure LDFLAGS=-L/ucrt64/lib/libressl
+make
+make check               # All 6 test suites pass
+```
+
+</details>
 
 ### Test
 
@@ -211,10 +228,11 @@ cb/
 ├── m4/               # Autoconf macros (ax_pthread, ax_check_compile_flag)
 ├── include/          # Public headers
 │   ├── cb_json.h     # JSON parser/serializer
-│   ├── cb_http.h     # HTTP client (POSIX sockets + libtls)
+│   ├── cb_http.h     # HTTP client (sockets + libtls, Winsock2/POSIX via cb_compat)
 │   ├── cb_config.h   # Config loading (file + env)
 │   ├── cb_validate.h # Client-side validation
 │   ├── cb_api.h      # Forgejo API client
+│   ├── cb_compat.h   # Portable compat layer (sockets, memstream, env, fs)
 │   └── cb_cli.h      # CLI dispatch
 ├── src/              # Implementation
 │   ├── cb_json.c     # recursive-descent parser + builder + serializer
@@ -223,6 +241,7 @@ cb/
 │   ├── cb_validate.c # repo name, description, merge style validation
 │   ├── cb_api.c      # all repo + topic API operations
 │   ├── cb_cli.c      # command parsing, flag dispatch, output
+│   ├── cb_compat.c   # Portable wrappers (open_memstream, Winsock2, setenv, etc.)
 │   └── main.c        # Entry point
 └── tests/            # Run with: make check (or: ./configure --enable-asan && make check)
     ├── test_helpers.h  # Custom assert macros (coffer pattern)

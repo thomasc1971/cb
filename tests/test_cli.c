@@ -1,13 +1,12 @@
 #include "cb_api.h"
 #include "cb_cli.h"
+#include "cb_compat.h"
 #include "cb_config.h"
 #include "mock_server.h"
 #include "test_helpers.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
 /* CLI tests are integration tests: we set up a mock server and run
  * cli_run() with crafted argv, pointing CB_BASE_URL and CB_TOKEN at
@@ -25,15 +24,15 @@ static void setup_server(MockResponse *responses, size_t count)
     /* Set env vars so config_load picks them up */
     char url[256];
     snprintf(url, sizeof(url), "http://127.0.0.1:%d/api/v1", server.port);
-    setenv("CB_BASE_URL", url, 1);
-    setenv("CB_TOKEN", "test-token", 1);
+    cb_setenv("CB_BASE_URL", url, 1);
+    cb_setenv("CB_TOKEN", "test-token", 1);
 }
 
 static void teardown_server(void)
 {
     mock_server_stop(&server);
-    unsetenv("CB_BASE_URL");
-    unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
 }
 
 static const char *REPO_JSON_STR =
@@ -249,20 +248,20 @@ static void test_cli_topic_list(void)
 
 static void test_cli_unknown_command(void)
 {
-    setenv("CB_TOKEN", "tok", 1);
-    unsetenv("CB_BASE_URL");
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
 
     const char *args[] = { "bogus", NULL };
     int rc = run_cli(args);
     ASSERT_EQ(rc, CLI_USAGE);
 
-    unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_cli_missing_args(void)
 {
-    setenv("CB_TOKEN", "tok", 1);
-    unsetenv("CB_BASE_URL");
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
 
     const char *args[] = { "repo", "show", NULL };
     int rc = run_cli(args);
@@ -271,7 +270,7 @@ static void test_cli_missing_args(void)
      * Either way it shouldn't be CLI_OK. */
     ASSERT_NEQ(rc, CLI_OK);
 
-    unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_cli_json_flag(void)
@@ -294,11 +293,23 @@ static void test_cli_json_flag(void)
 /* Run cli_run with stdout captured into a buffer. Returns exit code. */
 static int run_cli_captured(const char *args[], char *buf, size_t bufsize)
 {
+    memset(buf, 0, bufsize);
     fflush(stdout);
-    FILE *orig = stdout;
-    stdout = fmemopen(buf, bufsize, "w");
-    if (!stdout) {
-        stdout = orig;
+
+    /* Save original stdout fd and redirect to a tmpfile */
+    int saved_fd = cb_dup(fileno(stdout));
+    if (saved_fd < 0)
+        return -1;
+
+    FILE *tmpf = tmpfile();
+    if (!tmpf) {
+        cb_close(saved_fd);
+        return -1;
+    }
+
+    if (cb_dup2(fileno(tmpf), fileno(stdout)) < 0) {
+        fclose(tmpf);
+        cb_close(saved_fd);
         return -1;
     }
 
@@ -315,8 +326,16 @@ static int run_cli_captured(const char *args[], char *buf, size_t bufsize)
     free(argv);
 
     fflush(stdout);
-    fclose(stdout);
-    stdout = orig;
+
+    /* Restore original stdout */
+    cb_dup2(saved_fd, fileno(stdout));
+    cb_close(saved_fd);
+
+    /* Read captured output from tmpfile */
+    fseek(tmpf, 0, SEEK_SET);
+    size_t n = fread(buf, 1, bufsize - 1, tmpf);
+    buf[n] = '\0';
+    fclose(tmpf);
     return rc;
 }
 
@@ -341,6 +360,8 @@ static void test_help_top_level_short(void)
 
 static void test_help_repo(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
@@ -348,19 +369,25 @@ static void test_help_repo(void)
     ASSERT_TRUE(strstr(buf, "Repository management.") != NULL);
     ASSERT_TRUE(strstr(buf, "create") != NULL);
     ASSERT_TRUE(strstr(buf, "topic") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_short(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "-h", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "Repository management.") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_create(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "create", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
@@ -368,10 +395,13 @@ static void test_help_repo_create(void)
     ASSERT_TRUE(strstr(buf, "cb repo create <name>") != NULL);
     ASSERT_TRUE(strstr(buf, "--private") != NULL);
     ASSERT_TRUE(strstr(buf, "--license") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_edit(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "edit", "-h", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
@@ -379,57 +409,75 @@ static void test_help_repo_edit(void)
     ASSERT_TRUE(strstr(buf, "cb repo edit <owner/repo>") != NULL);
     ASSERT_TRUE(strstr(buf, "--website") != NULL);
     ASSERT_TRUE(strstr(buf, "--allow-squash") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_delete(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "delete", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "cb repo delete") != NULL);
     ASSERT_TRUE(strstr(buf, "--yes") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_rename(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "rename", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "cb repo rename") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_show(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "show", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "cb repo show") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_list(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "list", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "cb repo list") != NULL);
     ASSERT_TRUE(strstr(buf, "--org") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_transfer(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "transfer", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "cb repo transfer") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_repo_topic(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "topic", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
@@ -437,24 +485,31 @@ static void test_help_repo_topic(void)
     ASSERT_TRUE(strstr(buf, "Manage repository topics.") != NULL);
     ASSERT_TRUE(strstr(buf, "add") != NULL);
     ASSERT_TRUE(strstr(buf, "set") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_topic_add(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "topic", "add", "--help", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "cb repo topic add") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_help_topic_set(void)
 {
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
     char buf[4096];
     const char *args[] = { "repo", "topic", "set", "-h", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
     ASSERT_TRUE(strstr(buf, "cb repo topic set") != NULL);
+    cb_unsetenv("CB_TOKEN");
 }
 
 int main(int argc, char *argv[])

@@ -21,17 +21,9 @@
 #include "cb_compat.h"
 
 #include <errno.h>
-#include <netdb.h>
-#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
-#ifdef __linux__
-#include <sys/time.h>
-#endif
 
 #ifdef HAVE_LIBTLS
 #include <tls.h>
@@ -72,6 +64,13 @@ int http_client_init(HttpClient *c, const char *host, int port, int use_tls,
             return -1;
         }
     }
+#ifdef _WIN32
+    if (cb_wsa_startup() < 0) {
+        free(c->host);
+        free(c->token);
+        return -1;
+    }
+#endif
     return 0;
 }
 
@@ -93,15 +92,15 @@ void http_response_free(HttpResponse *resp)
     resp->body_len = 0;
 }
 
-/* Plain HTTP implementation using POSIX sockets */
+/* Plain HTTP implementation using sockets */
 
-static int send_all(int fd, const char *buf, size_t len)
+static int send_all(cb_socket_t fd, const char *buf, size_t len)
 {
     size_t sent = 0;
     while (sent < len) {
         ssize_t n = send(fd, buf + sent, len - sent, 0);
         if (n <= 0) {
-            if (errno == EINTR)
+            if (cb_sock_errno == cb_sock_eintr)
                 continue;
             return -1;
         }
@@ -110,7 +109,7 @@ static int send_all(int fd, const char *buf, size_t len)
     return 0;
 }
 
-static int recv_all(int fd, char **body_out, size_t *len_out)
+static int recv_all(cb_socket_t fd, char **body_out, size_t *len_out)
 {
     size_t cap = 4096;
     size_t len = 0;
@@ -130,7 +129,7 @@ static int recv_all(int fd, char **body_out, size_t *len_out)
         }
         ssize_t n = recv(fd, buf + len, cap - len - 1, 0);
         if (n < 0) {
-            if (errno == EINTR)
+            if (cb_sock_errno == cb_sock_eintr)
                 continue;
             free(buf);
             return -1;
@@ -198,6 +197,7 @@ static int parse_response(const char *raw, size_t raw_len, HttpResponse *resp)
                 eol = memchr(hdr, '\n', (size_t)(hend - hdr));
             if (!eol)
                 eol = hend; /* last line before terminator */
+
             size_t line_len = (size_t)(eol - hdr);
             if (line_len > 18 && strncasecmp(hdr, "Transfer-Encoding:", 18) == 0) {
                 const char *val = hdr + 18;
@@ -317,21 +317,18 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
         return -1;
     }
 
-    int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (fd < 0) {
-        snprintf(resp->error, sizeof(resp->error), "socket: %s", strerror(errno));
+    cb_socket_t fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (fd == CB_INVALID_SOCKET) {
+        snprintf(resp->error, sizeof(resp->error), "socket: %s", cb_sock_strerror(cb_sock_errno));
         freeaddrinfo(res);
         return -1;
     }
 
-    /* Set timeout */
-    struct timeval tv = { .tv_sec = c->timeout_sec, .tv_usec = 0 };
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    cb_set_sock_timeout(fd, c->timeout_sec);
 
-    if (connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
-        snprintf(resp->error, sizeof(resp->error), "connect: %s", strerror(errno));
-        close(fd);
+    if (connect(fd, res->ai_addr, (socklen_t)res->ai_addrlen) == CB_SOCKET_ERROR) {
+        snprintf(resp->error, sizeof(resp->error), "connect: %s", cb_sock_strerror(cb_sock_errno));
+        cb_close_socket(fd);
         freeaddrinfo(res);
         return -1;
     }
@@ -343,7 +340,7 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
     FILE *f = cb_open_memstream(&request, &req_len);
     if (!f) {
         snprintf(resp->error, sizeof(resp->error), "open_memstream failed");
-        close(fd);
+        cb_close_socket(fd);
         return -1;
     }
 
@@ -366,9 +363,9 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
 
     /* Send request */
     if (send_all(fd, request, req_len) < 0) {
-        snprintf(resp->error, sizeof(resp->error), "send failed: %s", strerror(errno));
+        snprintf(resp->error, sizeof(resp->error), "send failed: %s", cb_sock_strerror(cb_sock_errno));
         free(request);
-        close(fd);
+        cb_close_socket(fd);
         return -1;
     }
     free(request);
@@ -377,11 +374,11 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
     char *raw = NULL;
     size_t raw_len = 0;
     if (recv_all(fd, &raw, &raw_len) < 0) {
-        snprintf(resp->error, sizeof(resp->error), "recv failed: %s", strerror(errno));
-        close(fd);
+        snprintf(resp->error, sizeof(resp->error), "recv failed: %s", cb_sock_strerror(cb_sock_errno));
+        cb_close_socket(fd);
         return -1;
     }
-    close(fd);
+    cb_close_socket(fd);
 
     int rc = parse_response(raw, raw_len, resp);
     free(raw);
@@ -431,21 +428,19 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
         return -1;
     }
 
-    int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (fd < 0) {
-        snprintf(resp->error, sizeof(resp->error), "socket: %s", strerror(errno));
+    cb_socket_t fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (fd == CB_INVALID_SOCKET) {
+        snprintf(resp->error, sizeof(resp->error), "socket: %s", cb_sock_strerror(cb_sock_errno));
         freeaddrinfo(res);
         tls_free(ctx);
         return -1;
     }
 
-    struct timeval tv = { .tv_sec = c->timeout_sec, .tv_usec = 0 };
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    cb_set_sock_timeout(fd, c->timeout_sec);
 
-    if (connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
-        snprintf(resp->error, sizeof(resp->error), "connect: %s", strerror(errno));
-        close(fd);
+    if (connect(fd, res->ai_addr, (socklen_t)res->ai_addrlen) == CB_SOCKET_ERROR) {
+        snprintf(resp->error, sizeof(resp->error), "connect: %s", cb_sock_strerror(cb_sock_errno));
+        cb_close_socket(fd);
         freeaddrinfo(res);
         tls_free(ctx);
         return -1;
@@ -454,7 +449,7 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
 
     if (tls_connect_socket(ctx, fd, c->host) < 0) {
         snprintf(resp->error, sizeof(resp->error), "tls_connect_socket: %s", tls_error(ctx));
-        close(fd);
+        cb_close_socket(fd);
         tls_free(ctx);
         return -1;
     }
@@ -462,7 +457,7 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
     /* Build request */
     char *request = NULL;
     size_t req_len = 0;
-    FILE *f = open_memstream(&request, &req_len);
+    FILE *f = cb_open_memstream(&request, &req_len);
     if (!f) {
         snprintf(resp->error, sizeof(resp->error), "open_memstream failed");
         tls_close(ctx);
@@ -485,15 +480,18 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
     } else {
         fprintf(f, "\r\n");
     }
-    fclose(f);
+    cb_close_memstream(f);
 
     /* Send */
     size_t sent = 0;
     while (sent < req_len) {
         ssize_t n = tls_write(ctx, request + sent, req_len - sent);
         if (n == TLS_WANT_POLLIN || n == TLS_WANT_POLLOUT) {
-            struct pollfd pfd = { .fd = fd, .events = (n == TLS_WANT_POLLIN) ? POLLIN : POLLOUT };
-            poll(&pfd, 1, c->timeout_sec * 1000);
+            cb_pollfd pfd;
+            pfd.fd = fd;
+            pfd.events = (n == TLS_WANT_POLLIN) ? POLLIN : POLLOUT;
+            pfd.revents = 0;
+            cb_poll(&pfd, 1, c->timeout_sec * 1000);
             continue;
         }
         if (n < 0) {
@@ -501,7 +499,7 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
             free(request);
             tls_close(ctx);
             tls_free(ctx);
-            close(fd);
+            cb_close_socket(fd);
             return -1;
         }
         if (n == 0)
@@ -528,15 +526,18 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
                 free(raw);
                 tls_close(ctx);
                 tls_free(ctx);
-                close(fd);
+                cb_close_socket(fd);
                 return -1;
             }
             raw = tmp;
         }
         ssize_t n = tls_read(ctx, raw + len, cap - len - 1);
         if (n == TLS_WANT_POLLIN || n == TLS_WANT_POLLOUT) {
-            struct pollfd pfd = { .fd = fd, .events = (n == TLS_WANT_POLLIN) ? POLLIN : POLLOUT };
-            poll(&pfd, 1, c->timeout_sec * 1000);
+            cb_pollfd pfd;
+            pfd.fd = fd;
+            pfd.events = (n == TLS_WANT_POLLIN) ? POLLIN : POLLOUT;
+            pfd.revents = 0;
+            cb_poll(&pfd, 1, c->timeout_sec * 1000);
             continue;
         }
         if (n < 0) {
@@ -544,7 +545,7 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
             free(raw);
             tls_close(ctx);
             tls_free(ctx);
-            close(fd);
+            cb_close_socket(fd);
             return -1;
         }
         if (n == 0)
@@ -555,7 +556,7 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
 
     tls_close(ctx);
     tls_free(ctx);
-    close(fd);
+    cb_close_socket(fd);
 
     int rc = parse_response(raw, len, resp);
     free(raw);

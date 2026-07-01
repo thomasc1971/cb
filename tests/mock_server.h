@@ -1,6 +1,7 @@
 #ifndef MOCK_SERVER_H
 #define MOCK_SERVER_H
 
+#include "cb_compat.h"
 #include <pthread.h>
 #include <stdbool.h>
 
@@ -22,7 +23,7 @@ typedef struct
 typedef struct
 {
     int port;
-    int sockfd;
+    cb_socket_t sockfd;
     pthread_t thread;
     MockResponse *responses;
     size_t response_count;

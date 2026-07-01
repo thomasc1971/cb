@@ -42,6 +42,12 @@ config.log
 config.status
 stamp-h1
 .deps/
+.dirstamp
+
+# Test artifacts
+tests/*.log
+tests/*.trs
+tests/test-suite.log
 
 # Agent-generated
 AGENTS.md

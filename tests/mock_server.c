@@ -1,19 +1,16 @@
 #include "mock_server.h"
+#include "cb_compat.h"
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
-static void handle_client(MockServer *s, int clientfd)
+static void handle_client(MockServer *s, cb_socket_t clientfd)
 {
     char buf[8192];
     ssize_t n = recv(clientfd, buf, sizeof(buf) - 1, 0);
     if (n <= 0) {
-        close(clientfd);
+        cb_close_socket(clientfd);
         return;
     }
     buf[n] = '\0';
@@ -24,8 +21,8 @@ static void handle_client(MockServer *s, int clientfd)
     sscanf(buf, "%7s %255s", method, path);
 
     /* Capture for test inspection */
-    strncpy(s->last_method, method, sizeof(s->last_method) - 1);
-    strncpy(s->last_path, path, sizeof(s->last_path) - 1);
+    snprintf(s->last_method, sizeof(s->last_method), "%s", method);
+    snprintf(s->last_path, sizeof(s->last_path), "%s", path);
 
     /* Extract headers */
     char *auth = NULL;
@@ -117,7 +114,7 @@ static void handle_client(MockServer *s, int clientfd)
                          "\r\n"
                          "{\"message\":\"unauthorized\"}");
                 send(clientfd, resp, strlen(resp), 0);
-                close(clientfd);
+                cb_close_socket(clientfd);
                 return;
             }
         }
@@ -141,7 +138,7 @@ static void handle_client(MockServer *s, int clientfd)
     }
 
     send(clientfd, resp, strlen(resp), 0);
-    close(clientfd);
+    cb_close_socket(clientfd);
 }
 
 static void *server_thread(void *arg)
@@ -150,8 +147,8 @@ static void *server_thread(void *arg)
     while (s->running) {
         struct sockaddr_in client;
         socklen_t client_len = sizeof(client);
-        int clientfd = accept(s->sockfd, (struct sockaddr *)&client, &client_len);
-        if (clientfd < 0) {
+        cb_socket_t clientfd = accept(s->sockfd, (struct sockaddr *)&client, &client_len);
+        if (clientfd == CB_INVALID_SOCKET) {
             if (s->running)
                 continue;
             break;
@@ -167,12 +164,17 @@ int mock_server_start(MockServer *s, MockResponse *responses, size_t count)
     s->responses = responses;
     s->response_count = count;
 
+#ifdef _WIN32
+    if (cb_wsa_startup() < 0)
+        return -1;
+#endif
+
     s->sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (s->sockfd < 0)
+    if (s->sockfd == CB_INVALID_SOCKET)
         return -1;
 
     int opt = 1;
-    setsockopt(s->sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(s->sockfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt));
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
@@ -180,8 +182,8 @@ int mock_server_start(MockServer *s, MockResponse *responses, size_t count)
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     addr.sin_port = 0; /* ephemeral port */
 
-    if (bind(s->sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        close(s->sockfd);
+    if (bind(s->sockfd, (struct sockaddr *)&addr, sizeof(addr)) == CB_SOCKET_ERROR) {
+        cb_close_socket(s->sockfd);
         return -1;
     }
 
@@ -189,14 +191,14 @@ int mock_server_start(MockServer *s, MockResponse *responses, size_t count)
     getsockname(s->sockfd, (struct sockaddr *)&addr, &addr_len);
     s->port = ntohs(addr.sin_port);
 
-    if (listen(s->sockfd, 5) < 0) {
-        close(s->sockfd);
+    if (listen(s->sockfd, 5) == CB_SOCKET_ERROR) {
+        cb_close_socket(s->sockfd);
         return -1;
     }
 
     s->running = true;
     if (pthread_create(&s->thread, NULL, server_thread, s) != 0) {
-        close(s->sockfd);
+        cb_close_socket(s->sockfd);
         return -1;
     }
 
@@ -206,8 +208,8 @@ int mock_server_start(MockServer *s, MockResponse *responses, size_t count)
 void mock_server_stop(MockServer *s)
 {
     s->running = false;
-    shutdown(s->sockfd, SHUT_RDWR);
-    close(s->sockfd);
+    shutdown(s->sockfd, CB_SHUT_RDWR);
+    cb_close_socket(s->sockfd);
     pthread_join(s->thread, NULL);
 }
 

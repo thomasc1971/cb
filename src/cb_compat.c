@@ -66,3 +66,52 @@ int cb_close_memstream(FILE *f)
 }
 
 #endif /* HAVE_OPEN_MEMSTREAM */
+
+/* --- Winsock2 helpers --- */
+
+#ifdef _WIN32
+
+int cb_wsa_startup(void)
+{
+    WSADATA wsa;
+    static int initialized = 0;
+    if (initialized)
+        return 0;
+    if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
+        return -1;
+    initialized = 1;
+    return 0;
+}
+
+void cb_wsa_cleanup(void)
+{
+    WSACleanup();
+}
+
+const char *cb_wsa_strerror(int err)
+{
+    static char buf[256];
+    switch (err) {
+    case WSAECONNREFUSED:
+        return "Connection refused";
+    case WSAETIMEDOUT:
+        return "Connection timed out";
+    case WSAECONNRESET:
+        return "Connection reset by peer";
+    case WSAEHOSTUNREACH:
+        return "Host unreachable";
+    case WSAENETUNREACH:
+        return "Network unreachable";
+    case WSAECONNABORTED:
+        return "Connection aborted";
+    case WSAESHUTDOWN:
+        return "Socket has been shut down";
+    case WSAEINTR:
+        return "Interrupted system call";
+    default:
+        snprintf(buf, sizeof(buf), "Winsock error %d", err);
+        return buf;
+    }
+}
+
+#endif /* _WIN32 */

@@ -1,10 +1,9 @@
+#include "cb_compat.h"
 #include "cb_config.h"
 #include "test_helpers.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 static char tmpdir[256];
 
@@ -20,8 +19,8 @@ static void write_config_file(const char *content)
 
 static void test_env_token(void)
 {
-    setenv("CB_TOKEN", "env-token-123", 1);
-    unsetenv("CB_BASE_URL");
+    cb_setenv("CB_TOKEN", "env-token-123", 1);
+    cb_unsetenv("CB_BASE_URL");
 
     Config cfg;
     char err[256] = { 0 };
@@ -31,13 +30,13 @@ static void test_env_token(void)
     ASSERT_STR_EQ(cfg.token, "env-token-123");
     ASSERT_STR_EQ(cfg.base_url, DEFAULT_BASE_URL);
 
-    unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_env_base_url(void)
 {
-    setenv("CB_TOKEN", "tok", 1);
-    setenv("CB_BASE_URL", "https://example.com/api/v1", 1);
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_setenv("CB_BASE_URL", "https://example.com/api/v1", 1);
 
     Config cfg;
     char err[256] = { 0 };
@@ -45,14 +44,14 @@ static void test_env_base_url(void)
     ASSERT_EQ(rc, 0);
     ASSERT_STR_EQ(cfg.base_url, "https://example.com/api/v1");
 
-    unsetenv("CB_TOKEN");
-    unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
 }
 
 static void test_config_file_token(void)
 {
-    setenv("CB_TOKEN", "", 1); /* empty env so file takes over */
-    unsetenv("CB_BASE_URL");
+    cb_setenv("CB_TOKEN", "", 1); /* empty env so file takes over */
+    cb_unsetenv("CB_BASE_URL");
     write_config_file("token = \"file-token-abc\"\n");
 
     char path[512];
@@ -65,13 +64,13 @@ static void test_config_file_token(void)
     ASSERT_TRUE(cfg.token_set);
     ASSERT_STR_EQ(cfg.token, "file-token-abc");
 
-    unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_config_file_base_url(void)
 {
-    unsetenv("CB_TOKEN");
-    unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
     write_config_file("token = \"tok\"\nbase_url = \"https://forge.example.org/api/v1\"\n");
 
     char path[512];
@@ -86,8 +85,8 @@ static void test_config_file_base_url(void)
 
 static void test_cli_overrides_env(void)
 {
-    setenv("CB_TOKEN", "tok", 1);
-    setenv("CB_BASE_URL", "https://env.example.com/api/v1", 1);
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_setenv("CB_BASE_URL", "https://env.example.com/api/v1", 1);
 
     Config cfg;
     char err[256] = { 0 };
@@ -95,14 +94,14 @@ static void test_cli_overrides_env(void)
     config_apply_cli_override(&cfg, "https://cli.example.com/api/v1");
     ASSERT_STR_EQ(cfg.base_url, "https://cli.example.com/api/v1");
 
-    unsetenv("CB_TOKEN");
-    unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
 }
 
 static void test_env_overrides_file(void)
 {
-    setenv("CB_TOKEN", "env-tok", 1);
-    setenv("CB_BASE_URL", "https://env.example.com/api/v1", 1);
+    cb_setenv("CB_TOKEN", "env-tok", 1);
+    cb_setenv("CB_BASE_URL", "https://env.example.com/api/v1", 1);
     write_config_file("token = \"file-tok\"\nbase_url = \"https://file.example.com/api/v1\"\n");
 
     char path[512];
@@ -115,14 +114,14 @@ static void test_env_overrides_file(void)
     ASSERT_STR_EQ(cfg.token, "env-tok");
     ASSERT_STR_EQ(cfg.base_url, "https://env.example.com/api/v1");
 
-    unsetenv("CB_TOKEN");
-    unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
 }
 
 static void test_default_base_url(void)
 {
-    setenv("CB_TOKEN", "tok", 1);
-    unsetenv("CB_BASE_URL");
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
 
     Config cfg;
     char err[256] = { 0 };
@@ -130,13 +129,13 @@ static void test_default_base_url(void)
     ASSERT_EQ(rc, 0);
     ASSERT_STR_EQ(cfg.base_url, DEFAULT_BASE_URL);
 
-    unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_TOKEN");
 }
 
 static void test_missing_token(void)
 {
-    unsetenv("CB_TOKEN");
-    unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
 
     Config cfg;
     char err[256] = { 0 };
@@ -148,8 +147,8 @@ static void test_missing_token(void)
 
 static void test_malformed_config_line_skipped(void)
 {
-    unsetenv("CB_TOKEN");
-    unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
     write_config_file("# this is a comment\nmalformed line without equals\ntoken = \"good-token\"\n");
 
     char path[512];
@@ -164,8 +163,8 @@ static void test_malformed_config_line_skipped(void)
 
 static void test_config_with_whitespace(void)
 {
-    unsetenv("CB_TOKEN");
-    unsetenv("CB_BASE_URL");
+    cb_unsetenv("CB_TOKEN");
+    cb_unsetenv("CB_BASE_URL");
     write_config_file("  token   =   \"ws-token\"  \n  base_url   =   \"https://ws.example.com/api/v1\"  \n");
 
     char path[512];
@@ -231,8 +230,13 @@ int main(int argc, char *argv[])
     test_parse_args(argc, argv);
 
     /* Create temp dir for config files */
-    snprintf(tmpdir, sizeof(tmpdir), "/tmp/cb-test-%d", getpid());
-    mkdir(tmpdir, 0755);
+    const char *tmp = getenv("TMPDIR");
+    if (!tmp)
+        tmp = getenv("TEMP");
+    if (!tmp)
+        tmp = "/tmp";
+    snprintf(tmpdir, sizeof(tmpdir), "%s/cb-test-%d", tmp, cb_getpid());
+    cb_mkdir(tmpdir, 0755);
 
     printf("Running config tests:\n");
 
@@ -254,8 +258,8 @@ int main(int argc, char *argv[])
     /* Cleanup */
     char path[512];
     snprintf(path, sizeof(path), "%s/config", tmpdir);
-    unlink(path);
-    rmdir(tmpdir);
+    cb_unlink(path);
+    cb_rmdir(tmpdir);
 
     TEST_SUMMARY();
 }
