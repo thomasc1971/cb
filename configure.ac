@@ -19,6 +19,7 @@ AX_CHECK_COMPILE_FLAG([-std=c11], [CFLAGS="$CFLAGS -std=c11"])
 #   (libretls not packaged for MSYS2; LibreSSL provides libtls)
 #   Set PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig if needed.
 PKG_CHECK_MODULES([LIBTLS], [libtls])
+AC_DEFINE([HAVE_LIBTLS], [1], [Define if libtls is available])
 
 # --- pthread ---
 AX_PTHREAD
