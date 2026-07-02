@@ -1,6 +1,6 @@
 # cb — Codeberg (Forgejo) Repository Management CLI
 
-A command-line tool for managing repositories and CI/CD actions on Codeberg and any Forgejo or Gitea instance. Written in C11 with minimal runtime dependencies (libtls for HTTPS).
+A command-line tool for managing repositories, issues, pull requests, releases, and CI/CD actions on Codeberg and any Forgejo or Gitea instance. Written in C11 with minimal runtime dependencies (libtls for HTTPS).
 
 ## Features
 
@@ -12,6 +12,80 @@ A command-line tool for managing repositories and CI/CD actions on Codeberg and 
 - List repositories (own, user, or organization)
 - Transfer repository ownership
 - Manage repository topics (add, remove, list, set)
+
+### Releases
+
+- List, create, show, edit, delete releases
+- Show latest release or release by tag
+- Delete release by tag
+- Manage release assets (list, upload, show, edit, delete)
+
+### Tags
+
+- List, create, show, delete tags
+
+### Branches
+
+- List, create, show, rename, delete branches
+
+### Issues
+
+- List, create, show, edit, delete issues
+- Close and reopen issues (shorthands)
+- Add comments
+- Manage issue labels (add, set, clear, remove)
+
+### Labels
+
+- List, create, show, edit, delete repository labels
+
+### Milestones
+
+- List, create, show, edit, delete milestones
+
+### Pull requests
+
+- List, create, show, edit, merge pull requests
+- Close and reopen PRs (shorthands)
+- Merge with style selection (merge, rebase, squash, rebase-merge)
+- Auto-merge when checks succeed
+
+### Commits
+
+- List commits with ref/path filtering
+- Show commit details
+- View combined commit status
+
+### File contents
+
+- List directory contents
+- Show file or directory details
+- Create, update, delete files
+- Get raw file content
+- Download archives
+
+### Deploy keys
+
+- List, add, show, delete deploy keys
+
+### Collaborators
+
+- List, add, remove collaborators
+- View collaborator permissions
+
+### Forks
+
+- List forks, fork a repository
+
+### Webhooks
+
+- List, create, show, edit, delete webhooks
+- Test webhooks
+
+### Wiki
+
+- List, create, show, edit, delete wiki pages
+- View page revisions
 
 ### CI/CD actions
 
@@ -79,7 +153,7 @@ export PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig
 autoreconf -i
 ./configure LDFLAGS=-L/ucrt64/lib/libressl
 make
-make check               # All 7 test suites pass
+make check               # All 8 test suites pass
 ```
 
 </details>
@@ -87,7 +161,7 @@ make check               # All 7 test suites pass
 ### Test
 
 ```bash
-make check               # Run all 7 test suites
+make check               # Run all 8 test suites
 ```
 
 ### Development build with ASan + UBSan
@@ -158,7 +232,10 @@ cb repo --help               # repo subcommands
 cb repo create --help         # create flags
 cb repo edit --help           # edit flags
 cb repo topic --help          # topic subcommands
-cb repo topic add --help      # topic add usage
+cb repo topic add --help     # topic add usage
+cb release --help            # release subcommands
+cb issue --help              # issue subcommands
+cb pr --help                 # PR subcommands
 cb actions --help             # actions subcommands
 cb actions log --help         # actions log usage
 ```
@@ -231,6 +308,183 @@ cb repo topic add thomasc/myproj go
 cb repo topic rm thomasc/myproj go
 cb repo topic list thomasc/myproj
 cb repo topic set thomasc/myproj go,cli,codeberg
+```
+
+#### `cb release <owner/repo> <subcommand>`
+
+Manage releases.
+
+```bash
+cb release thomasc/myproj list
+
+cb release thomasc/myproj create --tag v1.0.0 --name "First Release"
+cb release thomasc/myproj create --tag v2.0.0 --draft --prerelease
+
+cb release thomasc/myproj show 42
+cb release thomasc/myproj latest
+cb release thomasc/myproj by-tag v1.0.0
+
+cb release thomasc/myproj edit 42 --name "New Name" --no-draft
+cb release thomasc/myproj delete 42 --yes
+cb release thomasc/myproj delete-tag v1.0.0 --yes
+
+cb release thomasc/myproj asset list 42
+cb release thomasc/myproj asset delete 42 7 --yes
+```
+
+Subcommands: `list`, `create`, `show`, `latest`, `edit`, `delete`, `by-tag`, `delete-tag`, `asset`
+
+#### `cb tag <owner/repo> <subcommand>`
+
+Manage tags.
+
+```bash
+cb tag thomasc/myproj list
+cb tag thomasc/myproj create --tag v1.0.0 --message "Release 1.0"
+cb tag thomasc/myproj show v1.0.0
+cb tag thomasc/myproj delete v1.0.0 --yes
+```
+
+#### `cb branch <owner/repo> <subcommand>`
+
+Manage branches.
+
+```bash
+cb branch thomasc/myproj list
+cb branch thomasc/myproj create --name feature-x --from main
+cb branch thomasc/myproj show main
+cb branch thomasc/myproj rename old-name --name new-name
+cb branch thomasc/myproj delete old-branch --yes
+```
+
+#### `cb issue <owner/repo> <subcommand>`
+
+Manage issues.
+
+```bash
+cb issue thomasc/myproj list
+
+cb issue thomasc/myproj list --state closed --limit 20
+cb issue thomasc/myproj list --labels bug,feature
+
+cb issue thomasc/myproj create --title "Fix crash" --body "Steps to reproduce..."
+cb issue thomasc/myproj show 5
+cb issue thomasc/myproj edit 5 --title "New title" --state closed
+cb issue thomasc/myproj close 5
+cb issue thomasc/myproj reopen 5
+cb issue thomasc/myproj delete 5 --yes
+
+cb issue thomasc/myproj comment 5 --body "This is fixed now"
+
+cb issue thomasc/myproj label add 5 3
+cb issue thomasc/myproj label clear 5
+```
+
+#### `cb label <owner/repo> <subcommand>`
+
+Manage repository labels.
+
+```bash
+cb label thomasc/myproj list
+cb label thomasc/myproj create --name bug --color ff0000
+cb label thomasc/myproj delete 3 --yes
+```
+
+#### `cb milestone <owner/repo> <subcommand>`
+
+Manage milestones.
+
+```bash
+cb milestone thomasc/myproj list
+cb milestone thomasc/myproj create --title "v2.0" --due 2025-12-31
+cb milestone thomasc/myproj delete 3 --yes
+```
+
+#### `cb pr <owner/repo> <subcommand>`
+
+Manage pull requests.
+
+```bash
+cb pr thomasc/myproj list
+cb pr thomasc/myproj list --state closed
+
+cb pr thomasc/myproj create --title "Add feature" --head feature-x
+cb pr thomasc/myproj show 7
+cb pr thomasc/myproj edit 7 --title "Updated title"
+cb pr thomasc/myproj close 7
+cb pr thomasc/myproj reopen 7
+
+cb pr thomasc/myproj merge 7 --style squash --delete-branch
+cb pr thomasc/myproj merge 7 --auto
+```
+
+#### `cb commit <owner/repo> <subcommand>`
+
+View commits and statuses.
+
+```bash
+cb commit thomasc/myproj list
+cb commit thomasc/myproj list --sha main --path src/
+cb commit thomasc/myproj list --limit 20
+```
+
+#### `cb content <owner/repo> <subcommand>`
+
+View and manage repository file contents.
+
+```bash
+cb content thomasc/myproj list
+cb content thomasc/myproj list --ref main
+```
+
+#### `cb key <owner/repo> <subcommand>`
+
+Manage deploy keys.
+
+```bash
+cb key thomasc/myproj list
+cb key thomasc/myproj add --title "CI key" --key "ssh-ed25519 AAAA..."
+cb key thomasc/myproj delete 3 --yes
+```
+
+#### `cb collaborator <owner/repo> <subcommand>`
+
+Manage collaborators.
+
+```bash
+cb collaborator thomasc/myproj list
+cb collaborator thomasc/myproj add bob --permission write
+cb collaborator thomasc/myproj rm bob --yes
+cb collaborator thomasc/myproj perms bob
+```
+
+#### `cb fork <owner/repo> <subcommand>`
+
+Manage forks.
+
+```bash
+cb fork thomasc/someproj list
+cb fork thomasc/someproj create
+cb fork thomasc/someproj create --org myorg
+```
+
+#### `cb hook <owner/repo> <subcommand>`
+
+Manage webhooks.
+
+```bash
+cb hook thomasc/myproj list
+cb hook thomasc/myproj create --type gitea --url https://example.com/hook
+cb hook thomasc/myproj delete 5 --yes
+```
+
+#### `cb wiki <owner/repo> <subcommand>`
+
+Manage wiki pages.
+
+```bash
+cb wiki thomasc/myproj list
+cb wiki thomasc/myproj delete OldPage --yes
 ```
 
 #### `cb actions list <owner/repo>`
@@ -362,17 +616,18 @@ cb/
 │   ├── cb_http.h             # HTTP client (sockets + libtls, Winsock2/POSIX via cb_compat)
 │   ├── cb_config.h           # Config loading (file + env)
 │   ├── cb_validate.h         # Client-side validation
-│   ├── cb_api.h              # Forgejo API client (repo, topic, actions)
-│   ├── cb_compat.h           # Portable compat layer (sockets, memstream, env, fs)
+│   ├── cb_api.h              # Forgejo API client (repo, topic, actions, releases, issues, PRs, etc.)
+│   ├── cb_compat.h           # Portable compat layer (sockets, memstream, env, fs, base64, URL encode)
 │   └── cb_cli.h              # CLI dispatch
 ├── src/                      # Implementation
 │   ├── cb_json.c             # recursive-descent parser + builder + serializer
 │   ├── cb_http.c             # plain HTTP + TLS via libtls
 │   ├── cb_config.c           # TOML-ish config + env + URL parser
-│   ├── cb_validate.c         # repo name, description, merge style validation
-│   ├── cb_api.c              # repo, topic, and actions API operations
-│   ├── cb_cli.c              # command parsing, flag dispatch, output
-│   ├── cb_compat.c           # Portable wrappers (open_memstream, Winsock2, setenv, etc.)
+│   ├── cb_validate.c         # repo name, description, merge style, tag, branch, label color, SHA validation
+│   ├── cb_api.c              # repo, topic, actions, releases, tags, branches, issues, labels, milestones,
+│   │                          # PRs, commits, content, keys, collaborators, forks, hooks, wiki API ops
+│   ├── cb_cli.c              # command parsing, flag dispatch, output (16 top-level commands)
+│   ├── cb_compat.c           # Portable wrappers (open_memstream, Winsock2, setenv, base64, URL encode)
 │   └── main.c                # Entry point
 └── tests/                    # Run with: make check (or: ./configure --enable-asan && make check)
     ├── test_helpers.h        # Custom assert macros
@@ -381,9 +636,10 @@ cb/
     ├── test_http.c           # HTTP client tests
     ├── test_config.c         # Config loading tests
     ├── test_validate.c       # Validation tests
-    ├── test_api.c            # API client tests
+    ├── test_api.c            # API client tests (repo, topic)
     ├── test_cli.c            # CLI integration tests
-    └── test_actions.c        # Actions (CI/CD) tests
+    ├── test_actions.c        # Actions (CI/CD) tests
+    └── test_new_api.c        # API tests for all new endpoints (releases–wiki)
 ```
 
 ### Key design decisions
@@ -394,7 +650,7 @@ cb/
 
 - **Mock HTTP server for tests**: A minimal `socket` + `pthread` server in the test harness. Tests are fully offline — no network calls, no TLS. Each test configures canned responses per method+path. The server supports sequential responses to the same path (for multi-request flows like log pagination).
 
-- **TDD**: Every module was built test-first. Run `./configure --enable-asan && make check` to test under ASan+UBSan. All 7 test suites (123 tests) pass with zero leaks.
+- **TDD**: Every module was built test-first. Run `./configure --enable-asan && make check` to test under ASan+UBSan. All 8 test suites pass with zero leaks.
 
 - **Actions log fetching**: Forgejo does not expose workflow logs through the `/api/v1` REST API. The `actions log` command uses the web UI's JSON endpoint (`POST /{owner}/{repo}/actions/runs/{run_id}/jobs/{job}/attempt/{attempt}`) with token auth, handling cursor-based pagination to fetch complete log output.
 
