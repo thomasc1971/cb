@@ -1,0 +1,95 @@
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    runs-on: docker
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v6
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            gcc libretls-dev pkg-config autoconf automake make
+      - name: Build
+        run: |
+          autoreconf -fi
+          ./configure
+          make
+      - name: Test
+        run: make check
+      - name: Prepare artifact
+        run: |
+          strip cb
+          cp cb cb-linux-amd64
+      - uses: https://code.forgejo.org/actions/upload-artifact@v3
+        with:
+          name: cb-linux-amd64
+          path: cb-linux-amd64
+
+  build-windows:
+    runs-on: docker
+    container:
+      image: msys2/msys2:ucrt64
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v6
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm \
+            mingw-w64-ucrt-x86_64-gcc \
+            mingw-w64-ucrt-x86_64-libressl \
+            mingw-w64-ucrt-x86_64-pkg-config \
+            autoconf automake make
+      - name: Build
+        run: |
+          export PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig
+          autoreconf -fi
+          ./configure LDFLAGS=-L/ucrt64/lib/libressl
+          make
+        shell: msys2 {0}
+      - name: Test
+        run: make check
+        shell: msys2 {0}
+      - name: Prepare artifact
+        run: cp cb.exe cb-windows-amd64.exe
+        shell: msys2 {0}
+      - uses: https://code.forgejo.org/actions/upload-artifact@v3
+        with:
+          name: cb-windows-amd64
+          path: cb-windows-amd64.exe
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-linux, build-windows]
+    runs-on: docker
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v6
+      - uses: https://code.forgejo.org/actions/download-artifact@v3
+        with:
+          name: cb-linux-amd64
+          path: release
+      - uses: https://code.forgejo.org/actions/download-artifact@v3
+        with:
+          name: cb-windows-amd64
+          path: release
+      - name: Generate checksums
+        run: |
+          cd release
+          sha256sum cb-linux-amd64 > cb-linux-amd64.sha256
+          sha256sum cb-windows-amd64.exe > cb-windows-amd64.exe.sha256
+      - uses: https://code.forgejo.org/actions/forgejo-release@v2
+        with:
+          direction: upload
+          url: https://codeberg.org
+          tag: ${{ github.ref_name }}
+          release-dir: release
+          token: ${{ secrets.GITHUB_TOKEN }}
+          override: true
