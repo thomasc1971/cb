@@ -43,16 +43,11 @@ jobs:
             wget ca-certificates zstd
       - name: Extract pre-built LibreSSL from MSYS2
         run: |
-          # Download pre-built LibreSSL for UCRT64 from MSYS2 repo
-          # This includes libtls headers and static libs for mingw-w64
           mkdir -p /usr/x86_64-w64-mingw32
           cd /tmp
-          wget -q https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-libressl-4.1.2-1-any.pkg.tar.zst
-          wget -q https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-libressl-4.1.2-1-any.pkg.tar.zst.sig
-          # Extract the package
-          zstd -d mingw-w64-x86_64-libressl-4.1.2-1-any.pkg.tar.zst -o libressl.tar
+          wget -q https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-libressl-4.3.2-1-any.pkg.tar.zst
+          zstd -d mingw-w64-x86_64-libressl-4.3.2-1-any.pkg.tar.zst -o libressl.tar
           tar xf libressl.tar
-          # Copy headers and libs to mingw sysroot
           cp -r mingw64/include/* /usr/x86_64-w64-mingw32/include/
           cp -r mingw64/lib/* /usr/x86_64-w64-mingw32/lib/
       - name: Build cb for Windows
@@ -60,9 +55,9 @@ jobs:
           autoreconf -fi
           ./configure \
             --host=x86_64-w64-mingw32 \
-            PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/pkgconfig \
-            LIBTLS_CFLAGS="-I/usr/x86_64-w64-mingw32/include" \
-            LIBTLS_LIBS="-L/usr/x86_64-w64-mingw32/lib -ltls -lssl -lcrypto -lws2_32"
+            PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/libressl/pkgconfig \
+            LIBTLS_CFLAGS="-I/usr/x86_64-w64-mingw32/include/libressl" \
+            LIBTLS_LIBS="-L/usr/x86_64-w64-mingw32/lib/libressl -ltls -lssl -lcrypto -lws2_32"
           make
       - name: Prepare artifact
         run: |
