@@ -8,8 +8,6 @@ on:
 jobs:
   build-linux:
     runs-on: codeberg-small
-    container:
-      image: debian:bookworm
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
       - name: Install dependencies
@@ -35,8 +33,6 @@ jobs:
 
   build-windows:
     runs-on: codeberg-small
-    container:
-      image: debian:bookworm
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
       - name: Install dependencies
@@ -44,11 +40,9 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             mingw-w64 pkg-config autoconf automake make \
-            libgnutls28-dev
-      - name: Build libretls for Windows
+            wget ca-certificates
+      - name: Build LibreSSL for Windows
         run: |
-          # Download and build libretls for mingw cross-compilation
-          apt-get install -y --no-install-recommends wget ca-certificates
           cd /tmp
           wget https://ftp.openbsd.org/pub/OpenBSD/libressl/libressl-3.9.2.tar.gz
           tar xzf libressl-3.9.2.tar.gz
@@ -82,8 +76,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build-linux, build-windows]
     runs-on: codeberg-tiny
-    container:
-      image: debian:bookworm
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
       - uses: https://code.forgejo.org/actions/download-artifact@v3
