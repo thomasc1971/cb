@@ -20,6 +20,7 @@
 #include "cb_api.h"
 #include "cb_config.h"
 #include "cb_json.h"
+#include "config.h"
 
 #include <stdarg.h>
 #include <stdio.h>

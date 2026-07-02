@@ -19,6 +19,7 @@
 
 #include "cb_json.h"
 #include "cb_compat.h"
+#include "config.h"
 
 #include <math.h>
 #include <stdbool.h>

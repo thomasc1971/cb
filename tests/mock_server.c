@@ -1,5 +1,6 @@
 #include "mock_server.h"
 #include "cb_compat.h"
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>

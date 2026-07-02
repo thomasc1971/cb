@@ -1,4 +1,5 @@
 #include "cb_api.h"
+#include "config.h"
 #include "mock_server.h"
 #include "test_helpers.h"
 #include <stdio.h>

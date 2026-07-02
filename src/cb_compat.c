@@ -1,4 +1,5 @@
 #include "cb_compat.h"
+#include "config.h"
 
 #ifndef HAVE_OPEN_MEMSTREAM
 

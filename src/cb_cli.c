@@ -21,6 +21,7 @@
 #include "cb_config.h"
 #include "cb_json.h"
 #include "cb_validate.h"
+#include "config.h"
 
 #include <stdbool.h>
 #include <stdio.h>

@@ -18,6 +18,7 @@
  */
 
 #include "cb_validate.h"
+#include "config.h"
 
 #include <stdio.h>
 #include <string.h>

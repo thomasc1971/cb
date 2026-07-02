@@ -2,6 +2,7 @@
 #include "cb_cli.h"
 #include "cb_compat.h"
 #include "cb_config.h"
+#include "config.h"
 #include "mock_server.h"
 #include "test_helpers.h"
 #include <stdio.h>

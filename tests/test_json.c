@@ -1,4 +1,5 @@
 #include "cb_json.h"
+#include "config.h"
 #include "test_helpers.h"
 #include <stdlib.h>
 

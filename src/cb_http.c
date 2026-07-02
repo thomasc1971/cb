@@ -19,6 +19,7 @@
 
 #include "cb_http.h"
 #include "cb_compat.h"
+#include "config.h"
 
 #include <errno.h>
 #include <stdio.h>
