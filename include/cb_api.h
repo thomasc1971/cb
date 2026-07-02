@@ -263,4 +263,60 @@ void action_variable_array_free(ActionVariable *arr, size_t count);
 void action_secret_free(ActionSecret *s);
 void action_secret_array_free(ActionSecret *arr, size_t count);
 
+/* ===== Actions jobs & logs (web UI endpoint, not /api/v1) ===== */
+
+/* Action job — one job within a workflow run */
+typedef struct
+{
+    int64_t id;
+    char *name;
+    char *status;   /* "success", "failure", "skipped", "running", "waiting" */
+    char *duration; /* human-readable, e.g. "59s", "1m2s" */
+} ActionJob;
+
+/* Action step — one step within a job */
+typedef struct
+{
+    char *summary;  /* step name, e.g. "Install dependencies" */
+    char *status;   /* "success", "failure", "skipped" */
+    char *duration; /* human-readable, e.g. "11s" */
+} ActionStep;
+
+/* Action log line — one line of log output */
+typedef struct
+{
+    int index;     /* line number within the step */
+    char *message; /* log text */
+} ActionLogLine;
+
+/* Full job detail: steps + logs */
+typedef struct
+{
+    ActionJob job;
+    ActionStep *steps;
+    size_t step_count;
+} ActionJobDetail;
+
+/* Fetch jobs for a run. run_id is index_in_repo (e.g. 3, not 5218484).
+ * Caller frees with action_job_array_free. */
+int api_action_job_list(ApiClient *a, const char *owner, const char *repo,
+                        int run_id, ActionJob **out, size_t *count);
+
+/* Fetch job details (steps) for a specific job in a run.
+ * job_index is 0-based. Caller frees with action_job_detail_free. */
+int api_action_job_detail(ApiClient *a, const char *owner, const char *repo,
+                          int run_id, int job_index, ActionJobDetail *out);
+
+/* Fetch log lines for a specific step within a job.
+ * Returns lines in *out and count. Caller frees with action_log_lines_free.
+ * step_index is 0-based. Fetches all pages (handles cursor pagination). */
+int api_action_log_fetch(ApiClient *a, const char *owner, const char *repo,
+                         int run_id, int job_index, int step_index,
+                         ActionLogLine **out, size_t *count);
+
+void action_job_free(ActionJob *j);
+void action_job_array_free(ActionJob *arr, size_t count);
+void action_job_detail_free(ActionJobDetail *d);
+void action_log_lines_free(ActionLogLine *lines, size_t count);
+
 #endif /* CB_API_H */

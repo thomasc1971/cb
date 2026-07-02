@@ -94,7 +94,8 @@ static void handle_client(MockServer *s, cb_socket_t clientfd)
     /* Find matching response */
     MockResponse *match = NULL;
     for (size_t i = 0; i < s->response_count; i++) {
-        if (strcmp(s->responses[i].method, method) == 0 &&
+        if (!s->responses[i].matched &&
+            strcmp(s->responses[i].method, method) == 0 &&
             strcmp(s->responses[i].path, path) == 0) {
             match = &s->responses[i];
             break;

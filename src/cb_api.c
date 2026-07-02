@@ -1049,3 +1049,323 @@ int api_action_variable_delete(ApiClient *a, const char *owner, const char *repo
     http_response_free(&resp);
     return err;
 }
+
+/* ===== Actions jobs & logs (web UI endpoint, not /api/v1) ===== */
+
+static void parse_action_job(const JsonValue *obj, ActionJob *j)
+{
+    memset(j, 0, sizeof(*j));
+    j->id = json_get_int64(obj, "id", 0);
+    j->name = json_dup_string(obj, "name");
+    j->status = json_dup_string(obj, "status");
+    j->duration = json_dup_string(obj, "duration");
+}
+
+void action_job_free(ActionJob *j)
+{
+    if (!j)
+        return;
+    free(j->name);
+    free(j->status);
+    free(j->duration);
+    memset(j, 0, sizeof(*j));
+}
+
+void action_job_array_free(ActionJob *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        action_job_free(&arr[i]);
+    free(arr);
+}
+
+static void parse_action_step(const JsonValue *obj, ActionStep *s)
+{
+    memset(s, 0, sizeof(*s));
+    s->summary = json_dup_string(obj, "summary");
+    s->status = json_dup_string(obj, "status");
+    s->duration = json_dup_string(obj, "duration");
+}
+
+void action_job_detail_free(ActionJobDetail *d)
+{
+    if (!d)
+        return;
+    action_job_free(&d->job);
+    for (size_t i = 0; i < d->step_count; i++) {
+        free(d->steps[i].summary);
+        free(d->steps[i].status);
+        free(d->steps[i].duration);
+    }
+    free(d->steps);
+    memset(d, 0, sizeof(*d));
+}
+
+void action_log_lines_free(ActionLogLine *lines, size_t count)
+{
+    if (!lines)
+        return;
+    for (size_t i = 0; i < count; i++)
+        free(lines[i].message);
+    free(lines);
+}
+
+/* POST to the web UI log endpoint.
+ * Returns the parsed JSON response (caller must json_free).
+ * body is the JSON string to POST. */
+static ApiError post_log_endpoint(ApiClient *a, const char *owner, const char *repo,
+                                  int run_id, int job_index, int attempt,
+                                  const char *body, JsonValue **out)
+{
+    /* Path is NOT under /api/v1 — construct directly */
+    char path[512];
+    snprintf(path, sizeof(path), "/%s/%s/actions/runs/%d/jobs/%d/attempt/%d",
+             owner, repo, run_id, job_index, attempt);
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body, &resp);
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse log response");
+        return API_ERR_UNKNOWN;
+    }
+
+    *out = parsed;
+    return API_OK;
+}
+
+/* Build a logCursors JSON body with all steps expanded (or just one). */
+static char *build_log_cursors(int step_count, int expand_step)
+{
+    JsonValue *cursors = json_array_new();
+    for (int i = 0; i < step_count; i++) {
+        JsonValue *entry = json_object_new();
+        json_object_set(entry, "step", json_number_new((double)i));
+        json_object_set(entry, "cursor", json_null_new());
+        json_object_set_bool(entry, "expanded", (expand_step < 0 || expand_step == i));
+        json_array_push(cursors, entry);
+    }
+    JsonValue *root = json_object_new();
+    json_object_set(root, "logCursors", cursors);
+    char *s = json_serialize(root, false);
+    json_free(root);
+    return s;
+}
+
+int api_action_job_list(ApiClient *a, const char *owner, const char *repo,
+                        int run_id, ActionJob **out, size_t *count)
+{
+    /* First fetch job 0 with empty cursors to get run state (includes job list) */
+    char *body = build_log_cursors(1, -1);
+    JsonValue *parsed = NULL;
+    ApiError err = post_log_endpoint(a, owner, repo, run_id, 0, 1, body, &parsed);
+    free(body);
+    if (err != API_OK)
+        return err;
+
+    /* Navigate: state -> run -> jobs */
+    JsonValue *state = json_object_lookup(parsed, "state");
+    if (!state || !json_is_object(state)) {
+        json_free(parsed);
+        set_error(a, "missing state in log response");
+        return API_ERR_UNKNOWN;
+    }
+    JsonValue *run = json_object_lookup(state, "run");
+    if (!run || !json_is_object(run)) {
+        json_free(parsed);
+        set_error(a, "missing run in log response");
+        return API_ERR_UNKNOWN;
+    }
+    JsonValue *jobs_arr = json_object_lookup(run, "jobs");
+    if (!jobs_arr || !json_is_array(jobs_arr)) {
+        json_free(parsed);
+        *out = NULL;
+        *count = 0;
+        return API_OK;
+    }
+
+    size_t n = json_array_count(jobs_arr);
+    ActionJob *arr = NULL;
+    if (n > 0) {
+        arr = calloc(n, sizeof(ActionJob));
+        if (!arr) {
+            json_free(parsed);
+            set_error(a, "out of memory");
+            return API_ERR_UNKNOWN;
+        }
+    }
+    for (size_t i = 0; i < n; i++)
+        parse_action_job(json_array_get(jobs_arr, i), &arr[i]);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_job_detail(ApiClient *a, const char *owner, const char *repo,
+                          int run_id, int job_index, ActionJobDetail *out)
+{
+    memset(out, 0, sizeof(*out));
+
+    /* POST with empty cursors to discover steps */
+    char *body = build_log_cursors(1, -1);
+    JsonValue *parsed = NULL;
+    ApiError err = post_log_endpoint(a, owner, repo, run_id, job_index, 1, body, &parsed);
+    free(body);
+    if (err != API_OK)
+        return err;
+
+    JsonValue *state = json_object_lookup(parsed, "state");
+    if (!state) {
+        json_free(parsed);
+        set_error(a, "missing state in log response");
+        return API_ERR_UNKNOWN;
+    }
+
+    /* Extract job info from run.jobs[job_index] */
+    JsonValue *run = json_object_lookup(state, "run");
+    if (run) {
+        JsonValue *jobs = json_object_lookup(run, "jobs");
+        if (jobs && json_is_array(jobs) && (size_t)job_index < json_array_count(jobs))
+            parse_action_job(json_array_get(jobs, job_index), &out->job);
+    }
+
+    /* Extract steps from currentJob.steps */
+    JsonValue *current_job = json_object_lookup(state, "currentJob");
+    if (current_job) {
+        JsonValue *steps = json_object_lookup(current_job, "steps");
+        if (steps && json_is_array(steps)) {
+            size_t n = json_array_count(steps);
+            if (n > 0) {
+                out->steps = calloc(n, sizeof(ActionStep));
+                if (!out->steps) {
+                    json_free(parsed);
+                    set_error(a, "out of memory");
+                    return API_ERR_UNKNOWN;
+                }
+                for (size_t i = 0; i < n; i++)
+                    parse_action_step(json_array_get(steps, i), &out->steps[i]);
+                out->step_count = n;
+            }
+        }
+    }
+
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_log_fetch(ApiClient *a, const char *owner, const char *repo,
+                         int run_id, int job_index, int step_index,
+                         ActionLogLine **out, size_t *count)
+{
+    *out = NULL;
+    *count = 0;
+
+    /* First, discover step count by fetching job detail */
+    ActionJobDetail detail;
+    ApiError err = api_action_job_detail(a, owner, repo, run_id, job_index, &detail);
+    if (err != API_OK)
+        return err;
+
+    int step_count = (int)detail.step_count;
+    action_job_detail_free(&detail);
+
+    if (step_index >= step_count) {
+        set_error(a, "step index %d out of range (job has %d steps)", step_index, step_count);
+        return API_ERR_VALIDATION;
+    }
+
+    /* Now fetch with the specific step expanded */
+    ActionLogLine *all_lines = NULL;
+    size_t total_lines = 0;
+    int cursor = -1; /* -1 means null (first page) */
+
+    for (;;) {
+        /* Build logCursors body for this step with current cursor */
+        JsonValue *cursors = json_array_new();
+        JsonValue *entry = json_object_new();
+        json_object_set(entry, "step", json_number_new((double)step_index));
+        if (cursor < 0)
+            json_object_set(entry, "cursor", json_null_new());
+        else
+            json_object_set(entry, "cursor", json_number_new((double)cursor));
+        json_object_set_bool(entry, "expanded", true);
+        json_array_push(cursors, entry);
+
+        JsonValue *root = json_object_new();
+        json_object_set(root, "logCursors", cursors);
+        char *body = json_serialize(root, false);
+        json_free(root);
+
+        JsonValue *parsed = NULL;
+        err = post_log_endpoint(a, owner, repo, run_id, job_index, 1, body, &parsed);
+        free(body);
+        if (err != API_OK)
+            return err;
+
+        /* Navigate: logs -> stepsLog[0] -> lines */
+        JsonValue *logs = json_object_lookup(parsed, "logs");
+        if (!logs || !json_is_object(logs)) {
+            json_free(parsed);
+            break;
+        }
+        JsonValue *steps_log = json_object_lookup(logs, "stepsLog");
+        if (!steps_log || !json_is_array(steps_log) || json_array_count(steps_log) == 0) {
+            json_free(parsed);
+            break;
+        }
+
+        JsonValue *sl = json_array_get(steps_log, 0);
+        JsonValue *lines_arr = json_object_lookup(sl, "lines");
+        JsonValue *cursor_val = json_object_lookup(sl, "cursor");
+
+        if (lines_arr && json_is_array(lines_arr)) {
+            size_t n = json_array_count(lines_arr);
+            if (n > 0) {
+                ActionLogLine *new_lines = realloc(all_lines,
+                                                   (total_lines + n) * sizeof(ActionLogLine));
+                if (!new_lines) {
+                    free(all_lines);
+                    json_free(parsed);
+                    set_error(a, "out of memory");
+                    return API_ERR_UNKNOWN;
+                }
+                all_lines = new_lines;
+                for (size_t i = 0; i < n; i++) {
+                    JsonValue *line = json_array_get(lines_arr, i);
+                    JsonValue *msg = json_object_lookup(line, "message");
+                    all_lines[total_lines + i].index = (int)json_get_int64(line, "index", 0);
+                    all_lines[total_lines + i].message =
+                        (msg && json_is_string(msg)) ? strdup(json_string(msg)) : strdup("");
+                }
+                total_lines += n;
+            }
+        }
+
+        /* Check for pagination cursor */
+        int new_cursor = -1;
+        if (cursor_val && json_is_number(cursor_val))
+            new_cursor = (int)json_number(cursor_val);
+
+        json_free(parsed);
+
+        if (new_cursor <= 0 || new_cursor == cursor)
+            break;
+        cursor = new_cursor;
+    }
+
+    *out = all_lines;
+    *count = total_lines;
+    return API_OK;
+}

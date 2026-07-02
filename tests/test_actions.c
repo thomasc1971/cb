@@ -445,6 +445,107 @@ static void test_action_variable_delete_success(void)
     teardown_server();
 }
 
+/* ===== Jobs & logs ===== */
+
+static const char *JOB_LOG_RESPONSE =
+    "{\"state\":{\"run\":{\"title\":\"test\",\"status\":\"failure\","
+    "\"jobs\":[{\"id\":100,\"name\":\"build-linux\",\"status\":\"failure\",\"duration\":\"59s\"},"
+    "{\"id\":101,\"name\":\"build-windows\",\"status\":\"skipped\",\"duration\":\"1s\"}]},"
+    "\"currentJob\":{\"title\":\"build-linux\",\"steps\":["
+    "{\"summary\":\"Set up job\",\"status\":\"success\",\"duration\":\"1s\"},"
+    "{\"summary\":\"Install deps\",\"status\":\"failure\",\"duration\":\"2s\"}"
+    "]}},"
+    "\"logs\":{\"stepsLog\":[]}}";
+
+static const char *STEP_LOG_RESPONSE =
+    "{\"state\":{\"run\":{\"jobs\":[]},\"currentJob\":{\"steps\":[]}},"
+    "\"logs\":{\"stepsLog\":[{\"step\":1,\"cursor\":null,\"lines\":["
+    "{\"index\":1,\"message\":\"apt-get update\",\"timestamp\":1782992811.0},"
+    "{\"index\":2,\"message\":\"E: Unable to locate package libretls-dev\",\"timestamp\":1782992812.0}"
+    "]}]}}";
+
+static void test_action_job_list_success(void)
+{
+    MockResponse resp = { 0 };
+    resp.status = 200;
+    strncpy(resp.method, "POST", sizeof(resp.method) - 1);
+    strncpy(resp.path, "/thomasc/cb/actions/runs/3/jobs/0/attempt/1",
+            sizeof(resp.path) - 1);
+    set_body(&resp, JOB_LOG_RESPONSE);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    ActionJob *jobs = NULL;
+    size_t count = 0;
+    int rc = api_action_job_list(&a, "thomasc", "cb", 3, &jobs, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((int)count, 2);
+    ASSERT_STR_EQ(jobs[0].name, "build-linux");
+    ASSERT_STR_EQ(jobs[0].status, "failure");
+    ASSERT_STR_EQ(jobs[1].name, "build-windows");
+    ASSERT_STR_EQ(jobs[1].status, "skipped");
+    action_job_array_free(jobs, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_action_job_detail_success(void)
+{
+    MockResponse resp = { 0 };
+    resp.status = 200;
+    strncpy(resp.method, "POST", sizeof(resp.method) - 1);
+    strncpy(resp.path, "/thomasc/cb/actions/runs/3/jobs/0/attempt/1",
+            sizeof(resp.path) - 1);
+    set_body(&resp, JOB_LOG_RESPONSE);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    ActionJobDetail detail;
+    int rc = api_action_job_detail(&a, "thomasc", "cb", 3, 0, &detail);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_STR_EQ(detail.job.name, "build-linux");
+    ASSERT_EQ((int)detail.step_count, 2);
+    ASSERT_STR_EQ(detail.steps[0].summary, "Set up job");
+    ASSERT_STR_EQ(detail.steps[0].status, "success");
+    ASSERT_STR_EQ(detail.steps[1].summary, "Install deps");
+    ASSERT_STR_EQ(detail.steps[1].status, "failure");
+    action_job_detail_free(&detail);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_action_log_fetch_success(void)
+{
+    MockResponse responses[2];
+    memset(responses, 0, sizeof(responses));
+    strncpy(responses[0].method, "POST", sizeof(responses[0].method) - 1);
+    strncpy(responses[0].path, "/thomasc/cb/actions/runs/3/jobs/0/attempt/1",
+            sizeof(responses[0].path) - 1);
+    responses[0].status = 200;
+    set_body(&responses[0], JOB_LOG_RESPONSE);
+    strncpy(responses[1].method, "POST", sizeof(responses[1].method) - 1);
+    strncpy(responses[1].path, "/thomasc/cb/actions/runs/3/jobs/0/attempt/1",
+            sizeof(responses[1].path) - 1);
+    responses[1].status = 200;
+    set_body(&responses[1], STEP_LOG_RESPONSE);
+    setup_server(responses, 2);
+
+    ApiClient a;
+    make_client(&a);
+    ActionLogLine *lines = NULL;
+    size_t count = 0;
+    int rc = api_action_log_fetch(&a, "thomasc", "cb", 3, 0, 1, &lines, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((int)count, 2);
+    ASSERT_STR_EQ(lines[0].message, "apt-get update");
+    ASSERT_STR_EQ(lines[1].message, "E: Unable to locate package libretls-dev");
+    action_log_lines_free(lines, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
 int main(int argc, char *argv[])
 {
     test_parse_args(argc, argv);
@@ -468,6 +569,9 @@ int main(int argc, char *argv[])
     RUN_TEST(test_action_variable_set_update);
     RUN_TEST(test_action_variable_set_null_value);
     RUN_TEST(test_action_variable_delete_success);
+    RUN_TEST(test_action_job_list_success);
+    RUN_TEST(test_action_job_detail_success);
+    RUN_TEST(test_action_log_fetch_success);
 
     TEST_SUMMARY();
 }

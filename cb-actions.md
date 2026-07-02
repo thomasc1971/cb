@@ -165,12 +165,118 @@ The existing token (`write:repository`) covers all actions operations. No new sc
 - Test list/show runs, list runners, secret/variable CRUD, dispatch
 - Test error cases (404 not found, 403 scope, network errors)
 
-## Implementation order
+## Implementation order (✅ all completed)
 
-1. Create `cb_actions.h` with structs and function declarations
-2. Create `cb_actions.c` with API functions
-3. Add `cmd_actions()` to `cb_cli.c` with subcommand dispatch
-4. Update `src/Makefile.am`
-5. Create `tests/test_actions.c` and update `tests/Makefile.am`
-6. Update help text and top-level dispatch
-7. Build, test, format
+1. ~~Create `cb_actions.h` with structs and function declarations~~ — added to `cb_api.h` instead
+2. ~~Create `cb_actions.c` with API functions~~ — added to `cb_api.c` instead
+3. ~~Add `cmd_actions()` to `cb_cli.c` with subcommand dispatch~~
+4. ~~Update `src/Makefile.am`~~ — no change needed (actions in `cb_api.c`)
+5. ~~Create `tests/test_actions.c` and update `tests/Makefile.am`~~
+6. ~~Update help text and top-level dispatch~~
+7. ~~Build, test, format~~
+
+## Logs (Phase 2 — ✅ implemented)
+
+Forgejo does not expose workflow logs through the `/api/v1` REST API.
+However, the web UI fetches logs via a JSON POST endpoint that accepts
+token auth and returns structured JSON. Discovered from a HAR capture:
+
+```
+POST /{owner}/{repo}/actions/runs/{run_id}/jobs/{job_index}/attempt/{attempt}
+Content-Type: application/json
+Authorization: Bearer {token}
+
+Body:
+{
+  "logCursors": [
+    {"step": 0, "cursor": null, "expanded": false},
+    {"step": 1, "cursor": null, "expanded": true},
+    ...
+  ]
+}
+```
+
+### Response structure
+
+```json
+{
+  "state": {
+    "run": {
+      "title": "...",
+      "status": "failure",
+      "jobs": [
+        {"id": 9554048, "name": "build-linux", "status": "failure", "duration": "59s"},
+        {"id": 9554051, "name": "build-windows", "status": "failure", "duration": "1m2s"},
+        {"id": 9554054, "name": "release", "status": "skipped", "duration": "1s"}
+      ]
+    },
+    "currentJob": {
+      "title": "build-linux",
+      "steps": [
+        {"summary": "Set up job", "duration": "10s", "status": "success"},
+        {"summary": "checkout@v6", "duration": "1s", "status": "success"},
+        {"summary": "Install dependencies", "duration": "11s", "status": "failure"},
+        {"summary": "Build", "duration": "0s", "status": "skipped"},
+        ...
+      ]
+    }
+  },
+  "logs": {
+    "stepsLog": [
+      {
+        "step": 2,
+        "cursor": 33,
+        "lines": [
+          {"index": 1, "message": "Get:1 http://...", "timestamp": 1782992811.12},
+          {"index": 2, "message": "Get:2 https://...", "timestamp": 1782992811.13},
+          ...
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Key observations
+
+- **Not under `/api/v1`** — the path is `/{owner}/{repo}/actions/...` directly. Path must be constructed without `path_prefix`; `do_request()` is called directly.
+- **Uses token auth** — the `Authorization` header works the same as all other API calls.
+- **Path uses `run_id` = `index_in_repo`** (the short number like `3`), not the internal `id` (like `5218484`).
+- **`job_index`** is 0-based (0 = build-linux, 1 = build-windows, 2 = release).
+- **`attempt`** is always `1` for first attempt; increments on reruns.
+- **`logCursors`** array has one entry per step. Set `expanded: true` to fetch log lines for that step. `cursor: null` fetches from the beginning; the response returns a new cursor for pagination.
+- **`logs.stepsLog[].lines[]`** contains the actual log output with `index` (line number), `message` (text), and `timestamp` (Unix epoch float).
+
+### Proposed subcommands
+
+```
+cb actions jobs <owner/repo> <run-id>                  List jobs in a run (name, status, duration)
+cb actions log <owner/repo> <run-id> [job-index]       Show log output for a run or specific job
+```
+
+### `actions jobs` output (human-readable):
+
+```
+Job 0  build-linux     failure    59s
+Job 1  build-windows   failure    1m2s
+Job 2  release         skipped    1s
+```
+
+### `actions log` output:
+
+Prints log lines for all steps (or a specific job). For each step, show a header then the lines:
+
+```
+=== Install dependencies (failure, 11s) ===
+Get:1 http://security.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+...
+E: Unable to locate package libretls-dev
+```
+
+### Implementation notes
+
+- The log endpoint is outside `/api/v1`, so `build_path()` won't work. Construct the path manually as `/{owner}/{repo}/actions/runs/{run_id}/jobs/{job}/attempt/{attempt}` and call `do_request()` directly.
+- The POST body needs to be built from the step count. First, do a POST with empty cursors to discover the number of steps, then POST with `expanded: true` for the step(s) we want logs for.
+- Alternatively, POST with all steps `expanded: true` in one request to get all logs at once.
+- For `--json` mode, output the raw response JSON.
+- Pagination: if a step has more lines than returned (cursor != null), repeat the POST with the returned cursor to fetch the next batch. Loop until cursor is null.

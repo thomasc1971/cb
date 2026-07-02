@@ -1183,6 +1183,8 @@ static void help_actions(void)
     printf("  show       <owner/repo> <run-id>          Show details of a run\n");
     printf("  runners    <owner/repo>                   List available runners\n");
     printf("  dispatch   <owner/repo> <workflow>        Trigger a workflow\n");
+    printf("  jobs       <owner/repo> <run-id>          List jobs in a run\n");
+    printf("  log        <owner/repo> <run-id> [job]    Show log output for a run\n");
     printf("  secret     list|set|rm                    Manage secrets\n");
     printf("  var        list|show|set|rm               Manage variables\n");
     printf("\nRun 'cb actions <subcommand> --help' for details.\n");
@@ -1859,6 +1861,159 @@ static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, GlobalFlags
     return CLI_OK;
 }
 
+/* ===== Actions jobs & log handlers ===== */
+
+static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions jobs <owner/repo> <run-id>\n\n");
+            printf("List jobs in a workflow run.\n\n");
+            printf("Flags:\n");
+            printf("  --json                  Output raw JSON\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        printf("Usage: cb actions jobs <owner/repo> <run-id>\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    int run_id = atoi(argv[1]);
+    if (run_id <= 0) {
+        fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
+        return CLI_ERR;
+    }
+
+    ActionJob *jobs = NULL;
+    size_t count = 0;
+    int rc = api_action_job_list(api, owner, repo, run_id, &jobs, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+
+    if (gf->json) {
+        JsonValue *arr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set(obj, "id", json_number_new((double)jobs[i].id));
+            if (jobs[i].name)
+                json_object_set_string(obj, "name", jobs[i].name);
+            if (jobs[i].status)
+                json_object_set_string(obj, "status", jobs[i].status);
+            if (jobs[i].duration)
+                json_object_set_string(obj, "duration", jobs[i].duration);
+            json_array_push(arr, obj);
+        }
+        char *s = json_serialize(arr, false);
+        printf("%s\n", s);
+        free(s);
+        json_free(arr);
+    } else {
+        if (count == 0) {
+            printf("No jobs found.\n");
+        } else {
+            printf("%-6s %-20s %-10s %s\n", "Job", "Name", "Status", "Duration");
+            for (size_t i = 0; i < count; i++) {
+                printf("%-6zu %-20s %-10s %s\n", i,
+                       jobs[i].name ? jobs[i].name : "?",
+                       jobs[i].status ? jobs[i].status : "?",
+                       jobs[i].duration ? jobs[i].duration : "?");
+            }
+        }
+    }
+
+    action_job_array_free(jobs, count);
+    return CLI_OK;
+}
+
+static int cmd_actions_log(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    (void)gf;
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions log <owner/repo> <run-id> [job-index] [step-index]\n\n");
+            printf("Show log output for a workflow run.\n");
+            printf("If job-index is omitted, shows logs for job 0.\n");
+            printf("If step-index is omitted, shows logs for all steps.\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        printf("Usage: cb actions log <owner/repo> <run-id> [job-index] [step-index]\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    int run_id = atoi(argv[1]);
+    if (run_id <= 0) {
+        fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
+        return CLI_ERR;
+    }
+    int job_index = (argc > 2) ? atoi(argv[2]) : 0;
+    if (job_index < 0) {
+        fprintf(stderr, "Error: invalid job index\n");
+        return CLI_ERR;
+    }
+    int step_filter = (argc > 3) ? atoi(argv[3]) : -1;
+
+    /* Fetch job detail to get step list */
+    ActionJobDetail detail;
+    int rc = api_action_job_detail(api, owner, repo, run_id, job_index, &detail);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+
+    /* Print job header */
+    printf("Job %d: %s (%s, %s)\n\n", job_index,
+           detail.job.name ? detail.job.name : "?",
+           detail.job.status ? detail.job.status : "?",
+           detail.job.duration ? detail.job.duration : "?");
+
+    /* For each step (or just the requested one), fetch and print logs */
+    for (size_t i = 0; i < detail.step_count; i++) {
+        if (step_filter >= 0 && (int)i != step_filter)
+            continue;
+
+        printf("=== %s (%s, %s) ===\n",
+               detail.steps[i].summary ? detail.steps[i].summary : "?",
+               detail.steps[i].status ? detail.steps[i].status : "?",
+               detail.steps[i].duration ? detail.steps[i].duration : "?");
+
+        ActionLogLine *lines = NULL;
+        size_t line_count = 0;
+        rc = api_action_log_fetch(api, owner, repo, run_id, job_index, (int)i,
+                                  &lines, &line_count);
+        if (rc != API_OK) {
+            print_api_error(rc, api->last_error);
+            action_job_detail_free(&detail);
+            return CLI_ERR;
+        }
+        for (size_t j = 0; j < line_count; j++)
+            printf("%s\n", lines[j].message);
+
+        action_log_lines_free(lines, line_count);
+        if (i + 1 < detail.step_count)
+            printf("\n");
+    }
+
+    action_job_detail_free(&detail);
+    return CLI_OK;
+}
+
 /* ===== Actions command dispatch ===== */
 
 static int cmd_actions(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
@@ -1884,6 +2039,10 @@ static int cmd_actions(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
         return cmd_actions_runners(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "dispatch") == 0)
         return cmd_actions_dispatch(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "jobs") == 0)
+        return cmd_actions_jobs(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "log") == 0)
+        return cmd_actions_log(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "secret") == 0) {
         if (rest_argc < 1) {
             help_actions_secret();
