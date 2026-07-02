@@ -24,8 +24,8 @@ jobs:
         run: make check
       - name: Prepare artifact
         run: |
-          strip cb
-          cp cb cb-linux-amd64
+          strip src/cb
+          cp src/cb cb-linux-amd64
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-linux-amd64
@@ -65,8 +65,8 @@ jobs:
           make
       - name: Prepare artifact
         run: |
-          x86_64-w64-mingw32-strip cb.exe
-          cp cb.exe cb-windows-amd64.exe
+          x86_64-w64-mingw32-strip src/cb.exe
+          cp src/cb.exe cb-windows-amd64.exe
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-windows-amd64
