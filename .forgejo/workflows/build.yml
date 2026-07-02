@@ -14,7 +14,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            gcc libretls-dev pkg-config autoconf automake make
+            gcc libtls-dev pkg-config autoconf automake make
       - name: Build
         run: |
           autoreconf -fi
