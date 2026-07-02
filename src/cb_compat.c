@@ -149,6 +149,42 @@ int cb_unsetenv(const char *name)
 
 #endif
 
+/* --- Config directory --- */
+
+#ifdef _WIN32
+
+const char *cb_config_dir(void)
+{
+    const char *dir = getenv("APPDATA");
+    if (dir && dir[0])
+        return dir;
+    const char *userprofile = getenv("USERPROFILE");
+    if (userprofile && userprofile[0]) {
+        static char buf[MAX_PATH];
+        snprintf(buf, sizeof(buf), "%s\\AppData\\Roaming", userprofile);
+        return buf;
+    }
+    return NULL;
+}
+
+#else
+
+const char *cb_config_dir(void)
+{
+    const char *xdg = getenv("XDG_CONFIG_HOME");
+    if (xdg && xdg[0])
+        return xdg;
+    const char *home = getenv("HOME");
+    if (home && home[0]) {
+        static char buf[512];
+        snprintf(buf, sizeof(buf), "%s/.config", home);
+        return buf;
+    }
+    return NULL;
+}
+
+#endif
+
 /* --- Base64 encoding/decoding --- */
 
 static const char b64_table[] =

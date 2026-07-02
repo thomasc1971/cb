@@ -134,6 +134,14 @@ static inline int cb_set_sock_timeout(cb_socket_t fd, int timeout_sec)
 int cb_setenv(const char *name, const char *value, int overwrite);
 int cb_unsetenv(const char *name);
 
+/* --- Config directory --- */
+
+/* Returns the platform-appropriate config directory.
+ * Linux/macOS: $HOME/.config
+ * Windows: %APPDATA% (or %USERPROFILE%\AppData\Roaming)
+ * Returns NULL if no suitable directory is found. */
+const char *cb_config_dir(void);
+
 /* --- Base64 encoding/decoding --- */
 
 char *base64_encode(const unsigned char *data, size_t len);

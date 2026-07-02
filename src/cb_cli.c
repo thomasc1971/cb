@@ -19,6 +19,7 @@
 
 #include "config.h"
 #include "cb_cli.h"
+#include "cb_compat.h"
 #include "cb_config.h"
 #include "cb_json.h"
 #include "cb_validate.h"
@@ -5953,10 +5954,15 @@ int cli_run(int argc, char **argv)
     Config cfg;
     char err[256];
     /* Try to find config file */
-    const char *home = getenv("HOME");
+    const char *cfg_dir = cb_config_dir();
     char config_path[512] = { 0 };
-    if (home)
-        snprintf(config_path, sizeof(config_path), "%s/.config/cb/config", home);
+    if (cfg_dir) {
+#ifdef _WIN32
+        snprintf(config_path, sizeof(config_path), "%s\\cb\\config", cfg_dir);
+#else
+        snprintf(config_path, sizeof(config_path), "%s/cb/config", cfg_dir);
+#endif
+    }
 
     if (config_load(&cfg, config_path[0] ? config_path : NULL, err, sizeof(err)) != 0) {
         fprintf(stderr, "Error: %s\n", err);
