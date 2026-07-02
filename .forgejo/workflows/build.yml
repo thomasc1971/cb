@@ -40,26 +40,21 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             mingw-w64 pkg-config autoconf automake make \
-            wget ca-certificates
-      - name: Build LibreSSL for Windows
+            wget ca-certificates zstd
+      - name: Extract pre-built LibreSSL from MSYS2
         run: |
+          # Download pre-built LibreSSL for UCRT64 from MSYS2 repo
+          # This includes libtls headers and static libs for mingw-w64
+          mkdir -p /usr/x86_64-w64-mingw32
           cd /tmp
-          wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-4.3.2.tar.gz
-          tar xzf libressl-4.3.2.tar.gz
-          cd libressl-4.3.2
-          ./configure \
-            --host=x86_64-w64-mingw32 \
-            --prefix=/usr/x86_64-w64-mingw32 \
-            --disable-shared --enable-static \
-            --enable-libtls \
-            --disable-asm
-          make -j$(nproc) -C tls
-          make -j$(nproc) -C ssl
-          make -j$(nproc) -C crypto
-          make install-sub -C tls
-          make install-sub -C ssl
-          make install-sub -C crypto
-          make install -C include
+          wget -q https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-libressl-4.1.2-1-any.pkg.tar.zst
+          wget -q https://mirror.msys2.org/mingw/mingw64/mingw-w64-x86_64-libressl-4.1.2-1-any.pkg.tar.zst.sig
+          # Extract the package
+          zstd -d mingw-w64-x86_64-libressl-4.1.2-1-any.pkg.tar.zst -o libressl.tar
+          tar xf libressl.tar
+          # Copy headers and libs to mingw sysroot
+          cp -r mingw64/include/* /usr/x86_64-w64-mingw32/include/
+          cp -r mingw64/lib/* /usr/x86_64-w64-mingw32/lib/
       - name: Build cb for Windows
         run: |
           autoreconf -fi
