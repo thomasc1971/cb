@@ -40,7 +40,7 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             mingw-w64 pkg-config autoconf automake make \
-            wget ca-certificates zstd
+            wget ca-certificates zstd zip
       - name: Extract pre-built LibreSSL from MSYS2
         run: |
           mkdir -p /usr/x86_64-w64-mingw32
@@ -66,14 +66,15 @@ jobs:
           cp /tmp/mingw64/bin/libretls-33.dll .
           cp /tmp/mingw64/bin/libressl-60.dll .
           cp /tmp/mingw64/bin/librecrypto-57.dll .
+          zip cb-windows-amd64-portable.zip \
+            cb-windows-amd64.exe \
+            libretls-33.dll \
+            libressl-60.dll \
+            librecrypto-57.dll
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-windows-amd64
-          path: |
-            cb-windows-amd64.exe
-            libretls-33.dll
-            libressl-60.dll
-            librecrypto-57.dll
+          path: cb-windows-amd64-portable.zip
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -93,10 +94,7 @@ jobs:
         run: |
           cd release
           sha256sum cb-linux-amd64 > cb-linux-amd64.sha256
-          sha256sum cb-windows-amd64.exe > cb-windows-amd64.exe.sha256
-          sha256sum libretls-33.dll > libretls-33.dll.sha256
-          sha256sum libressl-60.dll > libressl-60.dll.sha256
-          sha256sum librecrypto-57.dll > librecrypto-57.dll.sha256
+          sha256sum cb-windows-amd64-portable.zip > cb-windows-amd64-portable.zip.sha256
       - uses: https://code.forgejo.org/actions/forgejo-release@v2
         with:
           direction: upload
