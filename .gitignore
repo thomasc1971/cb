@@ -12,6 +12,7 @@ tests/test_validate
 tests/test_api
 tests/test_cli
 tests/test_actions
+tests/test_new_api
 tests/*.exe
 
 # Autotools generated
