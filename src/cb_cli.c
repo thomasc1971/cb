@@ -17,11 +17,11 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include "cb_cli.h"
 #include "cb_config.h"
 #include "cb_json.h"
 #include "cb_validate.h"
-#include "config.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -1172,6 +1172,770 @@ static int cmd_topic_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
+/* ===== Actions (CI/CD) help text ===== */
+
+static void help_actions(void)
+{
+    printf("Usage: cb actions <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage CI/CD actions for a repository.\n\n");
+    printf("Subcommands:\n");
+    printf("  list       <owner/repo>                  List recent workflow runs\n");
+    printf("  show       <owner/repo> <run-id>          Show details of a run\n");
+    printf("  runners    <owner/repo>                   List available runners\n");
+    printf("  dispatch   <owner/repo> <workflow>        Trigger a workflow\n");
+    printf("  secret     list|set|rm                    Manage secrets\n");
+    printf("  var        list|show|set|rm               Manage variables\n");
+    printf("\nRun 'cb actions <subcommand> --help' for details.\n");
+}
+
+static void help_actions_list(void)
+{
+    printf("Usage: cb actions list <owner/repo>\n\n");
+    printf("List recent workflow runs.\n\n");
+    printf("Flags:\n");
+    printf("  --json                  Output raw JSON\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_actions_show(void)
+{
+    printf("Usage: cb actions show <owner/repo> <run-id>\n\n");
+    printf("Show details of a specific workflow run.\n\n");
+    printf("Flags:\n");
+    printf("  --json                  Output raw JSON\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_actions_runners(void)
+{
+    printf("Usage: cb actions runners <owner/repo>\n\n");
+    printf("List CI runners available to this repository.\n\n");
+    printf("Flags:\n");
+    printf("  --json                  Output raw JSON\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_actions_dispatch(void)
+{
+    printf("Usage: cb actions dispatch <owner/repo> <workflow-file>\n\n");
+    printf("Trigger a workflow run.\n\n");
+    printf("Flags:\n");
+    printf("  --ref REF               Git ref to dispatch on (default: master)\n");
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_actions_secret(void)
+{
+    printf("Usage: cb actions secret <list|set|rm> <owner/repo> [args]\n\n");
+    printf("Manage repository action secrets.\n\n");
+    printf("Subcommands:\n");
+    printf("  list   <owner/repo>                  List secret names\n");
+    printf("  set    <owner/repo> <name> --value V  Create or update a secret\n");
+    printf("  rm     <owner/repo> <name>            Delete a secret\n");
+    printf("\nRun 'cb actions secret <subcommand> --help' for details.\n");
+}
+
+static void help_actions_var(void)
+{
+    printf("Usage: cb actions var <list|show|set|rm> <owner/repo> [args]\n\n");
+    printf("Manage repository action variables.\n\n");
+    printf("Subcommands:\n");
+    printf("  list   <owner/repo>                  List variables\n");
+    printf("  show   <owner/repo> <name>           Show a variable's value\n");
+    printf("  set    <owner/repo> <name> --value V  Create or update a variable\n");
+    printf("  rm     <owner/repo> <name>            Delete a variable\n");
+    printf("\nRun 'cb actions var <subcommand> --help' for details.\n");
+}
+
+/* ===== Actions output helpers ===== */
+
+static void print_action_run(const ActionRun *r, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        if (r->title)
+            json_object_set_string(obj, "title", r->title);
+        if (r->status)
+            json_object_set_string(obj, "status", r->status);
+        if (r->event)
+            json_object_set_string(obj, "event", r->event);
+        if (r->workflow_id)
+            json_object_set_string(obj, "workflow_id", r->workflow_id);
+        if (r->prettyref)
+            json_object_set_string(obj, "prettyref", r->prettyref);
+        if (r->commit_sha)
+            json_object_set_string(obj, "commit_sha", r->commit_sha);
+        if (r->html_url)
+            json_object_set_string(obj, "html_url", r->html_url);
+        if (r->created)
+            json_object_set_string(obj, "created", r->created);
+        if (r->started)
+            json_object_set_string(obj, "started", r->started);
+        if (r->stopped)
+            json_object_set_string(obj, "stopped", r->stopped);
+        json_object_set(obj, "id", json_number_new((double)r->id));
+        json_object_set(obj, "index_in_repo", json_number_new((double)r->index_in_repo));
+        char *s = json_serialize(obj, false);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+        return;
+    }
+    printf("Run #%lld: %s\n", (long long)r->index_in_repo, r->title ? r->title : "");
+    printf("  Status:    %s\n", r->status ? r->status : "?");
+    printf("  Event:     %s\n", r->event ? r->event : "?");
+    printf("  Workflow:  %s\n", r->workflow_id ? r->workflow_id : "?");
+    printf("  Ref:       %s\n", r->prettyref ? r->prettyref : "?");
+    printf("  Commit:    %s\n", r->commit_sha ? r->commit_sha : "?");
+    printf("  Created:   %s\n", r->created ? r->created : "?");
+    printf("  URL:       %s\n", r->html_url ? r->html_url : "?");
+}
+
+static void print_action_run_list(const ActionRun *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *root = json_object_new();
+        JsonValue *runs = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set(obj, "id", json_number_new((double)arr[i].id));
+            json_object_set(obj, "index_in_repo", json_number_new((double)arr[i].index_in_repo));
+            if (arr[i].title)
+                json_object_set_string(obj, "title", arr[i].title);
+            if (arr[i].status)
+                json_object_set_string(obj, "status", arr[i].status);
+            if (arr[i].event)
+                json_object_set_string(obj, "event", arr[i].event);
+            if (arr[i].workflow_id)
+                json_object_set_string(obj, "workflow_id", arr[i].workflow_id);
+            if (arr[i].prettyref)
+                json_object_set_string(obj, "prettyref", arr[i].prettyref);
+            if (arr[i].commit_sha)
+                json_object_set_string(obj, "commit_sha", arr[i].commit_sha);
+            if (arr[i].html_url)
+                json_object_set_string(obj, "html_url", arr[i].html_url);
+            if (arr[i].created)
+                json_object_set_string(obj, "created", arr[i].created);
+            json_array_push(runs, obj);
+        }
+        json_object_set(root, "workflow_runs", runs);
+        json_object_set(root, "total_count", json_number_new((double)count));
+        char *s = json_serialize(root, false);
+        printf("%s\n", s);
+        free(s);
+        json_free(root);
+        return;
+    }
+    if (count == 0) {
+        printf("No workflow runs found.\n");
+        return;
+    }
+    printf("%-6s %-10s %-10s %-20s %-15s %s\n",
+           "#", "Status", "Event", "Workflow", "Ref", "Created");
+    for (size_t i = 0; i < count; i++) {
+        printf("#%-5lld %-10s %-10s %-20s %-15s %s\n",
+               (long long)arr[i].index_in_repo,
+               arr[i].status ? arr[i].status : "?",
+               arr[i].event ? arr[i].event : "?",
+               arr[i].workflow_id ? arr[i].workflow_id : "?",
+               arr[i].prettyref ? arr[i].prettyref : "?",
+               arr[i].created ? arr[i].created : "?");
+    }
+}
+
+static void print_action_runner_list(const ActionRunner *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *runs = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set(obj, "id", json_number_new((double)arr[i].id));
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            if (arr[i].uuid)
+                json_object_set_string(obj, "uuid", arr[i].uuid);
+            if (arr[i].status)
+                json_object_set_string(obj, "status", arr[i].status);
+            if (arr[i].version)
+                json_object_set_string(obj, "version", arr[i].version);
+            json_array_push(runs, obj);
+        }
+        char *s = json_serialize(runs, false);
+        printf("%s\n", s);
+        free(s);
+        json_free(runs);
+        return;
+    }
+    if (count == 0) {
+        printf("No runners found.\n");
+        return;
+    }
+    printf("%-20s %-10s %-15s %s\n", "Name", "Status", "Version", "UUID");
+    for (size_t i = 0; i < count; i++) {
+        printf("%-20s %-10s %-15s %s\n",
+               arr[i].name ? arr[i].name : "?",
+               arr[i].status ? arr[i].status : "?",
+               arr[i].version ? arr[i].version : "?",
+               arr[i].uuid ? arr[i].uuid : "?");
+    }
+}
+
+static void print_action_variable_list(const ActionVariable *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *vars = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            if (arr[i].data)
+                json_object_set_string(obj, "data", arr[i].data);
+            json_array_push(vars, obj);
+        }
+        char *s = json_serialize(vars, false);
+        printf("%s\n", s);
+        free(s);
+        json_free(vars);
+        return;
+    }
+    if (count == 0) {
+        printf("No variables found.\n");
+        return;
+    }
+    printf("%-30s %s\n", "Name", "Value");
+    for (size_t i = 0; i < count; i++)
+        printf("%-30s %s\n", arr[i].name ? arr[i].name : "?", arr[i].data ? arr[i].data : "?");
+}
+
+static void print_action_variable(const ActionVariable *v, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        if (v->name)
+            json_object_set_string(obj, "name", v->name);
+        if (v->data)
+            json_object_set_string(obj, "data", v->data);
+        char *s = json_serialize(obj, false);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+        return;
+    }
+    printf("Name:  %s\n", v->name ? v->name : "?");
+    printf("Value: %s\n", v->data ? v->data : "?");
+}
+
+static void print_action_secret_list(const ActionSecret *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *secrets = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            json_array_push(secrets, obj);
+        }
+        char *s = json_serialize(secrets, false);
+        printf("%s\n", s);
+        free(s);
+        json_free(secrets);
+        return;
+    }
+    if (count == 0) {
+        printf("No secrets found.\n");
+        return;
+    }
+    printf("%s\n", "Name");
+    for (size_t i = 0; i < count; i++)
+        printf("%s\n", arr[i].name ? arr[i].name : "?");
+}
+
+/* ===== Actions handlers ===== */
+
+static int cmd_actions_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_actions_list();
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        help_actions_list();
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+
+    ActionRun *runs = NULL;
+    size_t count = 0;
+    int rc = api_action_run_list(api, owner, repo, &runs, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_action_run_list(runs, count, gf->json);
+    action_run_array_free(runs, count);
+    return CLI_OK;
+}
+
+static int cmd_actions_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_actions_show();
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        help_actions_show();
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    int64_t run_id = strtoll(argv[1], NULL, 10);
+    if (run_id <= 0) {
+        fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
+        return CLI_ERR;
+    }
+
+    ActionRun run;
+    int rc = api_action_run_show(api, owner, repo, run_id, &run);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_action_run(&run, gf->json);
+    action_run_free(&run);
+    return CLI_OK;
+}
+
+static int cmd_actions_runners(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_actions_runners();
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        help_actions_runners();
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+
+    ActionRunner *runners = NULL;
+    size_t count = 0;
+    int rc = api_action_runner_list(api, owner, repo, &runners, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_action_runner_list(runners, count, gf->json);
+    action_runner_array_free(runners, count);
+    return CLI_OK;
+}
+
+static int cmd_actions_dispatch(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_actions_dispatch();
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        help_actions_dispatch();
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    const char *workflowfile = argv[1];
+
+    const char *ref = NULL;
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--ref") == 0 && i + 1 < argc) {
+            ref = argv[++i];
+        }
+    }
+
+    int rc = api_action_dispatch(api, owner, repo, workflowfile, ref);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Dispatched workflow '%s' on %s/%s (ref: %s)\n",
+               workflowfile, owner, repo, ref ? ref : "master");
+    return CLI_OK;
+}
+
+static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions secret list <owner/repo>\n\n");
+            printf("List action secrets (names only).\n");
+            printf("  --json                  Output raw JSON\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        printf("Usage: cb actions secret list <owner/repo>\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+
+    ActionSecret *secrets = NULL;
+    size_t count = 0;
+    int rc = api_action_secret_list(api, owner, repo, &secrets, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_action_secret_list(secrets, count, gf->json);
+    action_secret_array_free(secrets, count);
+    return CLI_OK;
+}
+
+static int cmd_actions_secret_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    (void)gf;
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions secret set <owner/repo> <name> --value V\n\n");
+            printf("Create or update a secret.\n");
+            printf("  --value V               Secret value\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        printf("Usage: cb actions secret set <owner/repo> <name> --value V\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    const char *name = argv[1];
+    const char *value = NULL;
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--value") == 0 && i + 1 < argc)
+            value = argv[++i];
+    }
+    if (!value) {
+        fprintf(stderr, "Error: --value is required\n");
+        return CLI_ERR;
+    }
+
+    int rc = api_action_secret_set(api, owner, repo, name, value);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    printf("Secret '%s' set.\n", name);
+    return CLI_OK;
+}
+
+static int cmd_actions_secret_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions secret rm <owner/repo> <name> [--yes]\n\n");
+            printf("Delete a secret.\n");
+            printf("  --yes                   Skip confirmation\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        printf("Usage: cb actions secret rm <owner/repo> <name> [--yes]\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    const char *name = argv[1];
+    int yes = gf->yes;
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--yes") == 0)
+            yes = 1;
+    }
+    if (!yes) {
+        char prompt[512];
+        snprintf(prompt, sizeof(prompt), "Delete secret '%s' on %s/%s?", name, owner, repo);
+        if (!confirm(prompt))
+            return CLI_OK;
+    }
+
+    int rc = api_action_secret_delete(api, owner, repo, name);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    printf("Secret '%s' deleted.\n", name);
+    return CLI_OK;
+}
+
+static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions var list <owner/repo>\n\n");
+            printf("List action variables.\n");
+            printf("  --json                  Output raw JSON\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        printf("Usage: cb actions var list <owner/repo>\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+
+    ActionVariable *vars = NULL;
+    size_t count = 0;
+    int rc = api_action_variable_list(api, owner, repo, &vars, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_action_variable_list(vars, count, gf->json);
+    action_variable_array_free(vars, count);
+    return CLI_OK;
+}
+
+static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions var show <owner/repo> <name>\n\n");
+            printf("Show a variable's value.\n");
+            printf("  --json                  Output raw JSON\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        printf("Usage: cb actions var show <owner/repo> <name>\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    const char *name = argv[1];
+
+    ActionVariable var;
+    int rc = api_action_variable_show(api, owner, repo, name, &var);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_action_variable(&var, gf->json);
+    action_variable_free(&var);
+    return CLI_OK;
+}
+
+static int cmd_actions_var_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    (void)gf;
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions var set <owner/repo> <name> --value V\n\n");
+            printf("Create or update a variable.\n");
+            printf("  --value V               Variable value\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        printf("Usage: cb actions var set <owner/repo> <name> --value V\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    const char *name = argv[1];
+    const char *value = NULL;
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--value") == 0 && i + 1 < argc)
+            value = argv[++i];
+    }
+    if (!value) {
+        fprintf(stderr, "Error: --value is required\n");
+        return CLI_ERR;
+    }
+
+    int rc = api_action_variable_set(api, owner, repo, name, value);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    printf("Variable '%s' set.\n", name);
+    return CLI_OK;
+}
+
+static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb actions var rm <owner/repo> <name> [--yes]\n\n");
+            printf("Delete a variable.\n");
+            printf("  --yes                   Skip confirmation\n");
+            printf("  --help, -h              Show this help\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        printf("Usage: cb actions var rm <owner/repo> <name> [--yes]\n\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128], verr[256];
+    if (validate_owner_repo(argv[0], owner, sizeof(owner),
+                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return CLI_ERR;
+    }
+    const char *name = argv[1];
+    int yes = gf->yes;
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--yes") == 0)
+            yes = 1;
+    }
+    if (!yes) {
+        char prompt[512];
+        snprintf(prompt, sizeof(prompt), "Delete variable '%s' on %s/%s?", name, owner, repo);
+        if (!confirm(prompt))
+            return CLI_OK;
+    }
+
+    int rc = api_action_variable_delete(api, owner, repo, name);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    printf("Variable '%s' deleted.\n", name);
+    return CLI_OK;
+}
+
+/* ===== Actions command dispatch ===== */
+
+static int cmd_actions(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_actions();
+        return CLI_USAGE;
+    }
+
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+
+    if (is_help_arg(sub)) {
+        help_actions();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_actions_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_actions_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "runners") == 0)
+        return cmd_actions_runners(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "dispatch") == 0)
+        return cmd_actions_dispatch(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "secret") == 0) {
+        if (rest_argc < 1) {
+            help_actions_secret();
+            return CLI_USAGE;
+        }
+        const char *sec_sub = rest_argv[0];
+        int sec_argc = rest_argc - 1;
+        char **sec_argv = rest_argv + 1;
+        if (is_help_arg(sec_sub)) {
+            help_actions_secret();
+            return CLI_OK;
+        }
+        if (strcmp(sec_sub, "list") == 0)
+            return cmd_actions_secret_list(sec_argc, sec_argv, api, gf);
+        if (strcmp(sec_sub, "set") == 0)
+            return cmd_actions_secret_set(sec_argc, sec_argv, api, gf);
+        if (strcmp(sec_sub, "rm") == 0)
+            return cmd_actions_secret_rm(sec_argc, sec_argv, api, gf);
+        fprintf(stderr, "Error: unknown secret subcommand '%s'\n", sec_sub);
+        help_actions_secret();
+        return CLI_USAGE;
+    }
+    if (strcmp(sub, "var") == 0) {
+        if (rest_argc < 1) {
+            help_actions_var();
+            return CLI_USAGE;
+        }
+        const char *var_sub = rest_argv[0];
+        int var_argc = rest_argc - 1;
+        char **var_argv = rest_argv + 1;
+        if (is_help_arg(var_sub)) {
+            help_actions_var();
+            return CLI_OK;
+        }
+        if (strcmp(var_sub, "list") == 0)
+            return cmd_actions_var_list(var_argc, var_argv, api, gf);
+        if (strcmp(var_sub, "show") == 0)
+            return cmd_actions_var_show(var_argc, var_argv, api, gf);
+        if (strcmp(var_sub, "set") == 0)
+            return cmd_actions_var_set(var_argc, var_argv, api, gf);
+        if (strcmp(var_sub, "rm") == 0)
+            return cmd_actions_var_rm(var_argc, var_argv, api, gf);
+        fprintf(stderr, "Error: unknown var subcommand '%s'\n", var_sub);
+        help_actions_var();
+        return CLI_USAGE;
+    }
+
+    fprintf(stderr, "Error: unknown actions subcommand '%s'\n", sub);
+    help_actions();
+    return CLI_USAGE;
+}
+
 /* ===== Command dispatch ===== */
 
 static int cmd_repo(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
@@ -1239,7 +2003,8 @@ void cli_print_help(const char *cmd)
         printf("cb — Codeberg (Forgejo) repository management CLI\n\n");
         printf("Usage: cb [global flags] <command> [subcommand] [args] [flags]\n\n");
         printf("Commands:\n");
-        printf("  repo    Repository management (create, delete, rename, edit, show, list, transfer, topic)\n");
+        printf("  repo     Repository management (create, delete, rename, edit, show, list, transfer, topic)\n");
+        printf("  actions  CI/CD actions (list runs, show run, runners, dispatch, secrets, variables)\n");
         printf("\nGlobal flags:\n");
         printf("  --json          Output raw JSON\n");
         printf("  --quiet, -q     Suppress non-essential output\n");
@@ -1274,7 +2039,7 @@ int cli_run(int argc, char **argv)
         return CLI_OK;
     }
 
-    if (strcmp(cmd, "repo") != 0) {
+    if (strcmp(cmd, "repo") != 0 && strcmp(cmd, "actions") != 0) {
         fprintf(stderr, "Error: unknown command '%s'\n", cmd);
         free(filtered_argv);
         return CLI_USAGE;
@@ -1305,8 +2070,12 @@ int cli_run(int argc, char **argv)
         return CLI_ERR;
     }
 
-    /* Run the repo command */
-    int rc = cmd_repo(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    /* Run the command */
+    int rc;
+    if (strcmp(cmd, "actions") == 0)
+        rc = cmd_actions(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else
+        rc = cmd_repo(filtered_argc - 2, filtered_argv + 2, &api, &gf);
 
     api_client_free(&api);
     free(filtered_argv);

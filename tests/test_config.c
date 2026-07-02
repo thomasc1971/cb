@@ -1,6 +1,6 @@
+#include "config.h"
 #include "cb_compat.h"
 #include "cb_config.h"
-#include "config.h"
 #include "test_helpers.h"
 #include <stdio.h>
 #include <stdlib.h>

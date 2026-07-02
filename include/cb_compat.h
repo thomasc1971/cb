@@ -131,25 +131,7 @@ static inline int cb_set_sock_timeout(cb_socket_t fd, int timeout_sec)
 
 /* --- setenv/unsetenv compat --- */
 
-#ifdef _WIN32
-#include <stdlib.h>
-static inline int cb_setenv(const char *name, const char *value, int overwrite)
-{
-    if (!overwrite && getenv(name))
-        return 0;
-    return _putenv_s(name, value);
-}
-static inline int cb_unsetenv(const char *name)
-{
-    /* _putenv_s with empty value removes from C runtime env */
-    _putenv_s(name, "");
-    /* Also remove from Windows process env block so getenv returns NULL */
-    SetEnvironmentVariableA(name, NULL);
-    return 0;
-}
-#else
-#define cb_setenv(name, value, overwrite) setenv(name, value, overwrite)
-#define cb_unsetenv(name)                 unsetenv(name)
-#endif
+int cb_setenv(const char *name, const char *value, int overwrite);
+int cb_unsetenv(const char *name);
 
 #endif /* CB_COMPAT_H */

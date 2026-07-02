@@ -17,9 +17,9 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include "cb_json.h"
 #include "cb_compat.h"
-#include "config.h"
 
 #include <math.h>
 #include <stdbool.h>

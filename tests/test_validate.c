@@ -1,5 +1,5 @@
-#include "cb_validate.h"
 #include "config.h"
+#include "cb_validate.h"
 #include "test_helpers.h"
 #include <stdio.h>
 #include <stdlib.h>

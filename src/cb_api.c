@@ -17,10 +17,10 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
 #include "cb_api.h"
 #include "cb_config.h"
 #include "cb_json.h"
-#include "config.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -568,6 +568,481 @@ int api_topic_add(ApiClient *a, const char *owner, const char *repo, const char 
 int api_topic_remove(ApiClient *a, const char *owner, const char *repo, const char *topic)
 {
     char *path = build_path(a, "/repos/%s/%s/topics/%s", owner, repo, topic);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Actions (CI/CD) ===== */
+
+static int64_t json_get_int64(const JsonValue *obj, const char *key, int64_t default_val)
+{
+    JsonValue *v = json_object_lookup(obj, key);
+    if (!v || !json_is_number(v))
+        return default_val;
+    return (int64_t)json_number(v);
+}
+
+static void parse_action_run(const JsonValue *obj, ActionRun *r)
+{
+    memset(r, 0, sizeof(*r));
+    r->id = json_get_int64(obj, "id", 0);
+    r->index_in_repo = json_get_int64(obj, "index_in_repo", 0);
+    r->title = json_dup_string(obj, "title");
+    r->status = json_dup_string(obj, "status");
+    r->event = json_dup_string(obj, "event");
+    r->workflow_id = json_dup_string(obj, "workflow_id");
+    r->prettyref = json_dup_string(obj, "prettyref");
+    r->commit_sha = json_dup_string(obj, "commit_sha");
+    r->html_url = json_dup_string(obj, "html_url");
+    r->created = json_dup_string(obj, "created");
+    r->started = json_dup_string(obj, "started");
+    r->stopped = json_dup_string(obj, "stopped");
+}
+
+void action_run_free(ActionRun *r)
+{
+    if (!r)
+        return;
+    free(r->title);
+    free(r->status);
+    free(r->event);
+    free(r->workflow_id);
+    free(r->prettyref);
+    free(r->commit_sha);
+    free(r->html_url);
+    free(r->created);
+    free(r->started);
+    free(r->stopped);
+    memset(r, 0, sizeof(*r));
+}
+
+void action_run_array_free(ActionRun *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        action_run_free(&arr[i]);
+    free(arr);
+}
+
+static void parse_action_runner(const JsonValue *obj, ActionRunner *r)
+{
+    memset(r, 0, sizeof(*r));
+    r->id = json_get_int64(obj, "id", 0);
+    r->name = json_dup_string(obj, "name");
+    r->uuid = json_dup_string(obj, "uuid");
+    r->status = json_dup_string(obj, "status");
+    r->version = json_dup_string(obj, "version");
+}
+
+void action_runner_free(ActionRunner *r)
+{
+    if (!r)
+        return;
+    free(r->name);
+    free(r->uuid);
+    free(r->status);
+    free(r->version);
+    memset(r, 0, sizeof(*r));
+}
+
+void action_runner_array_free(ActionRunner *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        action_runner_free(&arr[i]);
+    free(arr);
+}
+
+static void parse_action_variable(const JsonValue *obj, ActionVariable *v)
+{
+    memset(v, 0, sizeof(*v));
+    v->name = json_dup_string(obj, "name");
+    v->data = json_dup_string(obj, "data");
+}
+
+void action_variable_free(ActionVariable *v)
+{
+    if (!v)
+        return;
+    free(v->name);
+    free(v->data);
+    memset(v, 0, sizeof(*v));
+}
+
+void action_variable_array_free(ActionVariable *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        action_variable_free(&arr[i]);
+    free(arr);
+}
+
+static void parse_action_secret(const JsonValue *obj, ActionSecret *s)
+{
+    memset(s, 0, sizeof(*s));
+    s->name = json_dup_string(obj, "name");
+}
+
+void action_secret_free(ActionSecret *s)
+{
+    if (!s)
+        return;
+    free(s->name);
+    memset(s, 0, sizeof(*s));
+}
+
+void action_secret_array_free(ActionSecret *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        action_secret_free(&arr[i]);
+    free(arr);
+}
+
+int api_action_run_list(ApiClient *a, const char *owner, const char *repo,
+                        ActionRun **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/runs", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    JsonValue *runs_arr = json_object_lookup(parsed, "workflow_runs");
+    if (!runs_arr || !json_is_array(runs_arr)) {
+        json_free(parsed);
+        *out = NULL;
+        *count = 0;
+        return API_OK;
+    }
+
+    size_t n = json_array_count(runs_arr);
+    ActionRun *arr = NULL;
+    if (n > 0) {
+        arr = calloc(n, sizeof(ActionRun));
+        if (!arr) {
+            json_free(parsed);
+            set_error(a, "out of memory");
+            return API_ERR_UNKNOWN;
+        }
+    }
+
+    for (size_t i = 0; i < n; i++)
+        parse_action_run(json_array_get(runs_arr, i), &arr[i]);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_run_show(ApiClient *a, const char *owner, const char *repo,
+                        int64_t run_id, ActionRun *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/runs/%lld",
+                            owner, repo, (long long)run_id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_action_run(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_runner_list(ApiClient *a, const char *owner, const char *repo,
+                           ActionRunner **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/runners", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_array(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    size_t n = json_array_count(parsed);
+    ActionRunner *arr = NULL;
+    if (n > 0) {
+        arr = calloc(n, sizeof(ActionRunner));
+        if (!arr) {
+            json_free(parsed);
+            set_error(a, "out of memory");
+            return API_ERR_UNKNOWN;
+        }
+    }
+
+    for (size_t i = 0; i < n; i++)
+        parse_action_runner(json_array_get(parsed, i), &arr[i]);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_dispatch(ApiClient *a, const char *owner, const char *repo,
+                        const char *workflowfile, const char *ref)
+{
+    if (!workflowfile) {
+        set_error(a, "workflow filename is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "ref", ref ? ref : "master");
+
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/actions/workflows/%s/dispatches",
+                            owner, repo, workflowfile);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_action_secret_list(ApiClient *a, const char *owner, const char *repo,
+                           ActionSecret **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/secrets", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    JsonValue *secrets_arr = json_object_lookup(parsed, "data");
+    if (!secrets_arr || !json_is_array(secrets_arr)) {
+        json_free(parsed);
+        *out = NULL;
+        *count = 0;
+        return API_OK;
+    }
+
+    size_t n = json_array_count(secrets_arr);
+    ActionSecret *arr = NULL;
+    if (n > 0) {
+        arr = calloc(n, sizeof(ActionSecret));
+        if (!arr) {
+            json_free(parsed);
+            set_error(a, "out of memory");
+            return API_ERR_UNKNOWN;
+        }
+    }
+
+    for (size_t i = 0; i < n; i++)
+        parse_action_secret(json_array_get(secrets_arr, i), &arr[i]);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_secret_set(ApiClient *a, const char *owner, const char *repo,
+                          const char *name, const char *value)
+{
+    if (!name || !value) {
+        set_error(a, "secret name and value are required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "data", value);
+
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/actions/secrets/%s", owner, repo, name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PUT, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_action_secret_delete(ApiClient *a, const char *owner, const char *repo,
+                             const char *name)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/secrets/%s", owner, repo, name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_action_variable_list(ApiClient *a, const char *owner, const char *repo,
+                             ActionVariable **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/variables", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_array(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    size_t n = json_array_count(parsed);
+    ActionVariable *arr = NULL;
+    if (n > 0) {
+        arr = calloc(n, sizeof(ActionVariable));
+        if (!arr) {
+            json_free(parsed);
+            set_error(a, "out of memory");
+            return API_ERR_UNKNOWN;
+        }
+    }
+
+    for (size_t i = 0; i < n; i++)
+        parse_action_variable(json_array_get(parsed, i), &arr[i]);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_variable_show(ApiClient *a, const char *owner, const char *repo,
+                             const char *name, ActionVariable *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/variables/%s", owner, repo, name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_action_variable(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_action_variable_set(ApiClient *a, const char *owner, const char *repo,
+                            const char *name, const char *value)
+{
+    if (!name || !value) {
+        set_error(a, "variable name and value are required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "value", value);
+
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/actions/variables/%s", owner, repo, name);
+    HttpResponse resp;
+
+    /* Try PUT first (update), fall back to POST (create) if 404 */
+    ApiError err = do_request(a, HTTP_PUT, path, body_str, &resp);
+    if (err == API_ERR_NOT_FOUND) {
+        http_response_free(&resp);
+        err = do_request(a, HTTP_POST, path, body_str, &resp);
+    }
+
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_action_variable_delete(ApiClient *a, const char *owner, const char *repo,
+                               const char *name)
+{
+    char *path = build_path(a, "/repos/%s/%s/actions/variables/%s", owner, repo, name);
     HttpResponse resp;
     ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
     free(path);

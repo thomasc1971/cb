@@ -17,8 +17,8 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "cb_validate.h"
 #include "config.h"
+#include "cb_validate.h"
 
 #include <stdio.h>
 #include <string.h>

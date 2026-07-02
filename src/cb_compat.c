@@ -1,5 +1,5 @@
-#include "cb_compat.h"
 #include "config.h"
+#include "cb_compat.h"
 
 #ifndef HAVE_OPEN_MEMSTREAM
 
@@ -116,3 +116,35 @@ const char *cb_wsa_strerror(int err)
 }
 
 #endif /* _WIN32 */
+
+/* --- setenv/unsetenv compat --- */
+
+#ifdef _WIN32
+
+int cb_setenv(const char *name, const char *value, int overwrite)
+{
+    if (!overwrite && getenv(name))
+        return 0;
+    return _putenv_s(name, value);
+}
+
+int cb_unsetenv(const char *name)
+{
+    _putenv_s(name, "");
+    SetEnvironmentVariableA(name, NULL);
+    return 0;
+}
+
+#else
+
+int cb_setenv(const char *name, const char *value, int overwrite)
+{
+    return setenv(name, value, overwrite);
+}
+
+int cb_unsetenv(const char *name)
+{
+    return unsetenv(name);
+}
+
+#endif

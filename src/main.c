@@ -17,8 +17,8 @@
  * along with cb.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "cb_cli.h"
 #include "config.h"
+#include "cb_cli.h"
 
 int main(int argc, char **argv)
 {

@@ -167,4 +167,100 @@ void repo_array_free(Repo *arr, size_t count);
 /* Free a topic array (from api_topic_list) */
 void topic_array_free(char **topics, size_t count);
 
+/* ===== Actions (CI/CD) ===== */
+
+/* Action run — workflow execution info */
+typedef struct
+{
+    int64_t id;
+    int64_t index_in_repo;
+    char *title;
+    char *status;      /* "waiting", "running", "success", "failure", "cancelled" */
+    char *event;       /* "push", "pull_request", "schedule", etc. */
+    char *workflow_id; /* workflow file name */
+    char *prettyref;   /* branch/tag ref */
+    char *commit_sha;
+    char *html_url;
+    char *created; /* ISO timestamp */
+    char *started;
+    char *stopped;
+} ActionRun;
+
+/* Action runner — CI runner info */
+typedef struct
+{
+    int64_t id;
+    char *name;
+    char *uuid;
+    char *status; /* "online", "offline" */
+    char *version;
+} ActionRunner;
+
+/* Action variable — CI/CD variable */
+typedef struct
+{
+    char *name;
+    char *data; /* the value */
+} ActionVariable;
+
+/* Action secret — name only (API never returns values) */
+typedef struct
+{
+    char *name;
+} ActionSecret;
+
+/* List action runs for a repository. Caller frees with action_run_array_free. */
+int api_action_run_list(ApiClient *a, const char *owner, const char *repo,
+                        ActionRun **out, size_t *count);
+
+/* Get a single action run by ID. Caller frees with action_run_free. */
+int api_action_run_show(ApiClient *a, const char *owner, const char *repo,
+                        int64_t run_id, ActionRun *out);
+
+/* List runners available to a repository. Caller frees with action_runner_array_free. */
+int api_action_runner_list(ApiClient *a, const char *owner, const char *repo,
+                           ActionRunner **out, size_t *count);
+
+/* Dispatch a workflow by filename. ref is the git ref (e.g. "master"), may be NULL. */
+int api_action_dispatch(ApiClient *a, const char *owner, const char *repo,
+                        const char *workflowfile, const char *ref);
+
+/* List repo action secrets. Caller frees with action_secret_array_free. */
+int api_action_secret_list(ApiClient *a, const char *owner, const char *repo,
+                           ActionSecret **out, size_t *count);
+
+/* Create or update a secret. */
+int api_action_secret_set(ApiClient *a, const char *owner, const char *repo,
+                          const char *name, const char *value);
+
+/* Delete a secret. */
+int api_action_secret_delete(ApiClient *a, const char *owner, const char *repo,
+                             const char *name);
+
+/* List repo action variables. Caller frees with action_variable_array_free. */
+int api_action_variable_list(ApiClient *a, const char *owner, const char *repo,
+                             ActionVariable **out, size_t *count);
+
+/* Get a single repo action variable. Caller frees with action_variable_free. */
+int api_action_variable_show(ApiClient *a, const char *owner, const char *repo,
+                             const char *name, ActionVariable *out);
+
+/* Create or update a variable. */
+int api_action_variable_set(ApiClient *a, const char *owner, const char *repo,
+                            const char *name, const char *value);
+
+/* Delete a variable. */
+int api_action_variable_delete(ApiClient *a, const char *owner, const char *repo,
+                               const char *name);
+
+/* Free functions for actions types */
+void action_run_free(ActionRun *r);
+void action_run_array_free(ActionRun *arr, size_t count);
+void action_runner_free(ActionRunner *r);
+void action_runner_array_free(ActionRunner *arr, size_t count);
+void action_variable_free(ActionVariable *v);
+void action_variable_array_free(ActionVariable *arr, size_t count);
+void action_secret_free(ActionSecret *s);
+void action_secret_array_free(ActionSecret *arr, size_t count);
+
 #endif /* CB_API_H */
