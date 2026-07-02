@@ -48,4 +48,11 @@ int validate_merge_style(const char *style, char *error_out, size_t error_sz);
 int validate_owner_repo(const char *str, char *owner_out, size_t owner_sz,
                         char *repo_out, size_t repo_sz, char *error_out, size_t error_sz);
 
+int validate_tag_name(const char *name, char *error_out, size_t error_sz);
+int validate_branch_name(const char *name, char *error_out, size_t error_sz);
+int validate_issue_title(const char *title, char *error_out, size_t error_sz);
+int validate_label_color(const char *color, char *error_out, size_t error_sz);
+int validate_permission(const char *perm, char *error_out, size_t error_sz);
+int validate_sha(const char *sha, char *error_out, size_t error_sz);
+
 #endif /* CB_VALIDATE_H */

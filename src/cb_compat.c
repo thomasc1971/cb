@@ -148,3 +148,115 @@ int cb_unsetenv(const char *name)
 }
 
 #endif
+
+/* --- Base64 encoding/decoding --- */
+
+static const char b64_table[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+char *base64_encode(const unsigned char *data, size_t len)
+{
+    size_t out_len = 4 * ((len + 2) / 3);
+    char *out = malloc(out_len + 1);
+    if (!out)
+        return NULL;
+
+    size_t i, j;
+    for (i = 0, j = 0; i + 2 < len; i += 3) {
+        unsigned int v = ((unsigned int)data[i] << 16) |
+                         ((unsigned int)data[i + 1] << 8) |
+                         (unsigned int)data[i + 2];
+        out[j++] = b64_table[(v >> 18) & 0x3F];
+        out[j++] = b64_table[(v >> 12) & 0x3F];
+        out[j++] = b64_table[(v >> 6) & 0x3F];
+        out[j++] = b64_table[v & 0x3F];
+    }
+    if (i < len) {
+        unsigned int v = (unsigned int)data[i] << 16;
+        if (i + 1 < len)
+            v |= (unsigned int)data[i + 1] << 8;
+        out[j++] = b64_table[(v >> 18) & 0x3F];
+        out[j++] = b64_table[(v >> 12) & 0x3F];
+        out[j++] = (i + 1 < len) ? b64_table[(v >> 6) & 0x3F] : '=';
+        out[j++] = '=';
+    }
+    out[j] = '\0';
+    return out;
+}
+
+static int b64_val(char c)
+{
+    if (c >= 'A' && c <= 'Z')
+        return c - 'A';
+    if (c >= 'a' && c <= 'z')
+        return c - 'a' + 26;
+    if (c >= '0' && c <= '9')
+        return c - '0' + 52;
+    if (c == '+')
+        return 62;
+    if (c == '/')
+        return 63;
+    return -1;
+}
+
+unsigned char *base64_decode(const char *str, size_t *out_len)
+{
+    size_t len = strlen(str);
+    if (len == 0) {
+        *out_len = 0;
+        unsigned char *out = malloc(1);
+        if (out)
+            out[0] = '\0';
+        return out;
+    }
+
+    unsigned char *out = malloc(len);
+    if (!out)
+        return NULL;
+
+    size_t i, j;
+    for (i = 0, j = 0; i + 3 < len; i += 4) {
+        int a = b64_val(str[i]);
+        int b = b64_val(str[i + 1]);
+        int c = (str[i + 2] == '=') ? 0 : b64_val(str[i + 2]);
+        int d = (str[i + 3] == '=') ? 0 : b64_val(str[i + 3]);
+        if (a < 0 || b < 0 || c < 0 || d < 0) {
+            free(out);
+            return NULL;
+        }
+        unsigned int v = ((unsigned int)a << 18) | ((unsigned int)b << 12) |
+                         ((unsigned int)c << 6) | (unsigned int)d;
+        out[j++] = (unsigned char)((v >> 16) & 0xFF);
+        if (str[i + 2] != '=')
+            out[j++] = (unsigned char)((v >> 8) & 0xFF);
+        if (str[i + 3] != '=')
+            out[j++] = (unsigned char)(v & 0xFF);
+    }
+    *out_len = j;
+    return out;
+}
+
+/* --- URL encoding --- */
+
+char *url_encode(const char *str)
+{
+    if (!str)
+        return NULL;
+    size_t len = strlen(str);
+    char *out = malloc(len * 3 + 1);
+    if (!out)
+        return NULL;
+    size_t j = 0;
+    for (size_t i = 0; i < len; i++) {
+        unsigned char c = (unsigned char)str[i];
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+            (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' || c == '~') {
+            out[j++] = (char)c;
+        } else {
+            snprintf(out + j, 4, "%%%02X", c);
+            j += 3;
+        }
+    }
+    out[j] = '\0';
+    return out;
+}

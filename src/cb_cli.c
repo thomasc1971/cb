@@ -2095,6 +2095,3730 @@ static int cmd_actions(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_USAGE;
 }
 
+/* ===== New command flag tables ===== */
+
+static const FlagDef RELEASE_LIST_FLAGS[] = {
+    { "--draft", NULL, 0 },
+    { "--pre-release", NULL, 0 },
+    { "--limit", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef RELEASE_CREATE_FLAGS[] = {
+    { "--tag", NULL, 1 },
+    { "--name", NULL, 1 },
+    { "--body", NULL, 1 },
+    { "--target", NULL, 1 },
+    { "--draft", NULL, 0 },
+    { "--prerelease", NULL, 0 },
+    { "--hide-archive-links", NULL, 0 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef RELEASE_EDIT_FLAGS[] = {
+    { "--tag", NULL, 1 },
+    { "--name", NULL, 1 },
+    { "--body", NULL, 1 },
+    { "--target", NULL, 1 },
+    { "--draft", NULL, 0 },
+    { "--no-draft", NULL, 0 },
+    { "--prerelease", NULL, 0 },
+    { "--no-prerelease", NULL, 0 },
+    { "--hide-archive-links", NULL, 0 },
+    { "--no-hide-archive-links", NULL, 0 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef TAG_CREATE_FLAGS[] = {
+    { "--tag", NULL, 1 },
+    { "--message", "-m", 1 },
+    { "--target", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef BRANCH_CREATE_FLAGS[] = {
+    { "--name", NULL, 1 },
+    { "--from", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef ISSUE_LIST_FLAGS[] = {
+    { "--state", NULL, 1 },
+    { "--labels", NULL, 1 },
+    { "--type", NULL, 1 },
+    { "--milestone", NULL, 1 },
+    { "--limit", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef ISSUE_CREATE_FLAGS[] = {
+    { "--title", NULL, 1 },
+    { "--body", NULL, 1 },
+    { "--assignee", NULL, 1 },
+    { "--label", NULL, 1 },
+    { "--milestone", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef ISSUE_EDIT_FLAGS[] = {
+    { "--title", NULL, 1 },
+    { "--body", NULL, 1 },
+    { "--state", NULL, 1 },
+    { "--milestone", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef LABEL_CREATE_FLAGS[] = {
+    { "--name", NULL, 1 },
+    { "--color", NULL, 1 },
+    { "--description", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef MILESTONE_CREATE_FLAGS[] = {
+    { "--title", NULL, 1 },
+    { "--description", NULL, 1 },
+    { "--state", NULL, 1 },
+    { "--due", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef PR_CREATE_FLAGS[] = {
+    { "--title", NULL, 1 },
+    { "--head", NULL, 1 },
+    { "--base", NULL, 1 },
+    { "--body", NULL, 1 },
+    { "--label", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef COMMIT_LIST_FLAGS[] = {
+    { "--sha", NULL, 1 },
+    { "--path", NULL, 1 },
+    { "--limit", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef KEY_ADD_FLAGS[] = {
+    { "--title", NULL, 1 },
+    { "--key", NULL, 1 },
+    { "--read-only", NULL, 0 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef COLLAB_ADD_FLAGS[] = {
+    { "--permission", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef FORK_CREATE_FLAGS[] = {
+    { "--name", NULL, 1 },
+    { "--org", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef HOOK_CREATE_FLAGS[] = {
+    { "--type", NULL, 1 },
+    { "--url", NULL, 1 },
+    { "--event", NULL, 1 },
+    { "--content-type", NULL, 1 },
+    { "--secret", NULL, 1 },
+    { "--active", NULL, 0 },
+    { "--inactive", NULL, 0 },
+    { "--branch-filter", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+/* ===== New command help text ===== */
+
+static void help_release(void)
+{
+    printf("Usage: cb release <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage releases.\n\n");
+    printf("Subcommands:\n");
+    printf("  list          List releases\n");
+    printf("  create        Create a release\n");
+    printf("  show          Show a release by ID\n");
+    printf("  latest        Show latest release\n");
+    printf("  edit          Edit a release\n");
+    printf("  delete        Delete a release\n");
+    printf("  by-tag        Show release by tag name\n");
+    printf("  delete-tag    Delete release by tag name\n");
+    printf("  asset         Manage release assets (list, upload, show, edit, delete)\n");
+    printf("\nRun 'cb release <subcommand> --help' for details.\n");
+}
+
+static void help_release_list(void)
+{
+    printf("Usage: cb release <owner/repo> list [flags]\n\n");
+    printf("List releases.\n\n");
+    printf("Flags:\n");
+    print_flag_table(RELEASE_LIST_FLAGS);
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_release_create(void)
+{
+    printf("Usage: cb release <owner/repo> create --tag <tag> [flags]\n\n");
+    printf("Create a release.\n\n");
+    printf("Flags:\n");
+    print_flag_table(RELEASE_CREATE_FLAGS);
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_release_edit(void)
+{
+    printf("Usage: cb release <owner/repo> edit <id> [flags]\n\n");
+    printf("Edit a release. Only provided flags are sent.\n\n");
+    printf("Flags:\n");
+    print_flag_table(RELEASE_EDIT_FLAGS);
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_release_asset(void)
+{
+    printf("Usage: cb release <owner/repo> asset <subcommand> ...\n\n");
+    printf("Manage release assets.\n\n");
+    printf("Subcommands:\n");
+    printf("  list    <release-id>              List assets\n");
+    printf("  upload  <release-id> --file <path> Upload a file\n");
+    printf("  show    <release-id> <asset-id>   Show asset\n");
+    printf("  edit    <release-id> <asset-id>   Edit asset\n");
+    printf("  delete  <release-id> <asset-id>   Delete asset\n");
+    printf("\nRun 'cb release asset <subcommand> --help' for details.\n");
+}
+
+static void help_tag(void)
+{
+    printf("Usage: cb tag <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage tags.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List tags\n");
+    printf("  create    Create a tag\n");
+    printf("  show      Show a tag\n");
+    printf("  delete    Delete a tag\n");
+    printf("\nRun 'cb tag <subcommand> --help' for details.\n");
+}
+
+static void help_branch(void)
+{
+    printf("Usage: cb branch <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage branches.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List branches\n");
+    printf("  create    Create a branch\n");
+    printf("  show      Show a branch\n");
+    printf("  rename    Rename a branch\n");
+    printf("  delete    Delete a branch\n");
+    printf("\nRun 'cb branch <subcommand> --help' for details.\n");
+}
+
+static void help_issue(void)
+{
+    printf("Usage: cb issue <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage issues.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List issues\n");
+    printf("  create    Create an issue\n");
+    printf("  show      Show an issue\n");
+    printf("  edit      Edit an issue\n");
+    printf("  delete    Delete an issue\n");
+    printf("  close     Close an issue (shorthand)\n");
+    printf("  reopen    Reopen an issue (shorthand)\n");
+    printf("  comment   Add a comment\n");
+    printf("  label     Manage issue labels (add, set, rm, clear)\n");
+    printf("  pin       Pin an issue\n");
+    printf("  unpin     Unpin an issue\n");
+    printf("  deadline  Set a due date\n");
+    printf("\nRun 'cb issue <subcommand> --help' for details.\n");
+}
+
+static void help_label(void)
+{
+    printf("Usage: cb label <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage repository labels.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List labels\n");
+    printf("  create    Create a label\n");
+    printf("  show      Show a label\n");
+    printf("  edit      Edit a label\n");
+    printf("  delete    Delete a label\n");
+    printf("\nRun 'cb label <subcommand> --help' for details.\n");
+}
+
+static void help_milestone(void)
+{
+    printf("Usage: cb milestone <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage milestones.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List milestones\n");
+    printf("  create    Create a milestone\n");
+    printf("  show      Show a milestone\n");
+    printf("  edit      Edit a milestone\n");
+    printf("  delete    Delete a milestone\n");
+    printf("\nRun 'cb milestone <subcommand> --help' for details.\n");
+}
+
+static void help_pr(void)
+{
+    printf("Usage: cb pr <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage pull requests.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List pull requests\n");
+    printf("  create    Create a pull request\n");
+    printf("  show      Show a pull request\n");
+    printf("  edit      Edit a pull request\n");
+    printf("  merge     Merge a pull request\n");
+    printf("  unmerge   Cancel scheduled auto-merge\n");
+    printf("  close     Close a pull request (shorthand)\n");
+    printf("  reopen    Reopen a pull request (shorthand)\n");
+    printf("  files     List changed files\n");
+    printf("  commits   List commits\n");
+    printf("  diff      Show diff (or patch)\n");
+    printf("  review    Manage reviews (list, create, request, unrequest)\n");
+    printf("\nRun 'cb pr <subcommand> --help' for details.\n");
+}
+
+static void help_commit(void)
+{
+    printf("Usage: cb commit <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("View commits and commit statuses.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List commits\n");
+    printf("  show      Show a commit\n");
+    printf("  status    Show combined status for a ref\n");
+    printf("  diff      Show diff (or patch)\n");
+    printf("  compare   Compare two refs\n");
+    printf("  note      Manage git notes (show, set, rm)\n");
+    printf("\nRun 'cb commit <subcommand> --help' for details.\n");
+}
+
+static void help_content(void)
+{
+    printf("Usage: cb content <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("View and manage repository file contents.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List directory contents\n");
+    printf("  show      Show file or directory contents\n");
+    printf("  create    Create a file\n");
+    printf("  update    Update a file\n");
+    printf("  delete    Delete a file\n");
+    printf("  raw       Get raw file content\n");
+    printf("  archive   Download an archive\n");
+    printf("\nRun 'cb content <subcommand> --help' for details.\n");
+}
+
+static void help_key(void)
+{
+    printf("Usage: cb key <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage deploy keys.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List deploy keys\n");
+    printf("  add       Add a deploy key\n");
+    printf("  show      Show a deploy key\n");
+    printf("  delete    Delete a deploy key\n");
+    printf("\nRun 'cb key <subcommand> --help' for details.\n");
+}
+
+static void help_collaborator(void)
+{
+    printf("Usage: cb collaborator <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage collaborators.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List collaborators\n");
+    printf("  add       Add a collaborator\n");
+    printf("  rm        Remove a collaborator\n");
+    printf("  perms     Show collaborator permissions\n");
+    printf("\nRun 'cb collaborator <subcommand> --help' for details.\n");
+}
+
+static void help_fork(void)
+{
+    printf("Usage: cb fork <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage forks.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List forks\n");
+    printf("  create    Fork a repository\n");
+    printf("\nRun 'cb fork <subcommand> --help' for details.\n");
+}
+
+static void help_hook(void)
+{
+    printf("Usage: cb hook <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage webhooks.\n\n");
+    printf("Subcommands:\n");
+    printf("  list      List webhooks\n");
+    printf("  create    Create a webhook\n");
+    printf("  show      Show a webhook\n");
+    printf("  edit      Edit a webhook\n");
+    printf("  delete    Delete a webhook\n");
+    printf("  test      Test a webhook\n");
+    printf("\nRun 'cb hook <subcommand> --help' for details.\n");
+}
+
+static void help_wiki(void)
+{
+    printf("Usage: cb wiki <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Manage wiki pages.\n\n");
+    printf("Subcommands:\n");
+    printf("  list        List wiki pages\n");
+    printf("  create      Create a wiki page\n");
+    printf("  show        Show a wiki page\n");
+    printf("  edit        Edit a wiki page\n");
+    printf("  delete      Delete a wiki page\n");
+    printf("  revisions   Show page revisions\n");
+    printf("\nRun 'cb wiki <subcommand> --help' for details.\n");
+}
+
+/* ===== New output helpers ===== */
+
+/* (unused: parse_owner_repo_arg kept for future use) */
+
+static int require_owner_repo(const char *arg, char *owner, size_t owner_sz,
+                              char *repo, size_t repo_sz)
+{
+    char verr[256];
+    if (validate_owner_repo(arg, owner, owner_sz, repo, repo_sz,
+                            verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        return -1;
+    }
+    if (owner[0] == '\0') {
+        fprintf(stderr, "Error: please specify owner/repo\n");
+        return -1;
+    }
+    return 0;
+}
+
+static void print_release(const Release *r, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", r->id);
+        if (r->tag_name)
+            json_object_set_string(obj, "tag_name", r->tag_name);
+        if (r->name)
+            json_object_set_string(obj, "name", r->name);
+        if (r->body)
+            json_object_set_string(obj, "body", r->body);
+        if (r->target_commitish)
+            json_object_set_string(obj, "target_commitish", r->target_commitish);
+        json_object_set_bool(obj, "draft", r->draft);
+        json_object_set_bool(obj, "prerelease", r->prerelease);
+        if (r->html_url)
+            json_object_set_string(obj, "html_url", r->html_url);
+        if (r->created_at)
+            json_object_set_string(obj, "created_at", r->created_at);
+        if (r->published_at)
+            json_object_set_string(obj, "published_at", r->published_at);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%lld  %s  %s%s%s\n", (long long)r->id,
+               r->tag_name ? r->tag_name : "",
+               r->draft ? " [draft]" : "",
+               r->prerelease ? " [prerelease]" : "",
+               r->name && r->name[0] ? "" : "");
+        if (r->name && r->name[0])
+            printf("  %s\n", r->name);
+        if (r->body && r->body[0])
+            printf("  %s\n", r->body);
+        if (r->html_url)
+            printf("  %s\n", r->html_url);
+    }
+}
+
+static void print_release_list(const Release *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", arr[i].id);
+            if (arr[i].tag_name)
+                json_object_set_string(obj, "tag_name", arr[i].tag_name);
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            json_object_set_bool(obj, "draft", arr[i].draft);
+            json_object_set_bool(obj, "prerelease", arr[i].prerelease);
+            if (arr[i].published_at)
+                json_object_set_string(obj, "published_at", arr[i].published_at);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            printf("#%-6lld %-20s %s%s\n", (long long)arr[i].id,
+                   arr[i].tag_name ? arr[i].tag_name : "",
+                   arr[i].draft ? " [draft]" : "",
+                   arr[i].prerelease ? " [pre]" : "");
+        }
+    }
+}
+
+static void print_tag_list(const Tag *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            if (arr[i].id)
+                json_object_set_string(obj, "id", arr[i].id);
+            if (arr[i].message)
+                json_object_set_string(obj, "message", arr[i].message);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", arr[i].name ? arr[i].name : "");
+    }
+}
+
+static void print_branch_list(const Branch *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            if (arr[i].commit_sha)
+                json_object_set_string(obj, "commit_sha", arr[i].commit_sha);
+            json_object_set_bool(obj, "protected", arr[i].protected);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            printf("%-30s %s%s\n", arr[i].name ? arr[i].name : "",
+                   arr[i].protected ? "protected" : "",
+                   arr[i].commit_sha ? arr[i].commit_sha : "");
+        }
+    }
+}
+
+static void print_issue(const Issue *is, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", is->id);
+        json_object_set_number(obj, "number", is->number);
+        if (is->title)
+            json_object_set_string(obj, "title", is->title);
+        if (is->state)
+            json_object_set_string(obj, "state", is->state);
+        if (is->html_url)
+            json_object_set_string(obj, "html_url", is->html_url);
+        if (is->created_at)
+            json_object_set_string(obj, "created_at", is->created_at);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%d %s  [%s]\n", is->number,
+               is->title ? is->title : "", is->state ? is->state : "");
+        if (is->body && is->body[0])
+            printf("  %s\n", is->body);
+        if (is->html_url)
+            printf("  %s\n", is->html_url);
+    }
+}
+
+static void print_issue_list(const Issue *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "number", arr[i].number);
+            if (arr[i].title)
+                json_object_set_string(obj, "title", arr[i].title);
+            if (arr[i].state)
+                json_object_set_string(obj, "state", arr[i].state);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("#%-6d %-10s %s\n", arr[i].number,
+                   arr[i].state ? arr[i].state : "",
+                   arr[i].title ? arr[i].title : "");
+    }
+}
+
+static void print_label_list(const Label *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", arr[i].id);
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            if (arr[i].color)
+                json_object_set_string(obj, "color", arr[i].color);
+            if (arr[i].description)
+                json_object_set_string(obj, "description", arr[i].description);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("#%-6lld %-20s #%s  %s\n", (long long)arr[i].id,
+                   arr[i].name ? arr[i].name : "",
+                   arr[i].color ? arr[i].color : "",
+                   arr[i].description ? arr[i].description : "");
+    }
+}
+
+static void print_milestone_list(const Milestone *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", arr[i].id);
+            if (arr[i].title)
+                json_object_set_string(obj, "title", arr[i].title);
+            if (arr[i].state)
+                json_object_set_string(obj, "state", arr[i].state);
+            json_object_set_number(obj, "open_issues", arr[i].open_issues);
+            json_object_set_number(obj, "closed_issues", arr[i].closed_issues);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("#%-6lld %-20s [%s] %d open / %d closed\n",
+                   (long long)arr[i].id, arr[i].title ? arr[i].title : "",
+                   arr[i].state ? arr[i].state : "",
+                   arr[i].open_issues, arr[i].closed_issues);
+    }
+}
+
+static void print_pr(const PullRequest *p, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", p->id);
+        json_object_set_number(obj, "number", p->number);
+        if (p->title)
+            json_object_set_string(obj, "title", p->title);
+        if (p->state)
+            json_object_set_string(obj, "state", p->state);
+        json_object_set_bool(obj, "draft", p->draft);
+        json_object_set_bool(obj, "merged", p->merged);
+        if (p->head_ref)
+            json_object_set_string(obj, "head", p->head_ref);
+        if (p->base_ref)
+            json_object_set_string(obj, "base", p->base_ref);
+        if (p->html_url)
+            json_object_set_string(obj, "html_url", p->html_url);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%d %s  [%s]%s%s  %s -> %s\n", p->number,
+               p->title ? p->title : "", p->state ? p->state : "",
+               p->draft ? " [draft]" : "",
+               p->merged ? " [merged]" : "",
+               p->head_ref ? p->head_ref : "?",
+               p->base_ref ? p->base_ref : "?");
+        if (p->html_url)
+            printf("  %s\n", p->html_url);
+    }
+}
+
+static void print_pr_list(const PullRequest *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "number", arr[i].number);
+            if (arr[i].title)
+                json_object_set_string(obj, "title", arr[i].title);
+            if (arr[i].state)
+                json_object_set_string(obj, "state", arr[i].state);
+            json_object_set_bool(obj, "draft", arr[i].draft);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("#%-6d %-10s %s%s\n", arr[i].number,
+                   arr[i].state ? arr[i].state : "",
+                   arr[i].title ? arr[i].title : "",
+                   arr[i].draft ? " [draft]" : "");
+    }
+}
+
+static void print_commit_list(const Commit *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (arr[i].sha)
+                json_object_set_string(obj, "sha", arr[i].sha);
+            if (arr[i].message)
+                json_object_set_string(obj, "message", arr[i].message);
+            if (arr[i].author_name)
+                json_object_set_string(obj, "author_name", arr[i].author_name);
+            if (arr[i].created)
+                json_object_set_string(obj, "created", arr[i].created);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("%-12s %s  %s\n",
+                   arr[i].sha ? arr[i].sha : "",
+                   arr[i].author_name ? arr[i].author_name : "",
+                   arr[i].message ? arr[i].message : "");
+    }
+}
+
+static void print_content_entry_list(const ContentEntry *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (arr[i].type)
+                json_object_set_string(obj, "type", arr[i].type);
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            if (arr[i].path)
+                json_object_set_string(obj, "path", arr[i].path);
+            if (arr[i].sha)
+                json_object_set_string(obj, "sha", arr[i].sha);
+            json_object_set_number(obj, "size", arr[i].size);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("%-10s %s\n",
+                   arr[i].type ? arr[i].type : "",
+                   arr[i].name ? arr[i].name : "");
+    }
+}
+
+static void print_deploykey_list(const DeployKey *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", arr[i].id);
+            if (arr[i].title)
+                json_object_set_string(obj, "title", arr[i].title);
+            if (arr[i].fingerprint)
+                json_object_set_string(obj, "fingerprint", arr[i].fingerprint);
+            json_object_set_bool(obj, "read_only", arr[i].read_only);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("#%-6lld %-20s %s  %s\n", (long long)arr[i].id,
+                   arr[i].title ? arr[i].title : "",
+                   arr[i].fingerprint ? arr[i].fingerprint : "",
+                   arr[i].read_only ? "read-only" : "read-write");
+    }
+}
+
+static void print_hook_list(const Hook *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", arr[i].id);
+            if (arr[i].type)
+                json_object_set_string(obj, "type", arr[i].type);
+            json_object_set_bool(obj, "active", arr[i].active);
+            if (arr[i].url)
+                json_object_set_string(obj, "url", arr[i].url);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("#%-6lld %-10s %s  %s\n", (long long)arr[i].id,
+                   arr[i].type ? arr[i].type : "",
+                   arr[i].active ? "active" : "inactive",
+                   arr[i].url ? arr[i].url : "");
+    }
+}
+
+static void print_wikipage_list(const WikiPage *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (arr[i].title)
+                json_object_set_string(obj, "title", arr[i].title);
+            if (arr[i].html_url)
+                json_object_set_string(obj, "html_url", arr[i].html_url);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", arr[i].title ? arr[i].title : "");
+    }
+}
+
+/* ===== Release command handlers ===== */
+
+static int cmd_release_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_release_list();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, RELEASE_LIST_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        help_release_list();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int draft = 0, prerelease = 0, limit = 0;
+    int idx;
+    idx = find_flag_idx(RELEASE_LIST_FLAGS, "--draft");
+    if (fb[idx])
+        draft = 1;
+    idx = find_flag_idx(RELEASE_LIST_FLAGS, "--pre-release");
+    if (fb[idx])
+        prerelease = 1;
+    idx = find_flag_idx(RELEASE_LIST_FLAGS, "--limit");
+    if (fv[idx])
+        limit = atoi(fv[idx]);
+    Release *releases;
+    size_t count;
+    int rc = api_release_list(api, owner, repo, draft, prerelease, NULL, limit,
+                              &releases, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    print_release_list(releases, count, gf->json);
+    release_array_free(releases, count);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_release_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_release_create();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, RELEASE_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        help_release_create();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(RELEASE_CREATE_FLAGS, "--tag");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --tag is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateReleaseOpts opts = { 0 };
+    opts.tag_name = fv[idx];
+    idx = find_flag_idx(RELEASE_CREATE_FLAGS, "--name");
+    if (fv[idx])
+        opts.name = fv[idx];
+    idx = find_flag_idx(RELEASE_CREATE_FLAGS, "--body");
+    if (fv[idx])
+        opts.body = fv[idx];
+    idx = find_flag_idx(RELEASE_CREATE_FLAGS, "--target");
+    if (fv[idx])
+        opts.target_commitish = fv[idx];
+    idx = find_flag_idx(RELEASE_CREATE_FLAGS, "--draft");
+    if (fb[idx]) {
+        opts.draft_set = 1;
+        opts.draft_val = 1;
+    }
+    idx = find_flag_idx(RELEASE_CREATE_FLAGS, "--prerelease");
+    if (fb[idx]) {
+        opts.prerelease_set = 1;
+        opts.prerelease_val = 1;
+    }
+    idx = find_flag_idx(RELEASE_CREATE_FLAGS, "--hide-archive-links");
+    if (fb[idx]) {
+        opts.hide_archive_links_set = 1;
+        opts.hide_archive_links_val = 1;
+    }
+    Release r;
+    int rc = api_release_create(api, owner, repo, &opts, &r);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    print_release(&r, gf->json);
+    release_free(&r);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_release_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> show <id>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: release show requires owner/repo and id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    Release r;
+    int rc = api_release_get(api, owner, repo, id, &r);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_release(&r, gf->json);
+    release_free(&r);
+    return CLI_OK;
+}
+
+static int cmd_release_latest(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> latest\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: release latest requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Release r;
+    int rc = api_release_get_latest(api, owner, repo, &r);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_release(&r, gf->json);
+    release_free(&r);
+    return CLI_OK;
+}
+
+static int cmd_release_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_release_edit();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, RELEASE_EDIT_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 2) {
+        help_release_edit();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int64_t id = atol(positional[1]);
+    EditReleaseOpts opts = { 0 };
+    int idx;
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--tag");
+    if (fv[idx]) {
+        opts.tag_name_set = 1;
+        opts.tag_name = fv[idx];
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--name");
+    if (fv[idx]) {
+        opts.name_set = 1;
+        opts.name = fv[idx];
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--body");
+    if (fv[idx]) {
+        opts.body_set = 1;
+        opts.body = fv[idx];
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--target");
+    if (fv[idx]) {
+        opts.target_commitish_set = 1;
+        opts.target_commitish = fv[idx];
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--draft");
+    if (fb[idx]) {
+        opts.draft_set = 1;
+        opts.draft_val = 1;
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--no-draft");
+    if (fb[idx]) {
+        opts.draft_set = 1;
+        opts.draft_val = 0;
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--prerelease");
+    if (fb[idx]) {
+        opts.prerelease_set = 1;
+        opts.prerelease_val = 1;
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--no-prerelease");
+    if (fb[idx]) {
+        opts.prerelease_set = 1;
+        opts.prerelease_val = 0;
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--hide-archive-links");
+    if (fb[idx]) {
+        opts.hide_archive_links_set = 1;
+        opts.hide_archive_links_val = 1;
+    }
+    idx = find_flag_idx(RELEASE_EDIT_FLAGS, "--no-hide-archive-links");
+    if (fb[idx]) {
+        opts.hide_archive_links_set = 1;
+        opts.hide_archive_links_val = 0;
+    }
+    Release r;
+    int rc = api_release_edit(api, owner, repo, id, &opts, &r);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Updated release #%lld\n", (long long)id);
+    release_free(&r);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_release_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> delete <id> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: release delete requires owner/repo and id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    if (!gf->yes && !confirm("Delete this release?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_release_delete(api, owner, repo, id);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted release #%lld\n", (long long)id);
+    return CLI_OK;
+}
+
+static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> by-tag <tag>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: release by-tag requires owner/repo and tag\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Release r;
+    int rc = api_release_get_by_tag(api, owner, repo, argv[1], &r);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_release(&r, gf->json);
+    release_free(&r);
+    return CLI_OK;
+}
+
+static int cmd_release_delete_by_tag(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> delete-tag <tag> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: release delete-tag requires owner/repo and tag\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    if (!gf->yes && !confirm("Delete this release by tag?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_release_delete_by_tag(api, owner, repo, argv[1]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted release for tag %s\n", argv[1]);
+    return CLI_OK;
+}
+
+static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> asset list <release-id>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: asset list requires owner/repo and release-id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t release_id = atol(argv[1]);
+    Attachment *assets;
+    size_t count;
+    int rc = api_release_asset_list(api, owner, repo, release_id, &assets, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", assets[i].id);
+            if (assets[i].name)
+                json_object_set_string(obj, "name", assets[i].name);
+            json_object_set_number(obj, "size", assets[i].size);
+            json_object_set_number(obj, "download_count", assets[i].download_count);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("#%-6lld %-30s %lld bytes  %lld downloads\n",
+                   (long long)assets[i].id,
+                   assets[i].name ? assets[i].name : "",
+                   (long long)assets[i].size,
+                   (long long)assets[i].download_count);
+    }
+    attachment_array_free(assets, count);
+    return CLI_OK;
+}
+
+static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> asset delete <release-id> <asset-id> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 3) {
+        fprintf(stderr, "Error: asset delete requires owner/repo, release-id, and asset-id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t release_id = atol(argv[1]);
+    int64_t asset_id = atol(argv[2]);
+    if (!gf->yes && !confirm("Delete this asset?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_release_asset_delete(api, owner, repo, release_id, asset_id);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted asset #%lld\n", (long long)asset_id);
+    return CLI_OK;
+}
+
+/* ===== Release dispatch ===== */
+
+static int cmd_release(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_release();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+
+    if (is_help_arg(sub)) {
+        help_release();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_release_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_release_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_release_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "latest") == 0)
+        return cmd_release_latest(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "edit") == 0)
+        return cmd_release_edit(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_release_delete(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "by-tag") == 0)
+        return cmd_release_by_tag(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete-tag") == 0)
+        return cmd_release_delete_by_tag(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "asset") == 0) {
+        if (rest_argc < 1) {
+            help_release_asset();
+            return CLI_USAGE;
+        }
+        const char *asub = rest_argv[0];
+        int a_argc = rest_argc - 1;
+        char **a_argv = rest_argv + 1;
+        if (is_help_arg(asub)) {
+            help_release_asset();
+            return CLI_OK;
+        }
+        if (strcmp(asub, "list") == 0)
+            return cmd_release_asset_list(a_argc, a_argv, api, gf);
+        if (strcmp(asub, "delete") == 0)
+            return cmd_release_asset_delete(a_argc, a_argv, api, gf);
+        fprintf(stderr, "Error: unknown asset subcommand '%s'\n", asub);
+        help_release_asset();
+        return CLI_USAGE;
+    }
+    fprintf(stderr, "Error: unknown release subcommand '%s'\n", sub);
+    help_release();
+    return CLI_USAGE;
+}
+
+/* ===== Tag command handlers ===== */
+
+static int cmd_tag_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb tag <owner/repo> list [--limit N]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: tag list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Tag *tags;
+    size_t count;
+    int rc = api_tag_list(api, owner, repo, 0, &tags, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_tag_list(tags, count, gf->json);
+    tag_array_free(tags, count);
+    return CLI_OK;
+}
+
+static int cmd_tag_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb tag <owner/repo> create --tag <tag> [--message <msg>] [--target <ref>]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, TAG_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: tag create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(TAG_CREATE_FLAGS, "--tag");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --tag is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateTagOpts opts = { 0 };
+    opts.tag_name = fv[idx];
+    idx = find_flag_idx(TAG_CREATE_FLAGS, "--message");
+    if (fv[idx])
+        opts.message = fv[idx];
+    idx = find_flag_idx(TAG_CREATE_FLAGS, "--target");
+    if (fv[idx])
+        opts.target = fv[idx];
+    Tag t;
+    int rc = api_tag_create(api, owner, repo, &opts, &t);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *obj = json_object_new();
+        if (t.name)
+            json_object_set_string(obj, "name", t.name);
+        if (t.id)
+            json_object_set_string(obj, "id", t.id);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("Created tag %s\n", t.name ? t.name : "");
+    }
+    tag_free(&t);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_tag_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb tag <owner/repo> show <tag>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: tag show requires owner/repo and tag name\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Tag t;
+    int rc = api_tag_get(api, owner, repo, argv[1], &t);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *obj = json_object_new();
+        if (t.name)
+            json_object_set_string(obj, "name", t.name);
+        if (t.message)
+            json_object_set_string(obj, "message", t.message);
+        if (t.id)
+            json_object_set_string(obj, "id", t.id);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("%s\n", t.name ? t.name : "");
+        if (t.message && t.message[0])
+            printf("  %s\n", t.message);
+    }
+    tag_free(&t);
+    return CLI_OK;
+}
+
+static int cmd_tag_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb tag <owner/repo> delete <tag> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: tag delete requires owner/repo and tag name\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    if (!gf->yes && !confirm("Delete this tag?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_tag_delete(api, owner, repo, argv[1]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted tag %s\n", argv[1]);
+    return CLI_OK;
+}
+
+static int cmd_tag(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_tag();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_tag();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_tag_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_tag_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_tag_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_tag_delete(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown tag subcommand '%s'\n", sub);
+    help_tag();
+    return CLI_USAGE;
+}
+
+/* ===== Branch command handlers ===== */
+
+static int cmd_branch_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb branch <owner/repo> list\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: branch list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Branch *branches;
+    size_t count;
+    int rc = api_branch_list(api, owner, repo, 0, &branches, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_branch_list(branches, count, gf->json);
+    branch_array_free(branches, count);
+    return CLI_OK;
+}
+
+static int cmd_branch_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb branch <owner/repo> create --name <name> [--from <ref>]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, BRANCH_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: branch create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(BRANCH_CREATE_FLAGS, "--name");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --name is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateBranchOpts opts = { 0 };
+    opts.new_branch_name = fv[idx];
+    idx = find_flag_idx(BRANCH_CREATE_FLAGS, "--from");
+    if (fv[idx])
+        opts.old_ref_name = fv[idx];
+    Branch b;
+    int rc = api_branch_create(api, owner, repo, &opts, &b);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *obj = json_object_new();
+        if (b.name)
+            json_object_set_string(obj, "name", b.name);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("Created branch %s\n", b.name ? b.name : "");
+    }
+    branch_free(&b);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_branch_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb branch <owner/repo> show <branch>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: branch show requires owner/repo and branch name\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Branch b;
+    int rc = api_branch_get(api, owner, repo, argv[1], &b);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *obj = json_object_new();
+        if (b.name)
+            json_object_set_string(obj, "name", b.name);
+        if (b.commit_sha)
+            json_object_set_string(obj, "commit_sha", b.commit_sha);
+        json_object_set_bool(obj, "protected", b.protected);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("%s  %s%s\n", b.name ? b.name : "",
+               b.protected ? "protected  " : "",
+               b.commit_sha ? b.commit_sha : "");
+    }
+    branch_free(&b);
+    return CLI_OK;
+}
+
+static int cmd_branch_rename(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb branch <owner/repo> rename <branch> --name <new-name>\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, BRANCH_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 2) {
+        fprintf(stderr, "Error: branch rename requires owner/repo and branch name\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx = find_flag_idx(BRANCH_CREATE_FLAGS, "--name");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --name is required for rename\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    Branch b;
+    int rc = api_branch_rename(api, owner, repo, positional[1], fv[idx], &b);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Renamed branch to %s\n", b.name ? b.name : fv[idx]);
+    branch_free(&b);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_branch_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb branch <owner/repo> delete <branch> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: branch delete requires owner/repo and branch name\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    if (!gf->yes && !confirm("Delete this branch?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_branch_delete(api, owner, repo, argv[1]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted branch %s\n", argv[1]);
+    return CLI_OK;
+}
+
+static int cmd_branch(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_branch();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_branch();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_branch_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_branch_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_branch_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "rename") == 0)
+        return cmd_branch_rename(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_branch_delete(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown branch subcommand '%s'\n", sub);
+    help_branch();
+    return CLI_USAGE;
+}
+
+/* ===== Issue command handlers ===== */
+
+static int cmd_issue_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> list [--state open|closed|all] [--labels l1,l2] [--limit N]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, ISSUE_LIST_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: issue list requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    const char *state = NULL, *labels = NULL, *type = NULL;
+    int limit = 0;
+    int idx;
+    idx = find_flag_idx(ISSUE_LIST_FLAGS, "--state");
+    if (fv[idx])
+        state = fv[idx];
+    idx = find_flag_idx(ISSUE_LIST_FLAGS, "--labels");
+    if (fv[idx])
+        labels = fv[idx];
+    idx = find_flag_idx(ISSUE_LIST_FLAGS, "--type");
+    if (fv[idx])
+        type = fv[idx];
+    idx = find_flag_idx(ISSUE_LIST_FLAGS, "--limit");
+    if (fv[idx])
+        limit = atoi(fv[idx]);
+    Issue *issues;
+    size_t count;
+    int rc = api_issue_list(api, owner, repo, state, labels, type, limit,
+                            &issues, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    print_issue_list(issues, count, gf->json);
+    issue_array_free(issues, count);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_issue_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> create --title <title> [--body <body>] [--label <id>]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, ISSUE_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: issue create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(ISSUE_CREATE_FLAGS, "--title");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --title is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateIssueOpts opts = { 0 };
+    opts.title = fv[idx];
+    idx = find_flag_idx(ISSUE_CREATE_FLAGS, "--body");
+    if (fv[idx])
+        opts.body = fv[idx];
+    idx = find_flag_idx(ISSUE_CREATE_FLAGS, "--assignee");
+    if (fv[idx])
+        opts.assignee = fv[idx];
+    idx = find_flag_idx(ISSUE_CREATE_FLAGS, "--milestone");
+    if (fv[idx])
+        opts.milestone = atol(fv[idx]);
+    Issue is;
+    int rc = api_issue_create(api, owner, repo, &opts, &is);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    print_issue(&is, gf->json);
+    issue_free(&is);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_issue_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> show <number>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: issue show requires owner/repo and issue number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    Issue is;
+    int rc = api_issue_get(api, owner, repo, number, &is);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_issue(&is, gf->json);
+    issue_free(&is);
+    return CLI_OK;
+}
+
+static int cmd_issue_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> edit <number> [--title <title>] [--body <body>] [--state open|closed]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, ISSUE_EDIT_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 2) {
+        fprintf(stderr, "Error: issue edit requires owner/repo and issue number\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int number = atoi(positional[1]);
+    EditIssueOpts opts = { 0 };
+    int idx;
+    idx = find_flag_idx(ISSUE_EDIT_FLAGS, "--title");
+    if (fv[idx]) {
+        opts.title_set = 1;
+        opts.title = fv[idx];
+    }
+    idx = find_flag_idx(ISSUE_EDIT_FLAGS, "--body");
+    if (fv[idx]) {
+        opts.body_set = 1;
+        opts.body = fv[idx];
+    }
+    idx = find_flag_idx(ISSUE_EDIT_FLAGS, "--state");
+    if (fv[idx]) {
+        opts.state_set = 1;
+        opts.state = fv[idx];
+    }
+    idx = find_flag_idx(ISSUE_EDIT_FLAGS, "--milestone");
+    if (fv[idx]) {
+        opts.milestone_set = 1;
+        opts.milestone = atol(fv[idx]);
+    }
+    Issue is;
+    int rc = api_issue_edit(api, owner, repo, number, &opts, &is);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Updated issue #%d\n", number);
+    issue_free(&is);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_issue_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> delete <number> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: issue delete requires owner/repo and issue number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    if (!gf->yes && !confirm("Delete this issue?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_issue_delete(api, owner, repo, number);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted issue #%d\n", number);
+    return CLI_OK;
+}
+
+static int cmd_issue_close(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> close <number>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: issue close requires owner/repo and issue number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    EditIssueOpts opts = { 0 };
+    opts.state_set = 1;
+    opts.state = "closed";
+    Issue is;
+    int rc = api_issue_edit(api, owner, repo, number, &opts, &is);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Closed issue #%d\n", number);
+    issue_free(&is);
+    return CLI_OK;
+}
+
+static int cmd_issue_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> reopen <number>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: issue reopen requires owner/repo and issue number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    EditIssueOpts opts = { 0 };
+    opts.state_set = 1;
+    opts.state = "open";
+    Issue is;
+    int rc = api_issue_edit(api, owner, repo, number, &opts, &is);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Reopened issue #%d\n", number);
+    issue_free(&is);
+    return CLI_OK;
+}
+
+static int cmd_issue_comment(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> comment <number> --body <text>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: issue comment requires owner/repo and issue number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    const char *body = NULL;
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--body") == 0 && i + 1 < argc)
+            body = argv[++i];
+    }
+    if (!body) {
+        fprintf(stderr, "Error: --body is required\n");
+        return CLI_USAGE;
+    }
+    int rc = api_issue_comment_create(api, owner, repo, number, body);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Comment added to issue #%d\n", number);
+    return CLI_OK;
+}
+
+static int cmd_issue_label_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> label add <number> <label_id> [<label_id>...]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 3) {
+        fprintf(stderr, "Error: issue label add requires owner/repo, issue number, and label IDs\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    size_t label_count = (size_t)(argc - 2);
+    int64_t *labels = malloc(label_count * sizeof(int64_t));
+    for (int i = 0; i < argc - 2; i++)
+        labels[i] = atol(argv[i + 2]);
+    int rc = api_issue_label_add(api, owner, repo, number, labels, label_count);
+    free(labels);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Added labels to issue #%d\n", number);
+    return CLI_OK;
+}
+
+static int cmd_issue_label_clear(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb issue <owner/repo> label clear <number>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: issue label clear requires owner/repo and issue number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    int rc = api_issue_label_clear(api, owner, repo, number);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Cleared labels on issue #%d\n", number);
+    return CLI_OK;
+}
+
+static int cmd_issue(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_issue();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_issue();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_issue_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_issue_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_issue_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "edit") == 0)
+        return cmd_issue_edit(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_issue_delete(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "close") == 0)
+        return cmd_issue_close(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "reopen") == 0)
+        return cmd_issue_reopen(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "comment") == 0)
+        return cmd_issue_comment(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "pin") == 0) {
+        fprintf(stderr, "Error: issue pin not yet implemented\n");
+        return CLI_ERR;
+    }
+    if (strcmp(sub, "unpin") == 0) {
+        fprintf(stderr, "Error: issue unpin not yet implemented\n");
+        return CLI_ERR;
+    }
+    if (strcmp(sub, "deadline") == 0) {
+        fprintf(stderr, "Error: issue deadline not yet implemented\n");
+        return CLI_ERR;
+    }
+    if (strcmp(sub, "label") == 0) {
+        if (rest_argc < 1) {
+            printf("Usage: cb issue <owner/repo> label <add|set|rm|clear> ...\n");
+            return CLI_USAGE;
+        }
+        const char *lsub = rest_argv[0];
+        int l_argc = rest_argc - 1;
+        char **l_argv = rest_argv + 1;
+        if (is_help_arg(lsub)) {
+            printf("Usage: cb issue <owner/repo> label <add|set|rm|clear> ...\n");
+            return CLI_OK;
+        }
+        if (strcmp(lsub, "add") == 0)
+            return cmd_issue_label_add(l_argc, l_argv, api, gf);
+        if (strcmp(lsub, "clear") == 0)
+            return cmd_issue_label_clear(l_argc, l_argv, api, gf);
+        fprintf(stderr, "Error: unknown issue label subcommand '%s'\n", lsub);
+        return CLI_USAGE;
+    }
+    fprintf(stderr, "Error: unknown issue subcommand '%s'\n", sub);
+    help_issue();
+    return CLI_USAGE;
+}
+
+/* ===== Label command handlers ===== */
+
+static int cmd_label_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb label <owner/repo> list\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: label list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Label *labels;
+    size_t count;
+    int rc = api_label_list(api, owner, repo, &labels, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_label_list(labels, count, gf->json);
+    label_array_free(labels, count);
+    return CLI_OK;
+}
+
+static int cmd_label_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb label <owner/repo> create --name <name> --color <hex> [--description <desc>]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, LABEL_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: label create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(LABEL_CREATE_FLAGS, "--name");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --name is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    idx = find_flag_idx(LABEL_CREATE_FLAGS, "--color");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --color is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateLabelOpts opts = { 0 };
+    idx = find_flag_idx(LABEL_CREATE_FLAGS, "--name");
+    opts.name = fv[idx];
+    idx = find_flag_idx(LABEL_CREATE_FLAGS, "--color");
+    opts.color = fv[idx];
+    idx = find_flag_idx(LABEL_CREATE_FLAGS, "--description");
+    if (fv[idx])
+        opts.description = fv[idx];
+    Label l;
+    int rc = api_label_create(api, owner, repo, &opts, &l);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Created label #%lld %s\n", (long long)l.id, l.name ? l.name : "");
+    label_free(&l);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_label_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb label <owner/repo> delete <id> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: label delete requires owner/repo and label id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    if (!gf->yes && !confirm("Delete this label?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_label_delete(api, owner, repo, id);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted label #%lld\n", (long long)id);
+    return CLI_OK;
+}
+
+static int cmd_label(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_label();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_label();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_label_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_label_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_label_delete(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown label subcommand '%s'\n", sub);
+    help_label();
+    return CLI_USAGE;
+}
+
+/* ===== Milestone command handlers ===== */
+
+static int cmd_milestone_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb milestone <owner/repo> list [--state open|closed|all]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: milestone list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    const char *state = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--state") == 0 && i + 1 < argc)
+            state = argv[++i];
+    }
+    Milestone *milestones;
+    size_t count;
+    int rc = api_milestone_list(api, owner, repo, state, &milestones, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_milestone_list(milestones, count, gf->json);
+    milestone_array_free(milestones, count);
+    return CLI_OK;
+}
+
+static int cmd_milestone_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb milestone <owner/repo> create --title <title> [--description <desc>] [--due <date>]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, MILESTONE_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: milestone create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(MILESTONE_CREATE_FLAGS, "--title");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --title is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateMilestoneOpts opts = { 0 };
+    opts.title = fv[idx];
+    idx = find_flag_idx(MILESTONE_CREATE_FLAGS, "--description");
+    if (fv[idx])
+        opts.description = fv[idx];
+    idx = find_flag_idx(MILESTONE_CREATE_FLAGS, "--state");
+    if (fv[idx])
+        opts.state = fv[idx];
+    idx = find_flag_idx(MILESTONE_CREATE_FLAGS, "--due");
+    if (fv[idx])
+        opts.due_on = fv[idx];
+    Milestone m;
+    int rc = api_milestone_create(api, owner, repo, &opts, &m);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Created milestone #%lld %s\n", (long long)m.id, m.title ? m.title : "");
+    milestone_free(&m);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb milestone <owner/repo> delete <id> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: milestone delete requires owner/repo and milestone id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    if (!gf->yes && !confirm("Delete this milestone?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_milestone_delete(api, owner, repo, id);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted milestone #%lld\n", (long long)id);
+    return CLI_OK;
+}
+
+static int cmd_milestone(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_milestone();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_milestone();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_milestone_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_milestone_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_milestone_delete(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown milestone subcommand '%s'\n", sub);
+    help_milestone();
+    return CLI_USAGE;
+}
+
+/* ===== PR command handlers ===== */
+
+static int cmd_pr_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb pr <owner/repo> list [--state open|closed|all] [--limit N]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: pr list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    const char *state = NULL;
+    int limit = 0;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--state") == 0 && i + 1 < argc)
+            state = argv[++i];
+        else if (strcmp(argv[i], "--limit") == 0 && i + 1 < argc)
+            limit = atoi(argv[++i]);
+    }
+    PullRequest *prs;
+    size_t count;
+    int rc = api_pr_list(api, owner, repo, state, limit, &prs, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_pr_list(prs, count, gf->json);
+    pullrequest_array_free(prs, count);
+    return CLI_OK;
+}
+
+static int cmd_pr_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb pr <owner/repo> create --title <title> --head <branch> [--base <branch>] [--body <body>]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, PR_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: pr create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(PR_CREATE_FLAGS, "--title");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --title is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    idx = find_flag_idx(PR_CREATE_FLAGS, "--head");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --head is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreatePullRequestOpts opts = { 0 };
+    idx = find_flag_idx(PR_CREATE_FLAGS, "--title");
+    opts.title = fv[idx];
+    idx = find_flag_idx(PR_CREATE_FLAGS, "--head");
+    opts.head = fv[idx];
+    idx = find_flag_idx(PR_CREATE_FLAGS, "--base");
+    if (fv[idx])
+        opts.base = fv[idx];
+    idx = find_flag_idx(PR_CREATE_FLAGS, "--body");
+    if (fv[idx])
+        opts.body = fv[idx];
+    PullRequest p;
+    int rc = api_pr_create(api, owner, repo, &opts, &p);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    print_pr(&p, gf->json);
+    pullrequest_free(&p);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_pr_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb pr <owner/repo> show <number>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: pr show requires owner/repo and PR number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    PullRequest p;
+    int rc = api_pr_get(api, owner, repo, number, &p);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_pr(&p, gf->json);
+    pullrequest_free(&p);
+    return CLI_OK;
+}
+
+static int cmd_pr_close(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb pr <owner/repo> close <number>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: pr close requires owner/repo and PR number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    EditPullRequestOpts opts = { 0 };
+    opts.state_set = 1;
+    opts.state = "closed";
+    PullRequest p;
+    int rc = api_pr_edit(api, owner, repo, number, &opts, &p);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Closed PR #%d\n", number);
+    pullrequest_free(&p);
+    return CLI_OK;
+}
+
+static int cmd_pr_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb pr <owner/repo> reopen <number>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: pr reopen requires owner/repo and PR number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    EditPullRequestOpts opts = { 0 };
+    opts.state_set = 1;
+    opts.state = "open";
+    PullRequest p;
+    int rc = api_pr_edit(api, owner, repo, number, &opts, &p);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Reopened PR #%d\n", number);
+    pullrequest_free(&p);
+    return CLI_OK;
+}
+
+static int cmd_pr_merge(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb pr <owner/repo> merge <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: pr merge requires owner/repo and PR number\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int number = atoi(argv[1]);
+    MergePullRequestOpts opts = { 0 };
+    opts.do_style = "merge";
+    for (int i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "--style") == 0 && i + 1 < argc)
+            opts.do_style = argv[++i];
+        else if (strcmp(argv[i], "--delete-branch") == 0)
+            opts.delete_branch_after_merge = 1;
+        else if (strcmp(argv[i], "--auto") == 0)
+            opts.merge_when_checks_succeed = 1;
+    }
+    if (!gf->yes && !confirm("Merge this pull request?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_pr_merge(api, owner, repo, number, &opts);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Merged PR #%d\n", number);
+    return CLI_OK;
+}
+
+static int cmd_pr(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_pr();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_pr();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_pr_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_pr_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_pr_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "close") == 0)
+        return cmd_pr_close(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "reopen") == 0)
+        return cmd_pr_reopen(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "merge") == 0)
+        return cmd_pr_merge(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "edit") == 0 || strcmp(sub, "unmerge") == 0 ||
+        strcmp(sub, "files") == 0 || strcmp(sub, "commits") == 0 ||
+        strcmp(sub, "diff") == 0 || strcmp(sub, "review") == 0) {
+        fprintf(stderr, "Error: pr %s not yet implemented\n", sub);
+        return CLI_ERR;
+    }
+    fprintf(stderr, "Error: unknown pr subcommand '%s'\n", sub);
+    help_pr();
+    return CLI_USAGE;
+}
+
+/* ===== Commit command handlers ===== */
+
+static int cmd_commit_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb commit <owner/repo> list [--sha <ref>] [--path <path>] [--limit N]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, COMMIT_LIST_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: commit list requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    const char *sha = NULL, *path = NULL;
+    int limit = 0;
+    int idx;
+    idx = find_flag_idx(COMMIT_LIST_FLAGS, "--sha");
+    if (fv[idx])
+        sha = fv[idx];
+    idx = find_flag_idx(COMMIT_LIST_FLAGS, "--path");
+    if (fv[idx])
+        path = fv[idx];
+    idx = find_flag_idx(COMMIT_LIST_FLAGS, "--limit");
+    if (fv[idx])
+        limit = atoi(fv[idx]);
+    Commit *commits;
+    size_t count;
+    int rc = api_commit_list(api, owner, repo, sha, path, limit, &commits, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    print_commit_list(commits, count, gf->json);
+    commit_array_free(commits, count);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_commit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_commit();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_commit();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_commit_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0 || strcmp(sub, "status") == 0 ||
+        strcmp(sub, "diff") == 0 || strcmp(sub, "compare") == 0 ||
+        strcmp(sub, "note") == 0) {
+        fprintf(stderr, "Error: commit %s not yet implemented\n", sub);
+        return CLI_ERR;
+    }
+    fprintf(stderr, "Error: unknown commit subcommand '%s'\n", sub);
+    help_commit();
+    return CLI_USAGE;
+}
+
+/* ===== Content command handlers ===== */
+
+static int cmd_content_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb content <owner/repo> list [--ref <ref>]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: content list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    const char *ref = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--ref") == 0 && i + 1 < argc)
+            ref = argv[++i];
+    }
+    ContentEntry *entries;
+    size_t count;
+    int rc = api_content_list(api, owner, repo, ref, &entries, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_content_entry_list(entries, count, gf->json);
+    content_entry_array_free(entries, count);
+    return CLI_OK;
+}
+
+static int cmd_content(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_content();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_content();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_content_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0 || strcmp(sub, "create") == 0 ||
+        strcmp(sub, "update") == 0 || strcmp(sub, "delete") == 0 ||
+        strcmp(sub, "raw") == 0 || strcmp(sub, "archive") == 0) {
+        fprintf(stderr, "Error: content %s not yet implemented\n", sub);
+        return CLI_ERR;
+    }
+    fprintf(stderr, "Error: unknown content subcommand '%s'\n", sub);
+    help_content();
+    return CLI_USAGE;
+}
+
+/* ===== Key command handlers ===== */
+
+static int cmd_key_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb key <owner/repo> list\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: key list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    DeployKey *keys;
+    size_t count;
+    int rc = api_key_list(api, owner, repo, &keys, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_deploykey_list(keys, count, gf->json);
+    deploykey_array_free(keys, count);
+    return CLI_OK;
+}
+
+static int cmd_key_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb key <owner/repo> add --title <title> --key <key> [--read-only]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, KEY_ADD_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: key add requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(KEY_ADD_FLAGS, "--title");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --title is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    idx = find_flag_idx(KEY_ADD_FLAGS, "--key");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --key is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateKeyOpts opts = { 0 };
+    idx = find_flag_idx(KEY_ADD_FLAGS, "--title");
+    opts.title = fv[idx];
+    idx = find_flag_idx(KEY_ADD_FLAGS, "--key");
+    opts.key = fv[idx];
+    idx = find_flag_idx(KEY_ADD_FLAGS, "--read-only");
+    opts.read_only = fb[idx];
+    DeployKey k;
+    int rc = api_key_add(api, owner, repo, &opts, &k);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Added deploy key #%lld %s\n", (long long)k.id, k.title ? k.title : "");
+    deploykey_free(&k);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_key_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb key <owner/repo> delete <id> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: key delete requires owner/repo and key id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    if (!gf->yes && !confirm("Delete this deploy key?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_key_delete(api, owner, repo, id);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted deploy key #%lld\n", (long long)id);
+    return CLI_OK;
+}
+
+static int cmd_key(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_key();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_key();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_key_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "add") == 0)
+        return cmd_key_add(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_key_delete(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown key subcommand '%s'\n", sub);
+    help_key();
+    return CLI_USAGE;
+}
+
+/* ===== Collaborator command handlers ===== */
+
+static int cmd_collaborator_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb collaborator <owner/repo> list\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: collaborator list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    User *users;
+    size_t count;
+    int rc = api_collaborator_list(api, owner, repo, &users, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            if (users[i].login)
+                json_object_set_string(obj, "login", users[i].login);
+            json_object_set_number(obj, "id", users[i].id);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", users[i].login ? users[i].login : "");
+    }
+    user_array_free(users, count);
+    return CLI_OK;
+}
+
+static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb collaborator <owner/repo> add <username> [--permission read|write|admin]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, COLLAB_ADD_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 2) {
+        fprintf(stderr, "Error: collaborator add requires owner/repo and username\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    const char *permission = "write";
+    int idx = find_flag_idx(COLLAB_ADD_FLAGS, "--permission");
+    if (fv[idx])
+        permission = fv[idx];
+    int rc = api_collaborator_add(api, owner, repo, positional[1], permission);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Added collaborator %s with %s permission\n", positional[1], permission);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_collaborator_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb collaborator <owner/repo> rm <username> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: collaborator rm requires owner/repo and username\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    if (!gf->yes && !confirm("Remove this collaborator?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_collaborator_remove(api, owner, repo, argv[1]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Removed collaborator %s\n", argv[1]);
+    return CLI_OK;
+}
+
+static int cmd_collaborator(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_collaborator();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_collaborator();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_collaborator_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "add") == 0)
+        return cmd_collaborator_add(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "rm") == 0)
+        return cmd_collaborator_rm(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "perms") == 0) {
+        fprintf(stderr, "Error: collaborator perms not yet implemented\n");
+        return CLI_ERR;
+    }
+    fprintf(stderr, "Error: unknown collaborator subcommand '%s'\n", sub);
+    help_collaborator();
+    return CLI_USAGE;
+}
+
+/* ===== Fork command handlers ===== */
+
+static int cmd_fork_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb fork <owner/repo> list\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: fork list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Repo *forks;
+    size_t count;
+    int rc = api_fork_list(api, owner, repo, &forks, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_repo_list(forks, count, gf->json);
+    repo_array_free(forks, count);
+    return CLI_OK;
+}
+
+static int cmd_fork_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb fork <owner/repo> create [--name <repo-name>] [--org <organization>]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, FORK_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: fork create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    const char *name = NULL, *org = NULL;
+    int idx;
+    idx = find_flag_idx(FORK_CREATE_FLAGS, "--name");
+    if (fv[idx])
+        name = fv[idx];
+    idx = find_flag_idx(FORK_CREATE_FLAGS, "--org");
+    if (fv[idx])
+        org = fv[idx];
+    Repo r;
+    int rc = api_fork_create(api, owner, repo, name, org, &r);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Forked repository to %s\n", r.full_name ? r.full_name : "");
+    repo_free(&r);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_fork(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_fork();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_fork();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_fork_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_fork_create(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown fork subcommand '%s'\n", sub);
+    help_fork();
+    return CLI_USAGE;
+}
+
+/* ===== Hook command handlers ===== */
+
+static int cmd_hook_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb hook <owner/repo> list\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: hook list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    Hook *hooks;
+    size_t count;
+    int rc = api_hook_list(api, owner, repo, &hooks, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_hook_list(hooks, count, gf->json);
+    hook_array_free(hooks, count);
+    return CLI_OK;
+}
+
+static int cmd_hook_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb hook <owner/repo> create --type <type> --url <url> [--event <event>] [--active]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, HOOK_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        fprintf(stderr, "Error: hook create requires owner/repo\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    int idx;
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--type");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --type is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--url");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --url is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    CreateHookOpts opts = { 0 };
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--type");
+    opts.type = fv[idx];
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--url");
+    opts.url = fv[idx];
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--content-type");
+    if (fv[idx])
+        opts.content_type = fv[idx];
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--secret");
+    if (fv[idx])
+        opts.secret = fv[idx];
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--active");
+    if (fb[idx])
+        opts.active = 1;
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--inactive");
+    if (fb[idx])
+        opts.active = 0;
+    idx = find_flag_idx(HOOK_CREATE_FLAGS, "--branch-filter");
+    if (fv[idx])
+        opts.branch_filter = fv[idx];
+    Hook h;
+    int rc = api_hook_create(api, owner, repo, &opts, &h);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Created webhook #%lld\n", (long long)h.id);
+    hook_free(&h);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_hook_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb hook <owner/repo> delete <id> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: hook delete requires owner/repo and hook id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    if (!gf->yes && !confirm("Delete this webhook?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_hook_delete(api, owner, repo, id);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted webhook #%lld\n", (long long)id);
+    return CLI_OK;
+}
+
+static int cmd_hook(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_hook();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_hook();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_hook_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0)
+        return cmd_hook_create(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_hook_delete(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0 || strcmp(sub, "edit") == 0 ||
+        strcmp(sub, "test") == 0) {
+        fprintf(stderr, "Error: hook %s not yet implemented\n", sub);
+        return CLI_ERR;
+    }
+    fprintf(stderr, "Error: unknown hook subcommand '%s'\n", sub);
+    help_hook();
+    return CLI_USAGE;
+}
+
+/* ===== Wiki command handlers ===== */
+
+static int cmd_wiki_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb wiki <owner/repo> list\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: wiki list requires owner/repo\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    WikiPage *pages;
+    size_t count;
+    int rc = api_wiki_list(api, owner, repo, &pages, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_wikipage_list(pages, count, gf->json);
+    wikipage_array_free(pages, count);
+    return CLI_OK;
+}
+
+static int cmd_wiki_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb wiki <owner/repo> delete <pageName> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: wiki delete requires owner/repo and page name\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo)) != 0)
+        return CLI_ERR;
+    if (!gf->yes && !confirm("Delete this wiki page?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_wiki_delete(api, owner, repo, argv[1]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted wiki page %s\n", argv[1]);
+    return CLI_OK;
+}
+
+static int cmd_wiki(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_wiki();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_wiki();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_wiki_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_wiki_delete(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "create") == 0 || strcmp(sub, "show") == 0 ||
+        strcmp(sub, "edit") == 0 || strcmp(sub, "revisions") == 0) {
+        fprintf(stderr, "Error: wiki %s not yet implemented\n", sub);
+        return CLI_ERR;
+    }
+    fprintf(stderr, "Error: unknown wiki subcommand '%s'\n", sub);
+    help_wiki();
+    return CLI_USAGE;
+}
+
 /* ===== Command dispatch ===== */
 
 static int cmd_repo(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
@@ -2162,8 +5886,22 @@ void cli_print_help(const char *cmd)
         printf("cb — Codeberg (Forgejo) repository management CLI\n\n");
         printf("Usage: cb [global flags] <command> [subcommand] [args] [flags]\n\n");
         printf("Commands:\n");
-        printf("  repo     Repository management (create, delete, rename, edit, show, list, transfer, topic)\n");
-        printf("  actions  CI/CD actions (list runs, show run, runners, dispatch, secrets, variables)\n");
+        printf("  repo           Repository management (create, delete, rename, edit, show, list, transfer, topic)\n");
+        printf("  actions        CI/CD actions (list runs, show run, runners, dispatch, secrets, variables)\n");
+        printf("  release        Manage releases (list, create, show, edit, delete, assets)\n");
+        printf("  tag            Manage tags (list, create, show, delete)\n");
+        printf("  branch         Manage branches (list, create, show, rename, delete)\n");
+        printf("  issue          Manage issues (list, create, show, edit, delete, comment, labels)\n");
+        printf("  label          Manage repository labels (list, create, show, edit, delete)\n");
+        printf("  milestone      Manage milestones (list, create, show, edit, delete)\n");
+        printf("  pr             Manage pull requests (list, create, show, merge, close)\n");
+        printf("  commit         View commits and statuses (list, show, status, compare)\n");
+        printf("  content        View and manage file contents (list, show, create, update, delete, raw)\n");
+        printf("  key            Manage deploy keys (list, add, show, delete)\n");
+        printf("  collaborator   Manage collaborators (list, add, rm, perms)\n");
+        printf("  fork           Manage forks (list, create)\n");
+        printf("  hook           Manage webhooks (list, create, show, edit, delete, test)\n");
+        printf("  wiki           Manage wiki pages (list, create, show, edit, delete, revisions)\n");
         printf("\nGlobal flags:\n");
         printf("  --json          Output raw JSON\n");
         printf("  --quiet, -q     Suppress non-essential output\n");
@@ -2198,7 +5936,14 @@ int cli_run(int argc, char **argv)
         return CLI_OK;
     }
 
-    if (strcmp(cmd, "repo") != 0 && strcmp(cmd, "actions") != 0) {
+    if (strcmp(cmd, "repo") != 0 && strcmp(cmd, "actions") != 0 &&
+        strcmp(cmd, "release") != 0 && strcmp(cmd, "tag") != 0 &&
+        strcmp(cmd, "branch") != 0 && strcmp(cmd, "issue") != 0 &&
+        strcmp(cmd, "label") != 0 && strcmp(cmd, "milestone") != 0 &&
+        strcmp(cmd, "pr") != 0 && strcmp(cmd, "commit") != 0 &&
+        strcmp(cmd, "content") != 0 && strcmp(cmd, "key") != 0 &&
+        strcmp(cmd, "collaborator") != 0 && strcmp(cmd, "fork") != 0 &&
+        strcmp(cmd, "hook") != 0 && strcmp(cmd, "wiki") != 0) {
         fprintf(stderr, "Error: unknown command '%s'\n", cmd);
         free(filtered_argv);
         return CLI_USAGE;
@@ -2233,6 +5978,34 @@ int cli_run(int argc, char **argv)
     int rc;
     if (strcmp(cmd, "actions") == 0)
         rc = cmd_actions(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "release") == 0)
+        rc = cmd_release(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "tag") == 0)
+        rc = cmd_tag(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "branch") == 0)
+        rc = cmd_branch(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "issue") == 0)
+        rc = cmd_issue(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "label") == 0)
+        rc = cmd_label(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "milestone") == 0)
+        rc = cmd_milestone(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "pr") == 0)
+        rc = cmd_pr(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "commit") == 0)
+        rc = cmd_commit(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "content") == 0)
+        rc = cmd_content(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "key") == 0)
+        rc = cmd_key(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "collaborator") == 0)
+        rc = cmd_collaborator(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "fork") == 0)
+        rc = cmd_fork(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "hook") == 0)
+        rc = cmd_hook(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "wiki") == 0)
+        rc = cmd_wiki(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else
         rc = cmd_repo(filtered_argc - 2, filtered_argv + 2, &api, &gf);
 

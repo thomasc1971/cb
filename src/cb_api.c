@@ -1369,3 +1369,3056 @@ int api_action_log_fetch(ApiClient *a, const char *owner, const char *repo,
     *count = total_lines;
     return API_OK;
 }
+/* New API endpoints — appended to cb_api.c */
+/* This file is concatenated during build. See Makefile.am. */
+
+/* ===== Query string helper ===== */
+
+typedef struct
+{
+    const char *key;
+    const char *value;
+} QueryParam;
+
+static char *build_path_q(ApiClient *a, const char *fmt, const QueryParam *params,
+                          size_t param_count, ...)
+{
+    va_list args;
+    va_start(args, param_count);
+
+    char path[1024];
+    vsnprintf(path, sizeof(path), fmt, args);
+    va_end(args);
+
+    if (param_count > 0) {
+        size_t off = strlen(path);
+        path[off++] = '?';
+        for (size_t i = 0; i < param_count; i++) {
+            if (i > 0 && off < sizeof(path) - 1)
+                path[off++] = '&';
+            size_t room = sizeof(path) - off;
+            if (room <= 1)
+                break;
+            snprintf(path + off, room, "%s=%s", params[i].key, params[i].value);
+            off = strlen(path);
+        }
+    }
+
+    size_t total = strlen(a->path_prefix) + strlen(path) + 1;
+    char *full = malloc(total);
+    if (!full)
+        return NULL;
+    snprintf(full, total, "%s%s", a->path_prefix, path);
+    return full;
+}
+
+/* ===== Parse helpers for new types ===== */
+
+static void parse_release(const JsonValue *obj, Release *r)
+{
+    memset(r, 0, sizeof(*r));
+    r->id = json_get_int64(obj, "id", 0);
+    r->tag_name = json_dup_string(obj, "tag_name");
+    r->name = json_dup_string(obj, "name");
+    r->body = json_dup_string(obj, "body");
+    r->target_commitish = json_dup_string(obj, "target_commitish");
+    r->html_url = json_dup_string(obj, "html_url");
+    r->tarball_url = json_dup_string(obj, "tarball_url");
+    r->zipball_url = json_dup_string(obj, "zipball_url");
+    r->upload_url = json_dup_string(obj, "upload_url");
+    r->url = json_dup_string(obj, "url");
+    r->created_at = json_dup_string(obj, "created_at");
+    r->published_at = json_dup_string(obj, "published_at");
+    r->draft = json_get_bool(obj, "draft", 0);
+    r->prerelease = json_get_bool(obj, "prerelease", 0);
+    r->hide_archive_links = json_get_bool(obj, "hide_archive_links", 0);
+}
+
+static void parse_attachment(const JsonValue *obj, Attachment *a)
+{
+    memset(a, 0, sizeof(*a));
+    a->id = json_get_int64(obj, "id", 0);
+    a->name = json_dup_string(obj, "name");
+    a->browser_download_url = json_dup_string(obj, "browser_download_url");
+    a->uuid = json_dup_string(obj, "uuid");
+    a->created_at = json_dup_string(obj, "created_at");
+    a->type = json_dup_string(obj, "type");
+    a->size = json_get_int64(obj, "size", 0);
+    a->download_count = json_get_int64(obj, "download_count", 0);
+}
+
+static void parse_tag(const JsonValue *obj, Tag *t)
+{
+    memset(t, 0, sizeof(*t));
+    t->name = json_dup_string(obj, "name");
+    t->id = json_dup_string(obj, "id");
+    t->message = json_dup_string(obj, "message");
+    t->tarball_url = json_dup_string(obj, "tarball_url");
+    t->zipball_url = json_dup_string(obj, "zipball_url");
+}
+
+static void parse_branch(const JsonValue *obj, Branch *b)
+{
+    memset(b, 0, sizeof(*b));
+    b->name = json_dup_string(obj, "name");
+    b->protected = json_get_bool(obj, "protected", 0);
+    b->effective_branch_protection_name = json_dup_string(obj, "effective_branch_protection_name");
+    b->user_can_merge = json_get_bool(obj, "user_can_merge", 0);
+    b->user_can_push = json_get_bool(obj, "user_can_push", 0);
+    JsonValue *commit = json_object_lookup(obj, "commit");
+    if (commit && json_is_object(commit)) {
+        b->commit_sha = json_dup_string(commit, "id");
+        JsonValue *cobj = json_object_lookup(commit, "commit");
+        if (cobj && json_is_object(cobj))
+            b->commit_message = json_dup_string(cobj, "message");
+    }
+}
+
+static void parse_issue(const JsonValue *obj, Issue *i)
+{
+    memset(i, 0, sizeof(*i));
+    i->id = json_get_int64(obj, "id", 0);
+    i->number = (int)json_get_int64(obj, "number", 0);
+    i->title = json_dup_string(obj, "title");
+    i->body = json_dup_string(obj, "body");
+    i->state = json_dup_string(obj, "state");
+    i->html_url = json_dup_string(obj, "html_url");
+    i->created_at = json_dup_string(obj, "created_at");
+    i->updated_at = json_dup_string(obj, "updated_at");
+    i->closed_at = json_dup_string(obj, "closed_at");
+    i->due_date = json_dup_string(obj, "due_date");
+    i->is_locked = json_get_bool(obj, "is_locked", 0);
+    i->comments = json_get_int(obj, "comments", 0);
+    i->pin_order = json_get_int(obj, "pin_order", 0);
+}
+
+static void parse_label(const JsonValue *obj, Label *l)
+{
+    memset(l, 0, sizeof(*l));
+    l->id = json_get_int64(obj, "id", 0);
+    l->name = json_dup_string(obj, "name");
+    l->color = json_dup_string(obj, "color");
+    l->description = json_dup_string(obj, "description");
+    l->exclusive = json_get_bool(obj, "exclusive", 0);
+    l->is_archived = json_get_bool(obj, "is_archived", 0);
+}
+
+static void parse_milestone(const JsonValue *obj, Milestone *m)
+{
+    memset(m, 0, sizeof(*m));
+    m->id = json_get_int64(obj, "id", 0);
+    m->title = json_dup_string(obj, "title");
+    m->description = json_dup_string(obj, "description");
+    m->state = json_dup_string(obj, "state");
+    m->due_on = json_dup_string(obj, "due_on");
+    m->created_at = json_dup_string(obj, "created_at");
+    m->updated_at = json_dup_string(obj, "updated_at");
+    m->open_issues = json_get_int(obj, "open_issues", 0);
+    m->closed_issues = json_get_int(obj, "closed_issues", 0);
+}
+
+static void parse_pullrequest(const JsonValue *obj, PullRequest *p)
+{
+    memset(p, 0, sizeof(*p));
+    p->id = json_get_int64(obj, "id", 0);
+    p->number = (int)json_get_int64(obj, "number", 0);
+    p->title = json_dup_string(obj, "title");
+    p->body = json_dup_string(obj, "body");
+    p->state = json_dup_string(obj, "state");
+    p->draft = json_get_bool(obj, "draft", 0);
+    p->merged = json_get_bool(obj, "merged", 0);
+    p->mergeable = json_get_bool(obj, "mergeable", 0);
+    p->merged_at = json_dup_string(obj, "merged_at");
+    p->closed_at = json_dup_string(obj, "closed_at");
+    p->created_at = json_dup_string(obj, "created_at");
+    p->updated_at = json_dup_string(obj, "updated_at");
+    p->html_url = json_dup_string(obj, "html_url");
+    p->diff_url = json_dup_string(obj, "diff_url");
+    p->patch_url = json_dup_string(obj, "patch_url");
+    p->merge_commit_sha = json_dup_string(obj, "merge_commit_sha");
+    p->additions = json_get_int(obj, "additions", 0);
+    p->deletions = json_get_int(obj, "deletions", 0);
+    p->changed_files = json_get_int(obj, "changed_files", 0);
+    p->comments = json_get_int(obj, "comments", 0);
+    JsonValue *base = json_object_lookup(obj, "base");
+    if (base && json_is_object(base))
+        p->base_ref = json_dup_string(base, "ref");
+    JsonValue *head = json_object_lookup(obj, "head");
+    if (head && json_is_object(head))
+        p->head_ref = json_dup_string(head, "ref");
+}
+
+static void parse_commit(const JsonValue *obj, Commit *c)
+{
+    memset(c, 0, sizeof(*c));
+    c->sha = json_dup_string(obj, "sha");
+    c->created = json_dup_string(obj, "created");
+    c->html_url = json_dup_string(obj, "html_url");
+    JsonValue *commit_obj = json_object_lookup(obj, "commit");
+    if (commit_obj && json_is_object(commit_obj)) {
+        c->message = json_dup_string(commit_obj, "message");
+        JsonValue *author = json_object_lookup(commit_obj, "author");
+        if (author && json_is_object(author)) {
+            c->author_name = json_dup_string(author, "name");
+            c->author_email = json_dup_string(author, "email");
+        }
+        JsonValue *committer = json_object_lookup(commit_obj, "committer");
+        if (committer && json_is_object(committer)) {
+            c->committer_name = json_dup_string(committer, "name");
+            c->committer_email = json_dup_string(committer, "email");
+        }
+    }
+    JsonValue *stats = json_object_lookup(obj, "stats");
+    if (stats && json_is_object(stats)) {
+        c->additions = json_get_int(stats, "additions", 0);
+        c->deletions = json_get_int(stats, "deletions", 0);
+        c->total = json_get_int(stats, "total", 0);
+    }
+}
+
+static void parse_commitstatus(const JsonValue *obj, CommitStatus *s)
+{
+    memset(s, 0, sizeof(*s));
+    s->status = json_dup_string(obj, "status");
+    s->context = json_dup_string(obj, "context");
+    s->description = json_dup_string(obj, "description");
+    s->target_url = json_dup_string(obj, "target_url");
+    s->created_at = json_dup_string(obj, "created_at");
+    s->updated_at = json_dup_string(obj, "updated_at");
+}
+
+static void parse_content_entry(const JsonValue *obj, ContentEntry *e)
+{
+    memset(e, 0, sizeof(*e));
+    e->type = json_dup_string(obj, "type");
+    e->name = json_dup_string(obj, "name");
+    e->path = json_dup_string(obj, "path");
+    e->sha = json_dup_string(obj, "sha");
+    e->size = json_get_int64(obj, "size", 0);
+    e->encoding = json_dup_string(obj, "encoding");
+    e->content = json_dup_string(obj, "content");
+    e->download_url = json_dup_string(obj, "download_url");
+    e->html_url = json_dup_string(obj, "html_url");
+    e->git_url = json_dup_string(obj, "git_url");
+    e->last_commit_sha = json_dup_string(obj, "last_commit_sha");
+}
+
+static void parse_deploykey(const JsonValue *obj, DeployKey *k)
+{
+    memset(k, 0, sizeof(*k));
+    k->id = json_get_int64(obj, "id", 0);
+    k->title = json_dup_string(obj, "title");
+    k->key = json_dup_string(obj, "key");
+    k->fingerprint = json_dup_string(obj, "fingerprint");
+    k->read_only = json_get_bool(obj, "read_only", 0);
+    k->created_at = json_dup_string(obj, "created_at");
+}
+
+static void parse_user(const JsonValue *obj, User *u)
+{
+    memset(u, 0, sizeof(*u));
+    u->id = json_get_int64(obj, "id", 0);
+    u->login = json_dup_string(obj, "login");
+    u->full_name = json_dup_string(obj, "full_name");
+    u->html_url = json_dup_string(obj, "html_url");
+}
+
+static void parse_hook(const JsonValue *obj, Hook *h)
+{
+    memset(h, 0, sizeof(*h));
+    h->id = json_get_int64(obj, "id", 0);
+    h->type = json_dup_string(obj, "type");
+    h->active = json_get_bool(obj, "active", 0);
+    h->branch_filter = json_dup_string(obj, "branch_filter");
+    h->authorization_header = json_dup_string(obj, "authorization_header");
+    JsonValue *config = json_object_lookup(obj, "config");
+    if (config && json_is_object(config)) {
+        h->url = json_dup_string(config, "url");
+        h->content_type = json_dup_string(config, "content_type");
+    }
+}
+
+static void parse_wikipage(const JsonValue *obj, WikiPage *w)
+{
+    memset(w, 0, sizeof(*w));
+    w->title = json_dup_string(obj, "title");
+    w->content_base64 = json_dup_string(obj, "content_base64");
+    w->html_url = json_dup_string(obj, "html_url");
+    w->sub_url = json_dup_string(obj, "sub_url");
+    w->commit_count = json_get_int(obj, "commit_count", 0);
+    JsonValue *lc = json_object_lookup(obj, "last_commit");
+    if (lc && json_is_object(lc))
+        w->last_commit_sha = json_dup_string(lc, "sha");
+}
+
+/* ===== Generic array parse helper ===== */
+
+static ApiError parse_array(ApiClient *a, const char *body, size_t elem_size,
+                            void (*parse_fn)(const JsonValue *, void *),
+                            void **out, size_t *count)
+{
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(body, &json_err);
+
+    if (!parsed || !json_is_array(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    size_t n = json_array_count(parsed);
+    char *arr = NULL;
+    if (n > 0) {
+        arr = calloc(n, elem_size);
+        if (!arr) {
+            json_free(parsed);
+            set_error(a, "out of memory");
+            return API_ERR_UNKNOWN;
+        }
+    }
+
+    for (size_t i = 0; i < n; i++)
+        parse_fn(json_array_get(parsed, i), arr + i * elem_size);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+/* ===== Releases ===== */
+
+void release_free(Release *r)
+{
+    if (!r)
+        return;
+    free(r->tag_name);
+    free(r->name);
+    free(r->body);
+    free(r->target_commitish);
+    free(r->html_url);
+    free(r->tarball_url);
+    free(r->zipball_url);
+    free(r->upload_url);
+    free(r->url);
+    free(r->created_at);
+    free(r->published_at);
+    memset(r, 0, sizeof(*r));
+}
+
+void release_array_free(Release *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        release_free(&arr[i]);
+    free(arr);
+}
+
+void attachment_free(Attachment *a)
+{
+    if (!a)
+        return;
+    free(a->name);
+    free(a->browser_download_url);
+    free(a->uuid);
+    free(a->created_at);
+    free(a->type);
+    memset(a, 0, sizeof(*a));
+}
+
+void attachment_array_free(Attachment *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        attachment_free(&arr[i]);
+    free(arr);
+}
+
+int api_release_list(ApiClient *a, const char *owner, const char *repo,
+                     int draft, int prerelease, const char *q,
+                     int limit, Release **out, size_t *count)
+{
+    QueryParam params[4];
+    size_t pc = 0;
+    if (draft)
+        params[pc++] = (QueryParam){ "draft", "true" };
+    if (prerelease)
+        params[pc++] = (QueryParam){ "pre-release", "true" };
+    if (q && q[0])
+        params[pc++] = (QueryParam){ "q", q };
+    if (limit > 0) {
+        static char lim[16];
+        snprintf(lim, sizeof(lim), "%d", limit);
+        params[pc++] = (QueryParam){ "limit", lim };
+    }
+
+    char *path = build_path_q(a, "/repos/%s/%s/releases", params, pc, owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Release), (void (*)(const JsonValue *, void *))parse_release,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_release_create(ApiClient *a, const char *owner, const char *repo,
+                       const CreateReleaseOpts *opts, Release *out)
+{
+    if (!opts || !opts->tag_name) {
+        set_error(a, "tag_name is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "tag_name", opts->tag_name);
+    if (opts->name)
+        json_object_set_string(body, "name", opts->name);
+    if (opts->body)
+        json_object_set_string(body, "body", opts->body);
+    if (opts->target_commitish)
+        json_object_set_string(body, "target_commitish", opts->target_commitish);
+    if (opts->draft_set)
+        json_object_set_bool(body, "draft", opts->draft_val);
+    if (opts->prerelease_set)
+        json_object_set_bool(body, "prerelease", opts->prerelease_val);
+    if (opts->hide_archive_links_set)
+        json_object_set_bool(body, "hide_archive_links", opts->hide_archive_links_val);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/releases", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_release(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_release_get(ApiClient *a, const char *owner, const char *repo,
+                    int64_t id, Release *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_release(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_release_get_latest(ApiClient *a, const char *owner, const char *repo,
+                           Release *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/latest", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_release(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_release_get_by_tag(ApiClient *a, const char *owner, const char *repo,
+                           const char *tag, Release *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/tags/%s", owner, repo, tag);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_release(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_release_edit(ApiClient *a, const char *owner, const char *repo,
+                     int64_t id, const EditReleaseOpts *opts, Release *out)
+{
+    JsonValue *body = json_object_new();
+    if (opts->tag_name_set)
+        json_object_set_string(body, "tag_name", opts->tag_name);
+    if (opts->name_set)
+        json_object_set_string(body, "name", opts->name);
+    if (opts->body_set)
+        json_object_set_string(body, "body", opts->body);
+    if (opts->target_commitish_set)
+        json_object_set_string(body, "target_commitish", opts->target_commitish);
+    if (opts->draft_set)
+        json_object_set_bool(body, "draft", opts->draft_val);
+    if (opts->prerelease_set)
+        json_object_set_bool(body, "prerelease", opts->prerelease_val);
+    if (opts->hide_archive_links_set)
+        json_object_set_bool(body, "hide_archive_links", opts->hide_archive_links_val);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/releases/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_release(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_release_delete(ApiClient *a, const char *owner, const char *repo,
+                       int64_t id)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_release_delete_by_tag(ApiClient *a, const char *owner, const char *repo,
+                              const char *tag)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/tags/%s", owner, repo, tag);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_release_asset_list(ApiClient *a, const char *owner, const char *repo,
+                           int64_t release_id, Attachment **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/%lld/assets", owner, repo, (long long)release_id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Attachment), (void (*)(const JsonValue *, void *))parse_attachment,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_release_asset_get(ApiClient *a, const char *owner, const char *repo,
+                          int64_t release_id, int64_t asset_id, Attachment *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/%lld/assets/%lld",
+                            owner, repo, (long long)release_id, (long long)asset_id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_attachment(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_release_asset_edit(ApiClient *a, const char *owner, const char *repo,
+                           int64_t release_id, int64_t asset_id,
+                           const char *name, Attachment *out)
+{
+    JsonValue *body = json_object_new();
+    if (name)
+        json_object_set_string(body, "name", name);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/releases/%lld/assets/%lld",
+                            owner, repo, (long long)release_id, (long long)asset_id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_attachment(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_release_asset_delete(ApiClient *a, const char *owner, const char *repo,
+                             int64_t release_id, int64_t asset_id)
+{
+    char *path = build_path(a, "/repos/%s/%s/releases/%lld/assets/%lld",
+                            owner, repo, (long long)release_id, (long long)asset_id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Tags ===== */
+
+void tag_free(Tag *t)
+{
+    if (!t)
+        return;
+    free(t->name);
+    free(t->id);
+    free(t->message);
+    free(t->tarball_url);
+    free(t->zipball_url);
+    memset(t, 0, sizeof(*t));
+}
+
+void tag_array_free(Tag *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        tag_free(&arr[i]);
+    free(arr);
+}
+
+int api_tag_list(ApiClient *a, const char *owner, const char *repo,
+                 int limit, Tag **out, size_t *count)
+{
+    char *path;
+    if (limit > 0) {
+        static char lim[16];
+        snprintf(lim, sizeof(lim), "%d", limit);
+        QueryParam params[] = { { "limit", lim } };
+        path = build_path_q(a, "/repos/%s/%s/tags", params, 1, owner, repo);
+    } else {
+        path = build_path(a, "/repos/%s/%s/tags", owner, repo);
+    }
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Tag), (void (*)(const JsonValue *, void *))parse_tag,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_tag_create(ApiClient *a, const char *owner, const char *repo,
+                   const CreateTagOpts *opts, Tag *out)
+{
+    if (!opts || !opts->tag_name) {
+        set_error(a, "tag_name is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "tag_name", opts->tag_name);
+    if (opts->message)
+        json_object_set_string(body, "message", opts->message);
+    if (opts->target)
+        json_object_set_string(body, "target", opts->target);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/tags", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_tag(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_tag_get(ApiClient *a, const char *owner, const char *repo,
+                const char *tag, Tag *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/tags/%s", owner, repo, tag);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_tag(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_tag_delete(ApiClient *a, const char *owner, const char *repo,
+                   const char *tag)
+{
+    char *path = build_path(a, "/repos/%s/%s/tags/%s", owner, repo, tag);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Branches ===== */
+
+void branch_free(Branch *b)
+{
+    if (!b)
+        return;
+    free(b->name);
+    free(b->commit_sha);
+    free(b->commit_message);
+    free(b->effective_branch_protection_name);
+    memset(b, 0, sizeof(*b));
+}
+
+void branch_array_free(Branch *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        branch_free(&arr[i]);
+    free(arr);
+}
+
+int api_branch_list(ApiClient *a, const char *owner, const char *repo,
+                    int limit, Branch **out, size_t *count)
+{
+    char *path;
+    if (limit > 0) {
+        static char lim[16];
+        snprintf(lim, sizeof(lim), "%d", limit);
+        QueryParam params[] = { { "limit", lim } };
+        path = build_path_q(a, "/repos/%s/%s/branches", params, 1, owner, repo);
+    } else {
+        path = build_path(a, "/repos/%s/%s/branches", owner, repo);
+    }
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Branch), (void (*)(const JsonValue *, void *))parse_branch,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_branch_create(ApiClient *a, const char *owner, const char *repo,
+                      const CreateBranchOpts *opts, Branch *out)
+{
+    if (!opts || !opts->new_branch_name) {
+        set_error(a, "new_branch_name is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "new_branch_name", opts->new_branch_name);
+    if (opts->old_ref_name)
+        json_object_set_string(body, "old_ref_name", opts->old_ref_name);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/branches", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_branch(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_branch_get(ApiClient *a, const char *owner, const char *repo,
+                   const char *branch, Branch *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/branches/%s", owner, repo, branch);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_branch(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_branch_rename(ApiClient *a, const char *owner, const char *repo,
+                      const char *branch, const char *new_name, Branch *out)
+{
+    if (!new_name) {
+        set_error(a, "new name is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "name", new_name);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/branches/%s", owner, repo, branch);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_branch(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_branch_delete(ApiClient *a, const char *owner, const char *repo,
+                      const char *branch)
+{
+    char *path = build_path(a, "/repos/%s/%s/branches/%s", owner, repo, branch);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Issues ===== */
+
+void issue_free(Issue *i)
+{
+    if (!i)
+        return;
+    free(i->title);
+    free(i->body);
+    free(i->state);
+    free(i->html_url);
+    free(i->created_at);
+    free(i->updated_at);
+    free(i->closed_at);
+    free(i->due_date);
+    memset(i, 0, sizeof(*i));
+}
+
+void issue_array_free(Issue *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t j = 0; j < count; j++)
+        issue_free(&arr[j]);
+    free(arr);
+}
+
+int api_issue_list(ApiClient *a, const char *owner, const char *repo,
+                   const char *state, const char *labels, const char *type,
+                   int limit, Issue **out, size_t *count)
+{
+    QueryParam params[5];
+    size_t pc = 0;
+    if (state && state[0])
+        params[pc++] = (QueryParam){ "state", state };
+    if (labels && labels[0])
+        params[pc++] = (QueryParam){ "labels", labels };
+    if (type && type[0])
+        params[pc++] = (QueryParam){ "type", type };
+    if (limit > 0) {
+        static char lim[16];
+        snprintf(lim, sizeof(lim), "%d", limit);
+        params[pc++] = (QueryParam){ "limit", lim };
+    }
+
+    char *path = build_path_q(a, "/repos/%s/%s/issues", params, pc, owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Issue), (void (*)(const JsonValue *, void *))parse_issue,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_issue_create(ApiClient *a, const char *owner, const char *repo,
+                     const CreateIssueOpts *opts, Issue *out)
+{
+    if (!opts || !opts->title) {
+        set_error(a, "title is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "title", opts->title);
+    if (opts->body)
+        json_object_set_string(body, "body", opts->body);
+    if (opts->assignee)
+        json_object_set_string(body, "assignee", opts->assignee);
+    if (opts->assignees) {
+        JsonValue *arr = json_array_new();
+        for (size_t i = 0; opts->assignees[i]; i++)
+            json_array_push(arr, json_string_new(opts->assignees[i]));
+        json_object_set(body, "assignees", arr);
+    }
+    if (opts->milestone > 0)
+        json_object_set_number(body, "milestone", (double)opts->milestone);
+    if (opts->labels && opts->label_count > 0) {
+        JsonValue *arr = json_array_new();
+        for (size_t i = 0; i < opts->label_count; i++)
+            json_array_push(arr, json_number_new((double)opts->labels[i]));
+        json_object_set(body, "labels", arr);
+    }
+    if (opts->due_date)
+        json_object_set_string(body, "due_date", opts->due_date);
+    if (opts->ref)
+        json_object_set_string(body, "ref", opts->ref);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/issues", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_issue(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_issue_get(ApiClient *a, const char *owner, const char *repo,
+                  int number, Issue *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/issues/%d", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_issue(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_issue_edit(ApiClient *a, const char *owner, const char *repo,
+                   int number, const EditIssueOpts *opts, Issue *out)
+{
+    JsonValue *body = json_object_new();
+    if (opts->title_set)
+        json_object_set_string(body, "title", opts->title);
+    if (opts->body_set)
+        json_object_set_string(body, "body", opts->body);
+    if (opts->state_set)
+        json_object_set_string(body, "state", opts->state);
+    if (opts->milestone_set)
+        json_object_set_number(body, "milestone", (double)opts->milestone);
+    if (opts->due_date_set)
+        json_object_set_string(body, "due_date", opts->due_date);
+    if (opts->unset_due_date)
+        json_object_set_null(body, "due_date");
+    if (opts->ref_set)
+        json_object_set_string(body, "ref", opts->ref);
+    if (opts->assignees && opts->assignee_count > 0) {
+        JsonValue *arr = json_array_new();
+        for (size_t i = 0; i < opts->assignee_count; i++)
+            json_array_push(arr, json_string_new(opts->assignees[i]));
+        json_object_set(body, "assignees", arr);
+    }
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/issues/%d", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_issue(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_issue_delete(ApiClient *a, const char *owner, const char *repo,
+                     int number)
+{
+    char *path = build_path(a, "/repos/%s/%s/issues/%d", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_issue_comment_create(ApiClient *a, const char *owner, const char *repo,
+                             int number, const char *body_text)
+{
+    if (!body_text) {
+        set_error(a, "comment body is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "body", body_text);
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/issues/%d/comments", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_issue_label_add(ApiClient *a, const char *owner, const char *repo,
+                        int number, const int64_t *labels, size_t count)
+{
+    JsonValue *body = json_array_new();
+    for (size_t i = 0; i < count; i++)
+        json_array_push(body, json_number_new((double)labels[i]));
+
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/issues/%d/labels", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_issue_label_set(ApiClient *a, const char *owner, const char *repo,
+                        int number, const int64_t *labels, size_t count)
+{
+    JsonValue *body = json_array_new();
+    for (size_t i = 0; i < count; i++)
+        json_array_push(body, json_number_new((double)labels[i]));
+
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/issues/%d/labels", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PUT, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_issue_label_clear(ApiClient *a, const char *owner, const char *repo,
+                          int number)
+{
+    char *path = build_path(a, "/repos/%s/%s/issues/%d/labels", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_issue_label_remove(ApiClient *a, const char *owner, const char *repo,
+                           int number, int64_t label_id)
+{
+    char *path = build_path(a, "/repos/%s/%s/issues/%d/labels/%lld",
+                            owner, repo, number, (long long)label_id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Labels ===== */
+
+void label_free(Label *l)
+{
+    if (!l)
+        return;
+    free(l->name);
+    free(l->color);
+    free(l->description);
+    memset(l, 0, sizeof(*l));
+}
+
+void label_array_free(Label *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        label_free(&arr[i]);
+    free(arr);
+}
+
+int api_label_list(ApiClient *a, const char *owner, const char *repo,
+                   Label **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/labels", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Label), (void (*)(const JsonValue *, void *))parse_label,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_label_create(ApiClient *a, const char *owner, const char *repo,
+                     const CreateLabelOpts *opts, Label *out)
+{
+    if (!opts || !opts->name || !opts->color) {
+        set_error(a, "name and color are required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "name", opts->name);
+    json_object_set_string(body, "color", opts->color);
+    if (opts->description)
+        json_object_set_string(body, "description", opts->description);
+    if (opts->exclusive_set)
+        json_object_set_bool(body, "exclusive", opts->exclusive_val);
+    if (opts->is_archived_set)
+        json_object_set_bool(body, "is_archived", opts->is_archived_val);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/labels", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_label(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_label_get(ApiClient *a, const char *owner, const char *repo,
+                  int64_t id, Label *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/labels/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_label(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_label_edit(ApiClient *a, const char *owner, const char *repo,
+                   int64_t id, int name_set, const char *name,
+                   int color_set, const char *color,
+                   int desc_set, const char *description, Label *out)
+{
+    JsonValue *body = json_object_new();
+    if (name_set)
+        json_object_set_string(body, "name", name);
+    if (color_set)
+        json_object_set_string(body, "color", color);
+    if (desc_set)
+        json_object_set_string(body, "description", description);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/labels/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_label(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_label_delete(ApiClient *a, const char *owner, const char *repo,
+                     int64_t id)
+{
+    char *path = build_path(a, "/repos/%s/%s/labels/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Milestones ===== */
+
+void milestone_free(Milestone *m)
+{
+    if (!m)
+        return;
+    free(m->title);
+    free(m->description);
+    free(m->state);
+    free(m->due_on);
+    free(m->created_at);
+    free(m->updated_at);
+    memset(m, 0, sizeof(*m));
+}
+
+void milestone_array_free(Milestone *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        milestone_free(&arr[i]);
+    free(arr);
+}
+
+int api_milestone_list(ApiClient *a, const char *owner, const char *repo,
+                       const char *state, Milestone **out, size_t *count)
+{
+    char *path;
+    if (state && state[0]) {
+        QueryParam params[] = { { "state", state } };
+        path = build_path_q(a, "/repos/%s/%s/milestones", params, 1, owner, repo);
+    } else {
+        path = build_path(a, "/repos/%s/%s/milestones", owner, repo);
+    }
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Milestone), (void (*)(const JsonValue *, void *))parse_milestone,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_milestone_create(ApiClient *a, const char *owner, const char *repo,
+                         const CreateMilestoneOpts *opts, Milestone *out)
+{
+    if (!opts || !opts->title) {
+        set_error(a, "title is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "title", opts->title);
+    if (opts->description)
+        json_object_set_string(body, "description", opts->description);
+    if (opts->state)
+        json_object_set_string(body, "state", opts->state);
+    if (opts->due_on)
+        json_object_set_string(body, "due_on", opts->due_on);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/milestones", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_milestone(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_milestone_get(ApiClient *a, const char *owner, const char *repo,
+                      int64_t id, Milestone *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/milestones/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_milestone(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_milestone_edit(ApiClient *a, const char *owner, const char *repo,
+                       int64_t id, int title_set, const char *title,
+                       int desc_set, const char *description,
+                       int state_set, const char *state,
+                       int due_set, const char *due_on, Milestone *out)
+{
+    JsonValue *body = json_object_new();
+    if (title_set)
+        json_object_set_string(body, "title", title);
+    if (desc_set)
+        json_object_set_string(body, "description", description);
+    if (state_set)
+        json_object_set_string(body, "state", state);
+    if (due_set)
+        json_object_set_string(body, "due_on", due_on);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/milestones/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_milestone(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_milestone_delete(ApiClient *a, const char *owner, const char *repo,
+                         int64_t id)
+{
+    char *path = build_path(a, "/repos/%s/%s/milestones/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Pull Requests ===== */
+
+void pullrequest_free(PullRequest *p)
+{
+    if (!p)
+        return;
+    free(p->title);
+    free(p->body);
+    free(p->state);
+    free(p->merged_at);
+    free(p->closed_at);
+    free(p->created_at);
+    free(p->updated_at);
+    free(p->html_url);
+    free(p->diff_url);
+    free(p->patch_url);
+    free(p->merge_commit_sha);
+    free(p->base_ref);
+    free(p->head_ref);
+    memset(p, 0, sizeof(*p));
+}
+
+void pullrequest_array_free(PullRequest *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        pullrequest_free(&arr[i]);
+    free(arr);
+}
+
+int api_pr_list(ApiClient *a, const char *owner, const char *repo,
+                const char *state, int limit, PullRequest **out, size_t *count)
+{
+    QueryParam params[3];
+    size_t pc = 0;
+    if (state && state[0])
+        params[pc++] = (QueryParam){ "state", state };
+    if (limit > 0) {
+        static char lim[16];
+        snprintf(lim, sizeof(lim), "%d", limit);
+        params[pc++] = (QueryParam){ "limit", lim };
+    }
+
+    char *path = build_path_q(a, "/repos/%s/%s/pulls", params, pc, owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(PullRequest), (void (*)(const JsonValue *, void *))parse_pullrequest,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_pr_create(ApiClient *a, const char *owner, const char *repo,
+                  const CreatePullRequestOpts *opts, PullRequest *out)
+{
+    if (!opts || !opts->head) {
+        set_error(a, "head branch is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    if (opts->title)
+        json_object_set_string(body, "title", opts->title);
+    if (opts->body)
+        json_object_set_string(body, "body", opts->body);
+    json_object_set_string(body, "head", opts->head);
+    if (opts->base)
+        json_object_set_string(body, "base", opts->base);
+    if (opts->assignee)
+        json_object_set_string(body, "assignee", opts->assignee);
+    if (opts->milestone > 0)
+        json_object_set_number(body, "milestone", (double)opts->milestone);
+    if (opts->labels && opts->label_count > 0) {
+        JsonValue *arr = json_array_new();
+        for (size_t i = 0; i < opts->label_count; i++)
+            json_array_push(arr, json_number_new((double)opts->labels[i]));
+        json_object_set(body, "labels", arr);
+    }
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/pulls", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_pullrequest(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_pr_get(ApiClient *a, const char *owner, const char *repo,
+               int number, PullRequest *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/pulls/%d", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_pullrequest(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_pr_edit(ApiClient *a, const char *owner, const char *repo,
+                int number, const EditPullRequestOpts *opts, PullRequest *out)
+{
+    JsonValue *body = json_object_new();
+    if (opts->title_set)
+        json_object_set_string(body, "title", opts->title);
+    if (opts->body_set)
+        json_object_set_string(body, "body", opts->body);
+    if (opts->base_set)
+        json_object_set_string(body, "base", opts->base);
+    if (opts->state_set)
+        json_object_set_string(body, "state", opts->state);
+    if (opts->allow_maintainer_edit_set)
+        json_object_set_bool(body, "allow_maintainer_edit", opts->allow_maintainer_edit_val);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/pulls/%d", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_pullrequest(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_pr_merge(ApiClient *a, const char *owner, const char *repo,
+                 int number, const MergePullRequestOpts *opts)
+{
+    if (!opts || !opts->do_style) {
+        set_error(a, "merge style is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "Do", opts->do_style);
+    if (opts->merge_title)
+        json_object_set_string(body, "MergeTitleField", opts->merge_title);
+    if (opts->merge_message)
+        json_object_set_string(body, "MergeMessageField", opts->merge_message);
+    if (opts->delete_branch_after_merge)
+        json_object_set_bool(body, "delete_branch_after_merge", true);
+    if (opts->force_merge)
+        json_object_set_bool(body, "force_merge", true);
+    if (opts->merge_when_checks_succeed)
+        json_object_set_bool(body, "merge_when_checks_succeed", true);
+    if (opts->head_commit_id)
+        json_object_set_string(body, "head_commit_id", opts->head_commit_id);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/pulls/%d/merge", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_pr_cancel_merge(ApiClient *a, const char *owner, const char *repo,
+                        int number)
+{
+    char *path = build_path(a, "/repos/%s/%s/pulls/%d/merge", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_pr_is_merged(ApiClient *a, const char *owner, const char *repo,
+                     int number, int *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/pulls/%d/merge", owner, repo, number);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err == API_OK) {
+        *out = 1;
+        http_response_free(&resp);
+        return API_OK;
+    }
+    if (err == API_ERR_NOT_FOUND) {
+        *out = 0;
+        http_response_free(&resp);
+        return API_OK;
+    }
+
+    http_response_free(&resp);
+    return err;
+}
+
+int api_pr_diff(ApiClient *a, const char *owner, const char *repo,
+                int number, int patch, char **out, size_t *out_len)
+{
+    char *path = build_path(a, "/repos/%s/%s/pulls/%d.%s",
+                            owner, repo, number, patch ? "patch" : "diff");
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    *out = resp.body;
+    *out_len = resp.body_len;
+    resp.body = NULL;
+    http_response_free(&resp);
+    return API_OK;
+}
+
+/* ===== Commits ===== */
+
+void commit_free(Commit *c)
+{
+    if (!c)
+        return;
+    free(c->sha);
+    free(c->created);
+    free(c->html_url);
+    free(c->message);
+    free(c->author_name);
+    free(c->author_email);
+    free(c->committer_name);
+    free(c->committer_email);
+    memset(c, 0, sizeof(*c));
+}
+
+void commit_array_free(Commit *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        commit_free(&arr[i]);
+    free(arr);
+}
+
+void commitstatus_free(CommitStatus *s)
+{
+    if (!s)
+        return;
+    free(s->status);
+    free(s->context);
+    free(s->description);
+    free(s->target_url);
+    free(s->created_at);
+    free(s->updated_at);
+    memset(s, 0, sizeof(*s));
+}
+
+void commitstatus_array_free(CommitStatus *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        commitstatus_free(&arr[i]);
+    free(arr);
+}
+
+int api_commit_list(ApiClient *a, const char *owner, const char *repo,
+                    const char *sha, const char *path_param,
+                    int limit, Commit **out, size_t *count)
+{
+    QueryParam params[4];
+    size_t pc = 0;
+    if (sha && sha[0])
+        params[pc++] = (QueryParam){ "sha", sha };
+    if (path_param && path_param[0])
+        params[pc++] = (QueryParam){ "path", path_param };
+    if (limit > 0) {
+        static char lim[16];
+        snprintf(lim, sizeof(lim), "%d", limit);
+        params[pc++] = (QueryParam){ "limit", lim };
+    }
+
+    char *path = build_path_q(a, "/repos/%s/%s/commits", params, pc, owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Commit), (void (*)(const JsonValue *, void *))parse_commit,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_commit_get(ApiClient *a, const char *owner, const char *repo,
+                   const char *sha, Commit *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/commits/%s", owner, repo, sha);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_commit(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_commit_status(ApiClient *a, const char *owner, const char *repo,
+                      const char *ref, CommitStatus **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/commits/%s/status", owner, repo, ref);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    /* The combined status response is an object with a "statuses" array */
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    JsonValue *statuses = json_object_lookup(parsed, "statuses");
+    if (!statuses || !json_is_array(statuses)) {
+        json_free(parsed);
+        *out = NULL;
+        *count = 0;
+        return API_OK;
+    }
+
+    size_t n = json_array_count(statuses);
+    CommitStatus *arr = calloc(n, sizeof(CommitStatus));
+    if (!arr && n > 0) {
+        json_free(parsed);
+        set_error(a, "out of memory");
+        return API_ERR_UNKNOWN;
+    }
+
+    for (size_t i = 0; i < n; i++)
+        parse_commitstatus(json_array_get(statuses, i), &arr[i]);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_commit_compare(ApiClient *a, const char *owner, const char *repo,
+                       const char *basehead, Commit **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/compare/%s", owner, repo, basehead);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    JsonValue *commits_arr = json_object_lookup(parsed, "commits");
+    if (!commits_arr || !json_is_array(commits_arr)) {
+        json_free(parsed);
+        *out = NULL;
+        *count = 0;
+        return API_OK;
+    }
+
+    size_t n = json_array_count(commits_arr);
+    Commit *arr = calloc(n, sizeof(Commit));
+    if (!arr && n > 0) {
+        json_free(parsed);
+        set_error(a, "out of memory");
+        return API_ERR_UNKNOWN;
+    }
+
+    for (size_t i = 0; i < n; i++)
+        parse_commit(json_array_get(commits_arr, i), &arr[i]);
+
+    *out = arr;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+/* ===== File Contents ===== */
+
+void content_entry_free(ContentEntry *e)
+{
+    if (!e)
+        return;
+    free(e->type);
+    free(e->name);
+    free(e->path);
+    free(e->sha);
+    free(e->encoding);
+    free(e->content);
+    free(e->download_url);
+    free(e->html_url);
+    free(e->git_url);
+    free(e->last_commit_sha);
+    memset(e, 0, sizeof(*e));
+}
+
+void content_entry_array_free(ContentEntry *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        content_entry_free(&arr[i]);
+    free(arr);
+}
+
+int api_content_list(ApiClient *a, const char *owner, const char *repo,
+                     const char *ref, ContentEntry **out, size_t *count)
+{
+    char *path;
+    if (ref && ref[0]) {
+        QueryParam params[] = { { "ref", ref } };
+        path = build_path_q(a, "/repos/%s/%s/contents", params, 1, owner, repo);
+    } else {
+        path = build_path(a, "/repos/%s/%s/contents", owner, repo);
+    }
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(ContentEntry),
+                      (void (*)(const JsonValue *, void *))parse_content_entry,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_content_get(ApiClient *a, const char *owner, const char *repo,
+                    const char *filepath, const char *ref, ContentEntry *out)
+{
+    char *path;
+    if (ref && ref[0]) {
+        QueryParam params[] = { { "ref", ref } };
+        path = build_path_q(a, "/repos/%s/%s/contents/%s", params, 1, owner, repo, filepath);
+    } else {
+        path = build_path(a, "/repos/%s/%s/contents/%s", owner, repo, filepath);
+    }
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_content_entry(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_content_create(ApiClient *a, const char *owner, const char *repo,
+                       const char *filepath, const char *message,
+                       const char *content_b64, const char *branch,
+                       const char *new_branch)
+{
+    if (!message) {
+        set_error(a, "commit message is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    if (content_b64)
+        json_object_set_string(body, "content", content_b64);
+    json_object_set_string(body, "message", message);
+    if (branch)
+        json_object_set_string(body, "branch", branch);
+    if (new_branch)
+        json_object_set_string(body, "new_branch", new_branch);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/contents/%s", owner, repo, filepath);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_content_update(ApiClient *a, const char *owner, const char *repo,
+                       const char *filepath, const char *message,
+                       const char *content_b64, const char *sha,
+                       const char *branch, const char *new_branch)
+{
+    if (!message || !sha) {
+        set_error(a, "commit message and sha are required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    if (content_b64)
+        json_object_set_string(body, "content", content_b64);
+    json_object_set_string(body, "message", message);
+    json_object_set_string(body, "sha", sha);
+    if (branch)
+        json_object_set_string(body, "branch", branch);
+    if (new_branch)
+        json_object_set_string(body, "new_branch", new_branch);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/contents/%s", owner, repo, filepath);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PUT, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_content_delete(ApiClient *a, const char *owner, const char *repo,
+                       const char *filepath, const char *message,
+                       const char *sha, const char *branch,
+                       const char *new_branch)
+{
+    if (!message || !sha) {
+        set_error(a, "commit message and sha are required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "message", message);
+    json_object_set_string(body, "sha", sha);
+    if (branch)
+        json_object_set_string(body, "branch", branch);
+    if (new_branch)
+        json_object_set_string(body, "new_branch", new_branch);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/contents/%s", owner, repo, filepath);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_content_raw(ApiClient *a, const char *owner, const char *repo,
+                    const char *filepath, const char *ref,
+                    char **out, size_t *out_len)
+{
+    char *path;
+    if (ref && ref[0]) {
+        QueryParam params[] = { { "ref", ref } };
+        path = build_path_q(a, "/repos/%s/%s/raw/%s", params, 1, owner, repo, filepath);
+    } else {
+        path = build_path(a, "/repos/%s/%s/raw/%s", owner, repo, filepath);
+    }
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    *out = resp.body;
+    *out_len = resp.body_len;
+    resp.body = NULL;
+    http_response_free(&resp);
+    return API_OK;
+}
+
+/* ===== Deploy Keys ===== */
+
+void deploykey_free(DeployKey *k)
+{
+    if (!k)
+        return;
+    free(k->title);
+    free(k->key);
+    free(k->fingerprint);
+    free(k->created_at);
+    memset(k, 0, sizeof(*k));
+}
+
+void deploykey_array_free(DeployKey *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        deploykey_free(&arr[i]);
+    free(arr);
+}
+
+int api_key_list(ApiClient *a, const char *owner, const char *repo,
+                 DeployKey **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/keys", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(DeployKey),
+                      (void (*)(const JsonValue *, void *))parse_deploykey,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_key_add(ApiClient *a, const char *owner, const char *repo,
+                const CreateKeyOpts *opts, DeployKey *out)
+{
+    if (!opts || !opts->title || !opts->key) {
+        set_error(a, "title and key are required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "title", opts->title);
+    json_object_set_string(body, "key", opts->key);
+    json_object_set_bool(body, "read_only", opts->read_only);
+
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/keys", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_deploykey(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_key_get(ApiClient *a, const char *owner, const char *repo,
+                int64_t id, DeployKey *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/keys/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_deploykey(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_key_delete(ApiClient *a, const char *owner, const char *repo,
+                   int64_t id)
+{
+    char *path = build_path(a, "/repos/%s/%s/keys/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Collaborators ===== */
+
+void user_free(User *u)
+{
+    if (!u)
+        return;
+    free(u->login);
+    free(u->full_name);
+    free(u->html_url);
+    memset(u, 0, sizeof(*u));
+}
+
+void user_array_free(User *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        user_free(&arr[i]);
+    free(arr);
+}
+
+int api_collaborator_list(ApiClient *a, const char *owner, const char *repo,
+                          User **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/collaborators", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(User),
+                      (void (*)(const JsonValue *, void *))parse_user,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_collaborator_add(ApiClient *a, const char *owner, const char *repo,
+                         const char *username, const char *permission)
+{
+    JsonValue *body = json_object_new();
+    if (permission)
+        json_object_set_string(body, "permission", permission);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/collaborators/%s", owner, repo, username);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PUT, path, body_str, &resp);
+    free(path);
+    free(body_str);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_collaborator_remove(ApiClient *a, const char *owner, const char *repo,
+                            const char *username)
+{
+    char *path = build_path(a, "/repos/%s/%s/collaborators/%s", owner, repo, username);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_collaborator_perms(ApiClient *a, const char *owner, const char *repo,
+                           const char *username, char *perm_out, size_t perm_sz)
+{
+    char *path = build_path(a, "/repos/%s/%s/collaborators/%s/permission",
+                            owner, repo, username);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    char *perm = json_dup_string(parsed, "permission");
+    if (perm) {
+        strncpy(perm_out, perm, perm_sz - 1);
+        perm_out[perm_sz - 1] = '\0';
+        free(perm);
+    } else {
+        perm_out[0] = '\0';
+    }
+
+    json_free(parsed);
+    return API_OK;
+}
+
+/* ===== Forks ===== */
+
+int api_fork_list(ApiClient *a, const char *owner, const char *repo,
+                  Repo **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/forks", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Repo), (void (*)(const JsonValue *, void *))parse_repo,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_fork_create(ApiClient *a, const char *owner, const char *repo,
+                    const char *name, const char *org, Repo *out)
+{
+    JsonValue *body = json_object_new();
+    if (name)
+        json_object_set_string(body, "name", name);
+    if (org)
+        json_object_set_string(body, "organization", org);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/forks", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_repo(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+/* ===== Webhooks ===== */
+
+void hook_free(Hook *h)
+{
+    if (!h)
+        return;
+    free(h->type);
+    free(h->url);
+    free(h->content_type);
+    free(h->branch_filter);
+    free(h->authorization_header);
+    memset(h, 0, sizeof(*h));
+}
+
+void hook_array_free(Hook *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        hook_free(&arr[i]);
+    free(arr);
+}
+
+int api_hook_list(ApiClient *a, const char *owner, const char *repo,
+                  Hook **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/hooks", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Hook),
+                      (void (*)(const JsonValue *, void *))parse_hook,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_hook_create(ApiClient *a, const char *owner, const char *repo,
+                    const CreateHookOpts *opts, Hook *out)
+{
+    if (!opts || !opts->type || !opts->url) {
+        set_error(a, "type and url are required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "type", opts->type);
+    json_object_set_bool(body, "active", opts->active);
+
+    JsonValue *config = json_object_new();
+    json_object_set_string(config, "url", opts->url);
+    if (opts->content_type)
+        json_object_set_string(config, "content_type", opts->content_type);
+    if (opts->secret)
+        json_object_set_string(config, "secret", opts->secret);
+    json_object_set(body, "config", config);
+
+    if (opts->events) {
+        JsonValue *arr = json_array_new();
+        for (size_t i = 0; opts->events[i]; i++)
+            json_array_push(arr, json_string_new(opts->events[i]));
+        json_object_set(body, "events", arr);
+    }
+
+    if (opts->branch_filter)
+        json_object_set_string(body, "branch_filter", opts->branch_filter);
+    if (opts->authorization_header)
+        json_object_set_string(body, "authorization_header", opts->authorization_header);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/hooks", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_hook(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_hook_get(ApiClient *a, const char *owner, const char *repo,
+                 int64_t id, Hook *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/hooks/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_hook(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_hook_delete(ApiClient *a, const char *owner, const char *repo,
+                    int64_t id)
+{
+    char *path = build_path(a, "/repos/%s/%s/hooks/%lld", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_hook_test(ApiClient *a, const char *owner, const char *repo,
+                  int64_t id)
+{
+    char *path = build_path(a, "/repos/%s/%s/hooks/%lld/tests", owner, repo, (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Wiki ===== */
+
+void wikipage_free(WikiPage *w)
+{
+    if (!w)
+        return;
+    free(w->title);
+    free(w->content_base64);
+    free(w->html_url);
+    free(w->sub_url);
+    free(w->last_commit_sha);
+    memset(w, 0, sizeof(*w));
+}
+
+void wikipage_array_free(WikiPage *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        wikipage_free(&arr[i]);
+    free(arr);
+}
+
+int api_wiki_list(ApiClient *a, const char *owner, const char *repo,
+                  WikiPage **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/wiki/pages", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(WikiPage),
+                      (void (*)(const JsonValue *, void *))parse_wikipage,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_wiki_create(ApiClient *a, const char *owner, const char *repo,
+                    const CreateWikiPageOpts *opts, WikiPage *out)
+{
+    if (!opts || !opts->title) {
+        set_error(a, "title is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "title", opts->title);
+    if (opts->content_base64)
+        json_object_set_string(body, "content_base64", opts->content_base64);
+    if (opts->message)
+        json_object_set_string(body, "message", opts->message);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/wiki/new", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_wikipage(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_wiki_get(ApiClient *a, const char *owner, const char *repo,
+                 const char *page_name, WikiPage *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/wiki/page/%s", owner, repo, page_name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_wikipage(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_wiki_edit(ApiClient *a, const char *owner, const char *repo,
+                  const char *page_name, const char *content_b64,
+                  const char *message, WikiPage *out)
+{
+    JsonValue *body = json_object_new();
+    if (content_b64)
+        json_object_set_string(body, "content_base64", content_b64);
+    if (message)
+        json_object_set_string(body, "message", message);
+
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/repos/%s/%s/wiki/page/%s", owner, repo, page_name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PATCH, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    if (out) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed))
+            parse_wikipage(parsed, out);
+        json_free(parsed);
+    }
+
+    http_response_free(&resp);
+    return API_OK;
+}
+
+int api_wiki_delete(ApiClient *a, const char *owner, const char *repo,
+                    const char *page_name)
+{
+    char *path = build_path(a, "/repos/%s/%s/wiki/page/%s", owner, repo, page_name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+/* ===== Repo misc ===== */
+
+int api_repo_watch(ApiClient *a, const char *owner, const char *repo)
+{
+    char *path = build_path(a, "/repos/%s/%s/subscription", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_PUT, path, "{}", &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_repo_unwatch(ApiClient *a, const char *owner, const char *repo)
+{
+    char *path = build_path(a, "/repos/%s/%s/subscription", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_repo_is_watching(ApiClient *a, const char *owner, const char *repo,
+                         int *out)
+{
+    char *path = build_path(a, "/repos/%s/%s/subscription", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err == API_OK) {
+        *out = 1;
+        http_response_free(&resp);
+        return API_OK;
+    }
+    if (err == API_ERR_NOT_FOUND) {
+        *out = 0;
+        http_response_free(&resp);
+        return API_OK;
+    }
+
+    http_response_free(&resp);
+    return err;
+}
+
+int api_repo_stargazers(ApiClient *a, const char *owner, const char *repo,
+                        User **out, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/stargazers", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(User),
+                      (void (*)(const JsonValue *, void *))parse_user,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_repo_languages(ApiClient *a, const char *owner, const char *repo,
+                       char ***langs, int64_t **bytes, size_t *count)
+{
+    char *path = build_path(a, "/repos/%s/%s/languages", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    size_t n = json_object_count(parsed);
+    char **l = calloc(n, sizeof(char *));
+    int64_t *b = calloc(n, sizeof(int64_t));
+    if ((!l || !b) && n > 0) {
+        free(l);
+        free(b);
+        json_free(parsed);
+        set_error(a, "out of memory");
+        return API_ERR_UNKNOWN;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        l[i] = strdup(json_object_key(parsed, i));
+        JsonValue *v = json_object_get(parsed, i);
+        b[i] = (v && json_is_number(v)) ? (int64_t)json_number(v) : 0;
+    }
+
+    *langs = l;
+    *bytes = b;
+    *count = n;
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_repo_mirror_sync(ApiClient *a, const char *owner, const char *repo)
+{
+    char *path = build_path(a, "/repos/%s/%s/mirror-sync", owner, repo);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}

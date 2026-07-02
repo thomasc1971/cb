@@ -302,7 +302,8 @@ static int parse_response(const char *raw, size_t raw_len, HttpResponse *resp)
 }
 
 static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
-                         const char *body, HttpResponse *resp)
+                         const char *body, size_t body_len, const char *content_type,
+                         HttpResponse *resp)
 {
     struct addrinfo hints, *res = NULL;
     memset(&hints, 0, sizeof(hints));
@@ -352,8 +353,7 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
         fprintf(f, "Authorization: token %s\r\n", c->token);
     }
     if (body) {
-        size_t body_len = strlen(body);
-        fprintf(f, "Content-Type: application/json\r\n");
+        fprintf(f, "Content-Type: %s\r\n", content_type ? content_type : "application/json");
         fprintf(f, "Content-Length: %zu\r\n", body_len);
         fprintf(f, "\r\n");
         fwrite(body, 1, body_len, f);
@@ -389,7 +389,8 @@ static int do_plain_http(HttpClient *c, HttpMethod method, const char *path,
 /* TLS implementation using libtls */
 #ifdef HAVE_LIBTLS
 static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
-                       const char *body, HttpResponse *resp)
+                       const char *body, size_t body_len, const char *content_type,
+                       HttpResponse *resp)
 {
     struct tls *ctx = tls_client();
     if (!ctx) {
@@ -473,8 +474,7 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
         fprintf(f, "Authorization: token %s\r\n", c->token);
     }
     if (body) {
-        size_t body_len = strlen(body);
-        fprintf(f, "Content-Type: application/json\r\n");
+        fprintf(f, "Content-Type: %s\r\n", content_type ? content_type : "application/json");
         fprintf(f, "Content-Length: %zu\r\n", body_len);
         fprintf(f, "\r\n");
         fwrite(body, 1, body_len, f);
@@ -565,8 +565,9 @@ static int do_tls_http(HttpClient *c, HttpMethod method, const char *path,
 }
 #endif /* HAVE_LIBTLS */
 
-int http_request(HttpClient *c, HttpMethod method, const char *path,
-                 const char *body, HttpResponse *resp)
+int http_request_raw(HttpClient *c, HttpMethod method, const char *path,
+                     const char *body, size_t body_len, const char *content_type,
+                     HttpResponse *resp)
 {
     memset(resp, 0, sizeof(*resp));
 
@@ -577,9 +578,15 @@ int http_request(HttpClient *c, HttpMethod method, const char *path,
 
 #ifdef HAVE_LIBTLS
     if (c->use_tls) {
-        return do_tls_http(c, method, path, body, resp);
+        return do_tls_http(c, method, path, body, body_len, content_type, resp);
     }
 #endif
-    (void)body;
-    return do_plain_http(c, method, path, body, resp);
+    return do_plain_http(c, method, path, body, body_len, content_type, resp);
+}
+
+int http_request(HttpClient *c, HttpMethod method, const char *path,
+                 const char *body, HttpResponse *resp)
+{
+    size_t body_len = body ? strlen(body) : 0;
+    return http_request_raw(c, method, path, body, body_len, NULL, resp);
 }

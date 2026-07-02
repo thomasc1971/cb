@@ -8,7 +8,7 @@ check_LIBRARIES = libmockserver.a
 libmockserver_a_SOURCES = mock_server.c
 libmockserver_a_CFLAGS = $(AM_CFLAGS)
 
-check_PROGRAMS = test_json test_http test_config test_validate test_api test_cli test_actions
+check_PROGRAMS = test_json test_http test_config test_validate test_api test_cli test_actions test_new_api
 
 test_json_SOURCES = test_json.c $(top_srcdir)/src/cb_json.c $(top_srcdir)/src/cb_compat.c
 test_json_LDADD = $(LIBTLS_LIBS) -lm
@@ -37,5 +37,10 @@ test_actions_SOURCES = test_actions.c $(top_srcdir)/src/cb_api.c $(top_srcdir)/s
     $(top_srcdir)/src/cb_json.c $(top_srcdir)/src/cb_validate.c $(top_srcdir)/src/cb_config.c \
     $(top_srcdir)/src/cb_compat.c
 test_actions_LDADD = libmockserver.a $(PTHREAD_LIBS) $(LIBTLS_LIBS) -lm
+
+test_new_api_SOURCES = test_new_api.c $(top_srcdir)/src/cb_api.c $(top_srcdir)/src/cb_http.c \
+    $(top_srcdir)/src/cb_json.c $(top_srcdir)/src/cb_validate.c $(top_srcdir)/src/cb_config.c \
+    $(top_srcdir)/src/cb_compat.c
+test_new_api_LDADD = libmockserver.a $(PTHREAD_LIBS) $(LIBTLS_LIBS) -lm
 
 TESTS = $(check_PROGRAMS)

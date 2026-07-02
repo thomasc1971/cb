@@ -164,3 +164,121 @@ int validate_owner_repo(const char *str, char *owner_out, size_t owner_sz,
 
     return VALIDATE_OK;
 }
+
+int validate_tag_name(const char *name, char *error_out, size_t error_sz)
+{
+    if (!name || name[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "tag name is empty");
+        return VALIDATE_ERR;
+    }
+    if (strlen(name) > 255) {
+        if (error_out)
+            snprintf(error_out, error_sz, "tag name exceeds 255 characters");
+        return VALIDATE_ERR;
+    }
+    return VALIDATE_OK;
+}
+
+int validate_branch_name(const char *name, char *error_out, size_t error_sz)
+{
+    if (!name || name[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "branch name is empty");
+        return VALIDATE_ERR;
+    }
+    if (strlen(name) > 255) {
+        if (error_out)
+            snprintf(error_out, error_sz, "branch name exceeds 255 characters");
+        return VALIDATE_ERR;
+    }
+    return VALIDATE_OK;
+}
+
+int validate_issue_title(const char *title, char *error_out, size_t error_sz)
+{
+    if (!title || title[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "issue title is empty");
+        return VALIDATE_ERR;
+    }
+    if (strlen(title) > 1024) {
+        if (error_out)
+            snprintf(error_out, error_sz, "issue title exceeds 1024 characters");
+        return VALIDATE_ERR;
+    }
+    return VALIDATE_OK;
+}
+
+int validate_label_color(const char *color, char *error_out, size_t error_sz)
+{
+    if (!color || color[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "label color is empty");
+        return VALIDATE_ERR;
+    }
+    size_t len = strlen(color);
+    if (color[0] == '#' && len == 7) {
+        for (size_t i = 1; i < len; i++) {
+            char c = color[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                if (error_out)
+                    snprintf(error_out, error_sz, "label color contains invalid hex character");
+                return VALIDATE_ERR;
+            }
+        }
+    } else if (len == 6) {
+        for (size_t i = 0; i < len; i++) {
+            char c = color[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+                if (error_out)
+                    snprintf(error_out, error_sz, "label color contains invalid hex character");
+                return VALIDATE_ERR;
+            }
+        }
+    } else {
+        if (error_out)
+            snprintf(error_out, error_sz, "label color must be 6 hex digits (with or without # prefix)");
+        return VALIDATE_ERR;
+    }
+    return VALIDATE_OK;
+}
+
+int validate_permission(const char *perm, char *error_out, size_t error_sz)
+{
+    if (!perm || perm[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "permission is empty");
+        return VALIDATE_ERR;
+    }
+    if (strcmp(perm, "read") != 0 && strcmp(perm, "write") != 0 && strcmp(perm, "admin") != 0) {
+        if (error_out)
+            snprintf(error_out, error_sz, "invalid permission '%s' (valid: read, write, admin)", perm);
+        return VALIDATE_ERR;
+    }
+    return VALIDATE_OK;
+}
+
+int validate_sha(const char *sha, char *error_out, size_t error_sz)
+{
+    if (!sha || sha[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "SHA is empty");
+        return VALIDATE_ERR;
+    }
+    size_t len = strlen(sha);
+    if (len < 4 || len > 64) {
+        if (error_out)
+            snprintf(error_out, error_sz, "SHA must be between 4 and 64 hex characters");
+        return VALIDATE_ERR;
+    }
+    for (size_t i = 0; i < len; i++) {
+        char c = sha[i];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+            if (error_out)
+                snprintf(error_out, error_sz, "SHA contains non-hex character '%c'", c);
+            return VALIDATE_ERR;
+        }
+    }
+    return VALIDATE_OK;
+}

@@ -64,6 +64,15 @@ void http_client_free(HttpClient *c);
 int http_request(HttpClient *c, HttpMethod method, const char *path,
                  const char *body, HttpResponse *resp);
 
+/* Perform an HTTP request with raw body and custom content type.
+ * body: raw request body bytes (may be NULL for GET/DELETE)
+ * body_len: length of body in bytes
+ * content_type: Content-Type header value (may be NULL for default application/json)
+ */
+int http_request_raw(HttpClient *c, HttpMethod method, const char *path,
+                     const char *body, size_t body_len, const char *content_type,
+                     HttpResponse *resp);
+
 /* Free response body. */
 void http_response_free(HttpResponse *resp);
 

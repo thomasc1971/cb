@@ -198,6 +198,7 @@ int mock_server_start(MockServer *s, MockResponse *responses, size_t count)
         return -1;
     }
 
+    s->started = true;
     s->running = true;
     if (pthread_create(&s->thread, NULL, server_thread, s) != 0) {
         cb_close_socket(s->sockfd);
@@ -209,10 +210,13 @@ int mock_server_start(MockServer *s, MockResponse *responses, size_t count)
 
 void mock_server_stop(MockServer *s)
 {
+    if (!s->started)
+        return;
     s->running = false;
     shutdown(s->sockfd, CB_SHUT_RDWR);
     cb_close_socket(s->sockfd);
     pthread_join(s->thread, NULL);
+    s->started = false;
 }
 
 bool mock_server_all_matched(MockServer *s)

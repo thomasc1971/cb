@@ -28,6 +28,7 @@ typedef struct
     MockResponse *responses;
     size_t response_count;
     bool running;
+    bool started;
     /* Captured request info (last request) */
     char last_method[8];
     char last_path[256];

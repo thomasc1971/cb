@@ -134,4 +134,13 @@ static inline int cb_set_sock_timeout(cb_socket_t fd, int timeout_sec)
 int cb_setenv(const char *name, const char *value, int overwrite);
 int cb_unsetenv(const char *name);
 
+/* --- Base64 encoding/decoding --- */
+
+char *base64_encode(const unsigned char *data, size_t len);
+unsigned char *base64_decode(const char *str, size_t *out_len);
+
+/* --- URL encoding for query parameters --- */
+
+char *url_encode(const char *str);
+
 #endif /* CB_COMPAT_H */
