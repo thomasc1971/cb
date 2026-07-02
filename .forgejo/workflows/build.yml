@@ -44,9 +44,9 @@ jobs:
       - name: Build LibreSSL for Windows
         run: |
           cd /tmp
-          wget https://ftp.openbsd.org/pub/OpenBSD/libressl/libressl-3.9.2.tar.gz
-          tar xzf libressl-3.9.2.tar.gz
-          cd libressl-3.9.2
+          wget https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-4.3.2.tar.gz
+          tar xzf libressl-4.3.2.tar.gz
+          cd libressl-4.3.2
           ./configure \
             --host=x86_64-w64-mingw32 \
             --prefix=/usr/x86_64-w64-mingw32 \
