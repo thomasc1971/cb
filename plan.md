@@ -33,20 +33,21 @@ Hosted runners are available with `runs-on: docker` and a `container.image` of y
   8. Rename: `cp cb cb-linux-amd64`
   9. Upload artifact (`actions/upload-artifact@v3`)
 
-### Job 2: `build-windows`
+### Job 2: `build-windows` (cross-compile from Linux)
 
-- **Container**: `docker.io/msys2/msys2:ucrt64`
+- **Container**: `debian:bookworm`
+- **Runner**: `codeberg-small` (Codeberg's hosted runners are Linux/amd64 only)
 - **Steps**:
   1. Checkout source
-  2. Install build deps via pacman:
-     `mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl mingw-w64-ucrt-x86_64-pkg-config autoconf automake make`
-  3. Set `PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig`
+  2. Install: `mingw-w64 pkg-config autoconf automake make wget`
+  3. Download & build LibreSSL statically for `x86_64-w64-mingw32` (provides libtls)
   4. `autoreconf -fi`
-  5. `./configure LDFLAGS=-L/ucrt64/lib/libressl`
-  6. `make`
-  7. `make check`
+  5. `./configure --host=x86_64-w64-mingw32` with explicit LIBTLS_CFLAGS/LIBTLS_LIBS
+  6. `make` (cross-compiles `cb.exe`)
+  7. Strip with `x86_64-w64-mingw32-strip`
   8. Rename: `cp cb.exe cb-windows-amd64.exe`
   9. Upload artifact
+- **Note**: Tests are skipped for the Windows cross-build (can't run .exe on Linux)
 
 ### Job 3: `release` (only on `v*` tags)
 
@@ -70,16 +71,10 @@ Hosted runners are available with `runs-on: docker` and a `container.image` of y
 
 ## Windows build caveat
 
-The `msys2/msys2:ucrt64` Docker image provides the MSYS2 UCRT64 environment.
-However, running MSYS2 inside Docker requires using the MSYS2 shell (`bash -lc`).
-The workflow must invoke commands through the MSYS2 bash shell, not plain `sh`.
-
-An alternative is cross-compiling from Linux using `mingw-w64`:
-- Container: `debian:bookworm`
-- Install: `gcc-mingw-w64-x86-64` + cross-compile libretls for Windows
-- This avoids MSYS2-in-Docker complexity but requires cross-compiling libtls
-
-**Decision**: MSYS2-in-Docker (authentic Windows binary).
+Codeberg's hosted runners are Linux/amd64 only, so MSYS2-in-Docker is not an option.
+Windows binaries are cross-compiled from Debian using `mingw-w64` and a statically
+built LibreSSL (provides libtls). Tests are skipped for the Windows build (can't run
+.exe on Linux), but the Linux build runs the full test suite.
 
 ## Implementation steps
 

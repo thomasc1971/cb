@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-linux:
-    runs-on: docker
+    runs-on: codeberg-small
     container:
       image: debian:bookworm
     steps:
@@ -34,31 +34,45 @@ jobs:
           path: cb-linux-amd64
 
   build-windows:
-    runs-on: docker
+    runs-on: codeberg-small
     container:
-      image: msys2/msys2:ucrt64
+      image: debian:bookworm
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm \
-            mingw-w64-ucrt-x86_64-gcc \
-            mingw-w64-ucrt-x86_64-libressl \
-            mingw-w64-ucrt-x86_64-pkg-config \
-            autoconf automake make
-      - name: Build
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            mingw-w64 pkg-config autoconf automake make \
+            libgnutls28-dev
+      - name: Build libretls for Windows
         run: |
-          export PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig
+          # Download and build libretls for mingw cross-compilation
+          apt-get install -y --no-install-recommends wget ca-certificates
+          cd /tmp
+          wget https://ftp.openbsd.org/pub/OpenBSD/libressl/libressl-3.9.2.tar.gz
+          tar xzf libressl-3.9.2.tar.gz
+          cd libressl-3.9.2
+          ./configure \
+            --host=x86_64-w64-mingw32 \
+            --prefix=/usr/x86_64-w64-mingw32 \
+            --disable-shared --enable-static \
+            --enable-libtls
+          make -j$(nproc)
+          make install
+      - name: Build cb for Windows
+        run: |
           autoreconf -fi
-          ./configure LDFLAGS=-L/ucrt64/lib/libressl
+          ./configure \
+            --host=x86_64-w64-mingw32 \
+            PKG_CONFIG_PATH=/usr/x86_64-w64-mingw32/lib/pkgconfig \
+            LIBTLS_CFLAGS="-I/usr/x86_64-w64-mingw32/include" \
+            LIBTLS_LIBS="-L/usr/x86_64-w64-mingw32/lib -ltls -lssl -lcrypto -lws2_32"
           make
-        shell: msys2 {0}
-      - name: Test
-        run: make check
-        shell: msys2 {0}
       - name: Prepare artifact
-        run: cp cb.exe cb-windows-amd64.exe
-        shell: msys2 {0}
+        run: |
+          x86_64-w64-mingw32-strip cb.exe
+          cp cb.exe cb-windows-amd64.exe
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-windows-amd64
@@ -67,7 +81,7 @@ jobs:
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build-linux, build-windows]
-    runs-on: docker
+    runs-on: codeberg-tiny
     container:
       image: debian:bookworm
     steps:
