@@ -32,7 +32,7 @@ jobs:
           path: cb-linux-amd64
 
   build-windows:
-    runs-on: codeberg-small
+    runs-on: codeberg-medium
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
       - name: Install dependencies
@@ -51,9 +51,15 @@ jobs:
             --host=x86_64-w64-mingw32 \
             --prefix=/usr/x86_64-w64-mingw32 \
             --disable-shared --enable-static \
-            --enable-libtls
-          make -j$(nproc)
-          make install
+            --enable-libtls \
+            --disable-asm
+          make -j$(nproc) -C tls
+          make -j$(nproc) -C ssl
+          make -j$(nproc) -C crypto
+          make install-sub -C tls
+          make install-sub -C ssl
+          make install-sub -C crypto
+          make install -C include
       - name: Build cb for Windows
         run: |
           autoreconf -fi
