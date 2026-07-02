@@ -31,8 +31,11 @@ static void make_client(ApiClient *a)
 
 static void set_body(MockResponse *r, const char *s)
 {
-    strncpy(r->body, s, sizeof(r->body) - 1);
-    r->body[sizeof(r->body) - 1] = '\0';
+    size_t len = strlen(s);
+    if (len >= sizeof(r->body))
+        len = sizeof(r->body) - 1;
+    memcpy(r->body, s, len);
+    r->body[len] = '\0';
 }
 
 static const char *RUN_LIST_JSON =
@@ -379,7 +382,12 @@ static void test_action_variable_set_create(void)
     strncpy(responses[0].path, "/api/v1/repos/thomasc/cb/actions/variables/NEW_VAR",
             sizeof(responses[0].path) - 1);
     responses[0].status = 404;
-    strncpy(responses[0].body, "{\"message\":\"not found\"}", sizeof(responses[0].body) - 1);
+    {
+        const char *msg = "{\"message\":\"not found\"}";
+        size_t len = strlen(msg);
+        memcpy(responses[0].body, msg, len);
+        responses[0].body[len] = '\0';
+    }
     strncpy(responses[1].method, "POST", sizeof(responses[1].method) - 1);
     strncpy(responses[1].path, "/api/v1/repos/thomasc/cb/actions/variables/NEW_VAR",
             sizeof(responses[1].path) - 1);

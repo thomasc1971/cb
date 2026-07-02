@@ -210,7 +210,11 @@ static void test_large_response(void)
     MockResponse resp = {
         .method = "GET", .path = "/large", .status = 200, .body = ""
     };
-    strncpy(resp.body, large_body, sizeof(resp.body) - 1);
+    size_t copy_len = strlen(large_body);
+    if (copy_len >= sizeof(resp.body))
+        copy_len = sizeof(resp.body) - 1;
+    memcpy(resp.body, large_body, copy_len);
+    resp.body[copy_len] = '\0';
 
     setup_server(&resp, 1);
 

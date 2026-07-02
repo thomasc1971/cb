@@ -39,8 +39,11 @@ static const char *REPO_JSON_STR =
 
 static void set_body(MockResponse *r, const char *s)
 {
-    strncpy(r->body, s, sizeof(r->body) - 1);
-    r->body[sizeof(r->body) - 1] = '\0';
+    size_t len = strlen(s);
+    if (len >= sizeof(r->body))
+        len = sizeof(r->body) - 1;
+    memcpy(r->body, s, len);
+    r->body[len] = '\0';
 }
 
 /* ===== Show ===== */
