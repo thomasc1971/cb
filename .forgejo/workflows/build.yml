@@ -32,7 +32,7 @@ jobs:
           path: cb-linux-amd64
 
   build-windows:
-    runs-on: codeberg-medium
+    runs-on: codeberg-small
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
       - name: Install dependencies
