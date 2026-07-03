@@ -9,10 +9,10 @@ Adds pre-built macOS x86_64 binaries, cross-compiled from Linux using zig cc wit
 
 ### Downloads
 
-| File | Platform | Contents |
-|------|----------|----------|
-| `cb-linux-amd64.tar.gz` | Linux x86_64 | `cb` binary + `COPYING` |
-| `cb-darwin-amd64.tar.gz` | macOS x86_64 | `cb` binary + `COPYING` |
+| File                            | Platform       | Contents                    |
+| ------------------------------- | -------------- | --------------------------- |
+| `cb-linux-amd64.tar.gz`         | Linux x86_64   | `cb` binary + `COPYING`     |
+| `cb-darwin-amd64.tar.gz`        | macOS x86_64   | `cb` binary + `COPYING`     |
 | `cb-windows-amd64-portable.zip` | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
 
 ### Build from source

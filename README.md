@@ -129,6 +129,7 @@ The Linux and macOS tarballs contain the `cb` binary and the GPLv3 license text.
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Fedora        | `dnf install gcc libretls-devel pkg-config autoconf automake make`                                                           |
 | Debian/Ubuntu | `apt install gcc libretls-dev pkg-config autoconf automake make`                                                             |
+| macOS         | `brew install libretls pkg-config autoconf automake make`                                                                    |
 | MSYS2 UCRT64  | `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl mingw-w64-ucrt-x86_64-pkg-config autoconf automake make` |
 
 > **MSYS2 UCRT64** has extra setup — see the [MSYS2 build section](#building-on-msys2-ucrt64-windows) below.
@@ -606,7 +607,7 @@ cb actions var rm thomasc/cb BUILD_OPTS --yes
 
 ## CI/CD
 
-The project uses [Forgejo Actions](https://codeberg.org/thomasc/cb/actions) with Codeberg's hosted runners. On every push to `master`, the pipeline builds and tests `cb` on Linux, cross-compiles a Windows binary (MinGW), and cross-compiles a macOS binary (zig cc + static LibreSSL). On tag pushes (`v*`), it creates a release with downloadable binaries for all three platforms.
+The project uses [Forgejo Actions](https://codeberg.org/thomasc/cb/actions) with Codeberg's hosted runners. On every push to `master`, the pipeline builds and tests `cb` on Linux, cross-compiles a Windows binary (MinGW), and cross-compiles a macOS binary (zig cc + static LibreSSL). On tag pushes (`v*`), it creates a release with downloadable binaries for all three platforms. Release notes are sourced from [`RELEASE_NOTES.md`](RELEASE_NOTES.md) at the tagged commit.
 
 Workflow configuration: [`.forgejo/workflows/build.yml`](.forgejo/workflows/build.yml)
 
@@ -633,6 +634,7 @@ cb/
 ├── build-aux/git-version.sh  # Git-based version generation script
 ├── .clang-format             # clang-format style (Allman braces, 4-space indent)
 ├── .clangd                   # clangd config (forces C mode, suppresses ObjC++ false positives)
+├── RELEASE_NOTES.md            # Release notes for the current tag (used by CI forgejo-release action)
 ├── .forgejo/workflows/       # CI/CD pipeline (Forgejo Actions)
 ├── src/Makefile.am           # Binary build rules (regenerates cb_version.h on every make)
 ├── tests/Makefile.am         # Test binary rules
