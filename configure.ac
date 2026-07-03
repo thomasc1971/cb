@@ -1,4 +1,6 @@
-AC_INIT([cb], [0.1.0], [bugs@example.com])
+AC_INIT([cb],
+        m4_esyscmd_s([cat version 2>/dev/null || echo "0.0.0-unknown"]))
+AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4])
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE([foreign -Wall subdir-objects])
@@ -8,6 +10,16 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AM_PROG_AR
 AC_PROG_RANLIB
+
+dnl Recompute the version at configure time so a rebuild after new commits
+dnl picks up the current version without needing to re-run autoreconf. Falls
+dnl back to PACKAGE_VERSION (set at autoreconf time via m4_esyscmd_s above)
+dnl for tarball builds where build-aux/git-version.sh has nothing to read.
+CB_VERSION=`"$srcdir/build-aux/git-version.sh" "$srcdir" 2>/dev/null`
+AS_IF([test -z "$CB_VERSION"],
+      [CB_VERSION="$PACKAGE_VERSION"])
+AC_SUBST([CB_VERSION])
+AC_MSG_NOTICE([cb version: $CB_VERSION])
 
 # Require C11
 AX_CHECK_COMPILE_FLAG([-std=c11], [CFLAGS="$CFLAGS -std=c11"])

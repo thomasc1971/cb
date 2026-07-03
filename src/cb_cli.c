@@ -18,6 +18,7 @@
  */
 
 #include "config.h"
+#include "cb_version.h"
 #include "cb_cli.h"
 #include "cb_compat.h"
 #include "cb_config.h"
@@ -422,6 +423,7 @@ typedef struct
     int json;
     int quiet;
     int yes;
+    int version;
     const char *base_url;
 } CbGlobalFlags;
 
@@ -453,6 +455,8 @@ static int extract_global_flags(int argc, char **argv, CbGlobalFlags *gf,
                 return -1;
             }
             gf->base_url = argv[++i];
+        } else if (strcmp(argv[i], "--version") == 0 || strcmp(argv[i], "-v") == 0) {
+            gf->version = 1;
         } else {
             new_argv[new_argc++] = argv[i];
         }
@@ -5839,6 +5843,7 @@ void cli_print_help(const char *cmd)
         printf("  --quiet, -q     Suppress non-essential output\n");
         printf("  --base-url URL  Override API base URL\n");
         printf("  --yes           Skip confirmation prompts\n");
+        printf("  --version, -v   Show version\n");
         printf("  --help, -h      Show this help\n");
         printf("\nRun 'cb repo --help' for subcommand details.\n");
         return;
@@ -5853,6 +5858,16 @@ int cli_run(int argc, char **argv)
     int filtered_argc = extract_global_flags(argc, argv, &gf, &filtered_argv);
     if (filtered_argc < 0) {
         return CLI_USAGE;
+    }
+
+    if (gf.version) {
+        printf("cb %s\n", CB_VERSION);
+        printf("Copyright (C) 2026 Thomas C.\n");
+        printf("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n");
+        printf("This is free software: you are free to change and redistribute it.\n");
+        printf("There is NO WARRANTY, to the extent permitted by law.\n");
+        free(filtered_argv);
+        return CLI_OK;
     }
 
     if (filtered_argc < 2) {

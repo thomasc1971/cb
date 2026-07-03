@@ -1,6 +1,16 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src tests
 
+EXTRA_DIST = \
+    autogen.sh \
+    build-aux/git-version.sh \
+    version
+
+# Stamp the version file into the dist tarball so tarball builds can read it
+# even without .git. The file is gitignored so it won't be included automatically.
+dist-hook:
+	$(SHELL) "$(top_srcdir)/build-aux/git-version.sh" "$(top_srcdir)" > "$(distdir)/version"
+
 format:
 	@if command -v clang-format >/dev/null 2>&1; then \
 	    echo "Formatting C with clang-format..."; \

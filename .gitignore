@@ -46,6 +46,10 @@ stamp-h1
 .deps/
 .dirstamp
 
+# Generated version files
+version
+src/cb_version.h
+
 # Test artifacts
 tests/*.log
 tests/*.trs
