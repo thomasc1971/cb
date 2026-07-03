@@ -99,7 +99,10 @@ jobs:
           wget -q https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-4.0.0.tar.gz
           tar xzf libressl-4.0.0.tar.gz
           cd libressl-4.0.0
-          CC="zig cc -target x86_64-macos" ./configure --host=x86_64-apple-darwin \
+          CC="zig cc -target x86_64-macos" \
+          AR="zig ar" \
+          RANLIB="zig ranlib" \
+          ./configure --host=x86_64-apple-darwin \
             --prefix=/tmp/libressl-macos --enable-libtls-only \
             --disable-shared --enable-static --disable-tests --disable-asm
           make -j4
@@ -109,7 +112,7 @@ jobs:
           autoreconf -fi
           CC="zig cc -target x86_64-macos" ./configure --host=x86_64-apple-darwin \
             LIBTLS_CFLAGS="-I/tmp/libressl-macos/include" \
-            LIBTLS_LIBS="-L/tmp/libressl-macos/lib -ltls -lssl -lcrypto" \
+            LIBTLS_LIBS="-L/tmp/libressl-macos/lib -ltls" \
             --disable-werror
           make
       - name: Prepare artifact
