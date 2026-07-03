@@ -111,9 +111,10 @@ Pre-built binaries are available from the [Codeberg releases page](https://codeb
 | File                            | Platform       | Contents                    |
 | ------------------------------- | -------------- | --------------------------- |
 | `cb-linux-amd64.tar.gz`         | Linux x86_64   | `cb` binary + `COPYING`     |
+| `cb-darwin-amd64.tar.gz`        | macOS x86_64   | `cb` binary + `COPYING`     |
 | `cb-windows-amd64-portable.zip` | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
 
-The Linux tarball contains the `cb` binary and the GPLv3 license text. The Windows ZIP contains `cb.exe`, the required LibreSSL DLLs, and the license text.
+The Linux and macOS tarballs contain the `cb` binary and the GPLv3 license text. The macOS build statically links LibreSSL, so there are no external dylib dependencies. The Windows ZIP contains `cb.exe`, the required LibreSSL DLLs, and the license text.
 
 ## Build
 
@@ -538,7 +539,8 @@ Output:
 Job    Name                 Status     Duration
 0      build-linux          success    59s
 1      build-windows        success    1m16s
-2      release              skipped    3s
+2      build-macos          success    2m03s
+3      release              skipped    3s
 ```
 
 #### `cb actions log [owner/]repo <run-id> [job-index] [step-index]`
@@ -604,7 +606,7 @@ cb actions var rm thomasc/cb BUILD_OPTS --yes
 
 ## CI/CD
 
-The project uses [Forgejo Actions](https://codeberg.org/thomasc/cb/actions) with Codeberg's hosted runners. On every push to `master`, the pipeline builds and tests `cb` on Linux and cross-compiles a Windows binary. On tag pushes (`v*`), it creates a release with downloadable binaries.
+The project uses [Forgejo Actions](https://codeberg.org/thomasc/cb/actions) with Codeberg's hosted runners. On every push to `master`, the pipeline builds and tests `cb` on Linux, cross-compiles a Windows binary (MinGW), and cross-compiles a macOS binary (zig cc + static LibreSSL). On tag pushes (`v*`), it creates a release with downloadable binaries for all three platforms.
 
 Workflow configuration: [`.forgejo/workflows/build.yml`](.forgejo/workflows/build.yml)
 
