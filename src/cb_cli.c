@@ -5862,7 +5862,7 @@ int cli_run(int argc, char **argv)
 
     if (gf.version) {
         printf("cb %s\n", CB_VERSION);
-        printf("Copyright (C) 2026 Thomas C.\n");
+        printf("Copyright (C) 2026 Thomas Christensen.\n");
         printf("License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.\n");
         printf("This is free software: you are free to change and redistribute it.\n");
         printf("There is NO WARRANTY, to the extent permitted by law.\n");
