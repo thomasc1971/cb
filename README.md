@@ -135,10 +135,10 @@ The Windows ZIP contains `cb.exe` and the required LibreSSL DLLs. Extract and ru
 ### Build
 
 ```bash
-autoreconf -i            # Generate configure + Makefile.in (first time only)
-./configure              # Standard build
-make                     # Build the binary
-./cb                     # Run it
+./autogen.sh           # Generate version file + configure + Makefile.in (first time only)
+./configure            # Standard build
+make                   # Build the binary
+./cb                   # Run it
 ```
 
 <details>
@@ -150,7 +150,7 @@ pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl \
           mingw-w64-ucrt-x86_64-pkg-config autoconf automake make
 
 export PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig
-autoreconf -i
+./autogen.sh
 ./configure LDFLAGS=-L/ucrt64/lib/libressl
 make
 make check               # All 8 test suites pass
@@ -611,10 +611,12 @@ Exit codes: `0` success, `1` error, `2` usage error.
 
 ```
 cb/
-├── configure.ac              # Autotools build configuration
+├── autogen.sh               # Generates version file + runs autoreconf -fi
+├── configure.ac              # Autotools build configuration (git-derived version)
 ├── Makefile.am               # Top-level automake
+├── build-aux/git-version.sh  # Git-based version generation script
 ├── .forgejo/workflows/       # CI/CD pipeline (Forgejo Actions)
-├── src/Makefile.am           # Binary build rules
+├── src/Makefile.am           # Binary build rules (regenerates cb_version.h on every make)
 ├── tests/Makefile.am         # Test binary rules
 ├── m4/                       # Autoconf macros (ax_pthread, ax_check_compile_flag)
 ├── include/                  # Public headers
@@ -646,6 +648,17 @@ cb/
     ├── test_cli.c            # CLI integration tests
     ├── test_actions.c        # Actions (CI/CD) tests
     └── test_new_api.c        # API tests for all new endpoints (releases–wiki)
+```
+
+### Versioning
+
+Versions are derived from git state — no hardcoded version numbers to update. The build system uses `build-aux/git-version.sh` to compute a version string from `git describe --tags`, falling back to rev-count + short SHA when no tags exist. Uncommitted changes append a `-dirty` suffix.
+
+`./autogen.sh` generates a `version` file (consumed by `configure.ac`'s `AC_INIT`) before running `autoreconf -fi`. On every `make`, `src/Makefile.am` regenerates `src/cb_version.h` from the current git state; a `cmp` guard prevents unnecessary recompiles when the version hasn't changed. Distribution tarballs stamp the version into the included `version` file so builds without `.git` work correctly.
+
+```bash
+./cb --version              # Show version (GNU-style output)
+./cb -v                     # Short form
 ```
 
 ### Key design decisions
