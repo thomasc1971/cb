@@ -29,7 +29,7 @@ validation, API, and CLI support.
 make
 ```
 
-See [README.md](https://codeberg.org/thomasc/cb/src/commit/6f7e270/README.md) for full build instructions.
+See [README.md](https://codeberg.org/thomasc/cb/src/commit/fa4a1bd/README.md) for full build instructions.
 
 ### License
 
