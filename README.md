@@ -130,7 +130,7 @@ The Linux tarball contains the `cb` binary and the GPLv3 license text. The Windo
 | Debian/Ubuntu | `apt install gcc libretls-dev pkg-config autoconf automake make`                                                             |
 | MSYS2 UCRT64  | `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-libressl mingw-w64-ucrt-x86_64-pkg-config autoconf automake make` |
 
-> **Note on MSYS2 UCRT64:** libretls is not packaged for MSYS2; LibreSSL provides libtls instead. Set `PKG_CONFIG_PATH=/ucrt64/lib/libressl/pkgconfig` before `./configure`. The UCRT64 toolchain uses Winsock2 instead of POSIX sockets — `cb_compat.h` provides a portable socket layer that conditionally uses Winsock2 on Windows and POSIX sockets elsewhere. On UCRT64, pass `LDFLAGS=-L/ucrt64/lib/libressl` to `./configure` if the linker cannot find `-ltls`.
+> **MSYS2 UCRT64** has extra setup — see the [MSYS2 build section](#building-on-msys2-ucrt64-windows) below.
 
 ### Build
 
@@ -143,6 +143,8 @@ make                   # Build the binary
 
 <details>
 <summary>Building on MSYS2 UCRT64 (Windows)</summary>
+
+libretls is not packaged for MSYS2; LibreSSL provides libtls instead. The UCRT64 toolchain uses Winsock2 instead of POSIX sockets — `cb_compat.h` provides a portable socket layer that conditionally uses Winsock2 on Windows and POSIX sockets elsewhere.
 
 ```bash
 # From an MSYS2 UCRT64 shell:
