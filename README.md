@@ -64,6 +64,10 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - Get raw file content
 - Download archives
 
+### Organizations
+
+- Create organizations
+
 ### Deploy keys
 
 - List, add, show, delete deploy keys
@@ -200,12 +204,12 @@ make install
 
 Generate a token at `https://codeberg.org/user/settings/applications`. The token needs these scopes:
 
-| Scope                | Needed for                                 |
-| -------------------- | ------------------------------------------ |
-| `write:repository`   | All repo CRUD and actions operations       |
-| `write:organization` | Creating/listing repos under organizations |
-| `read:user`          | Listing other users' repos                 |
-| `all`                | Everything (easy but broad)                |
+| Scope                | Needed for                                                         |
+| -------------------- | ------------------------------------------------------------------ |
+| `write:repository`   | All repo CRUD and actions operations                               |
+| `write:organization` | Creating/listing repos under organizations, creating organizations |
+| `read:user`          | Listing other users' repos                                         |
+| `all`                | Everything (easy but broad)                                        |
 
 ### Config sources (precedence high → low)
 
@@ -256,6 +260,7 @@ cb issue --help              # issue subcommands
 cb pr --help                 # PR subcommands
 cb actions --help             # actions subcommands
 cb actions log --help         # actions log usage
+cb org create --help          # org create flags
 ```
 
 ### Commands
@@ -500,6 +505,15 @@ cb hook thomasc/myproj create --type gitea --url https://example.com/hook
 cb hook thomasc/myproj delete 5 --yes
 ```
 
+#### `cb org create <name>`
+
+```bash
+cb org create myorg -d "My organization"
+cb org create myorg --visibility private
+```
+
+Flags: `--description`/`-d`, `--full-name`, `--email`, `--location`, `--website`, `--visibility` (public/limited/private), `--repo-admin-change-team-access`
+
 #### `cb wiki [owner/]repo <subcommand>`
 
 Manage wiki pages.
@@ -651,10 +665,10 @@ cb/
 │   ├── cb_json.c             # recursive-descent parser + builder + serializer
 │   ├── cb_http.c             # plain HTTP + TLS via libtls
 │   ├── cb_config.c           # TOML-ish config + env + URL parser
-│   ├── cb_validate.c         # repo name, description, merge style, tag, branch, label color, SHA validation
+│   ├── cb_validate.c         # repo name, description, merge style, tag, branch, label color, SHA, org name, visibility validation
 │   ├── cb_api.c              # repo, topic, actions, releases, tags, branches, issues, labels, milestones,
-│   │                          # PRs, commits, content, keys, collaborators, forks, hooks, wiki API ops
-│   ├── cb_cli.c              # command parsing, flag dispatch, output (16 top-level commands)
+│   │                          # PRs, commits, content, keys, collaborators, forks, hooks, orgs, wiki API ops
+│   ├── cb_cli.c              # command parsing, flag dispatch, output (17 top-level commands)
 │   ├── cb_compat.c           # Portable wrappers (open_memstream, Winsock2, setenv, base64, URL encode)
 │   └── main.c                # Entry point
 └── tests/                    # Run with: make check (or: ./configure --enable-asan && make check)
