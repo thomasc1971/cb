@@ -423,11 +423,11 @@ typedef struct
     int quiet;
     int yes;
     const char *base_url;
-} GlobalFlags;
+} CbGlobalFlags;
 
 /* Extract global flags from argv. Returns new argc/argv with global flags removed.
  * Caller must free *out_argv. */
-static int extract_global_flags(int argc, char **argv, GlobalFlags *gf,
+static int extract_global_flags(int argc, char **argv, CbGlobalFlags *gf,
                                 char ***out_argv)
 {
     memset(gf, 0, sizeof(*gf));
@@ -526,7 +526,7 @@ static int find_flag_idx(const FlagDef *table, const char *name)
 
 /* ===== Command handlers ===== */
 
-static int cmd_repo_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -628,7 +628,7 @@ static int cmd_repo_create(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_repo_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -688,7 +688,7 @@ static int cmd_repo_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_repo_rename(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo_rename(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -729,7 +729,7 @@ static int cmd_repo_rename(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_repo_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo_edit(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -862,7 +862,7 @@ static int cmd_repo_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_repo_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -892,7 +892,7 @@ static int cmd_repo_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_repo_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     const char *owner = NULL;
     int is_org = 0;
@@ -937,7 +937,7 @@ static int cmd_repo_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_repo_transfer(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo_transfer(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -979,7 +979,7 @@ static int cmd_repo_transfer(int argc, char **argv, ApiClient *api, GlobalFlags 
 
 /* ===== Topic commands ===== */
 
-static int cmd_topic_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_topic_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1005,7 +1005,7 @@ static int cmd_topic_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_topic_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_topic_rm(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1031,7 +1031,7 @@ static int cmd_topic_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_topic_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_topic_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1059,7 +1059,7 @@ static int cmd_topic_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_topic_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_topic_set(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1400,7 +1400,7 @@ static void print_action_secret_list(const ActionSecret *arr, size_t count, int 
 
 /* ===== Actions handlers ===== */
 
-static int cmd_actions_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1429,7 +1429,7 @@ static int cmd_actions_list(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_actions_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1462,7 +1462,7 @@ static int cmd_actions_show(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_actions_runners(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_runners(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1491,7 +1491,7 @@ static int cmd_actions_runners(int argc, char **argv, ApiClient *api, GlobalFlag
     return CLI_OK;
 }
 
-static int cmd_actions_dispatch(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_dispatch(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1527,7 +1527,7 @@ static int cmd_actions_dispatch(int argc, char **argv, ApiClient *api, GlobalFla
     return CLI_OK;
 }
 
-static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1559,7 +1559,7 @@ static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, Global
     return CLI_OK;
 }
 
-static int cmd_actions_secret_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_secret_set(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     (void)gf;
     for (int i = 0; i < argc; i++) {
@@ -1599,7 +1599,7 @@ static int cmd_actions_secret_set(int argc, char **argv, ApiClient *api, GlobalF
     return CLI_OK;
 }
 
-static int cmd_actions_secret_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_secret_rm(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1640,7 +1640,7 @@ static int cmd_actions_secret_rm(int argc, char **argv, ApiClient *api, GlobalFl
     return CLI_OK;
 }
 
-static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1672,7 +1672,7 @@ static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, GlobalFla
     return CLI_OK;
 }
 
-static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1704,7 +1704,7 @@ static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, GlobalFla
     return CLI_OK;
 }
 
-static int cmd_actions_var_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_var_set(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     (void)gf;
     for (int i = 0; i < argc; i++) {
@@ -1744,7 +1744,7 @@ static int cmd_actions_var_set(int argc, char **argv, ApiClient *api, GlobalFlag
     return CLI_OK;
 }
 
-static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1787,7 +1787,7 @@ static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, GlobalFlags
 
 /* ===== Actions jobs & log handlers ===== */
 
-static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -1856,7 +1856,7 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_actions_log(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions_log(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     (void)gf;
     for (int i = 0; i < argc; i++) {
@@ -1936,7 +1936,7 @@ static int cmd_actions_log(int argc, char **argv, ApiClient *api, GlobalFlags *g
 
 /* ===== Actions command dispatch ===== */
 
-static int cmd_actions(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_actions(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_actions();
@@ -2865,7 +2865,7 @@ static void print_wikipage_list(const WikiPage *arr, size_t count, int json)
 
 /* ===== Release command handlers ===== */
 
-static int cmd_release_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -2924,7 +2924,7 @@ static int cmd_release_list(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_release_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3005,7 +3005,7 @@ static int cmd_release_create(int argc, char **argv, ApiClient *api, GlobalFlags
     return CLI_OK;
 }
 
-static int cmd_release_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3033,7 +3033,7 @@ static int cmd_release_show(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_release_latest(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_latest(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3060,7 +3060,7 @@ static int cmd_release_latest(int argc, char **argv, ApiClient *api, GlobalFlags
     return CLI_OK;
 }
 
-static int cmd_release_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_edit(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3160,7 +3160,7 @@ static int cmd_release_edit(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_release_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3191,7 +3191,7 @@ static int cmd_release_delete(int argc, char **argv, ApiClient *api, GlobalFlags
     return CLI_OK;
 }
 
-static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3218,7 +3218,7 @@ static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, GlobalFlags
     return CLI_OK;
 }
 
-static int cmd_release_delete_by_tag(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_delete_by_tag(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3248,7 +3248,7 @@ static int cmd_release_delete_by_tag(int argc, char **argv, ApiClient *api, Glob
     return CLI_OK;
 }
 
-static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3299,7 +3299,7 @@ static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, GlobalF
     return CLI_OK;
 }
 
-static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3333,7 +3333,7 @@ static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, Globa
 
 /* ===== Release dispatch ===== */
 
-static int cmd_release(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_release(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_release();
@@ -3390,7 +3390,7 @@ static int cmd_release(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Tag command handlers ===== */
 
-static int cmd_tag_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_tag_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3418,7 +3418,7 @@ static int cmd_tag_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_tag_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_tag_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3493,7 +3493,7 @@ static int cmd_tag_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_tag_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_tag_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3536,7 +3536,7 @@ static int cmd_tag_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_tag_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_tag_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3566,7 +3566,7 @@ static int cmd_tag_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_tag(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_tag(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_tag();
@@ -3594,7 +3594,7 @@ static int cmd_tag(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Branch command handlers ===== */
 
-static int cmd_branch_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_branch_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3622,7 +3622,7 @@ static int cmd_branch_list(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_branch_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_branch_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3692,7 +3692,7 @@ static int cmd_branch_create(int argc, char **argv, ApiClient *api, GlobalFlags 
     return CLI_OK;
 }
 
-static int cmd_branch_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_branch_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3734,7 +3734,7 @@ static int cmd_branch_show(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_branch_rename(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_branch_rename(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3789,7 +3789,7 @@ static int cmd_branch_rename(int argc, char **argv, ApiClient *api, GlobalFlags 
     return CLI_OK;
 }
 
-static int cmd_branch_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_branch_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3819,7 +3819,7 @@ static int cmd_branch_delete(int argc, char **argv, ApiClient *api, GlobalFlags 
     return CLI_OK;
 }
 
-static int cmd_branch(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_branch(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_branch();
@@ -3849,7 +3849,7 @@ static int cmd_branch(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Issue command handlers ===== */
 
-static int cmd_issue_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3912,7 +3912,7 @@ static int cmd_issue_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_issue_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -3978,7 +3978,7 @@ static int cmd_issue_create(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_issue_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4006,7 +4006,7 @@ static int cmd_issue_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_issue_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_edit(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4076,7 +4076,7 @@ static int cmd_issue_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_issue_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4107,7 +4107,7 @@ static int cmd_issue_delete(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_issue_close(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_close(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4139,7 +4139,7 @@ static int cmd_issue_close(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_issue_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_reopen(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4171,7 +4171,7 @@ static int cmd_issue_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_issue_comment(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_comment(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4207,7 +4207,7 @@ static int cmd_issue_comment(int argc, char **argv, ApiClient *api, GlobalFlags 
     return CLI_OK;
 }
 
-static int cmd_issue_label_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_label_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4239,7 +4239,7 @@ static int cmd_issue_label_add(int argc, char **argv, ApiClient *api, GlobalFlag
     return CLI_OK;
 }
 
-static int cmd_issue_label_clear(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue_label_clear(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4266,7 +4266,7 @@ static int cmd_issue_label_clear(int argc, char **argv, ApiClient *api, GlobalFl
     return CLI_OK;
 }
 
-static int cmd_issue(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_issue(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_issue();
@@ -4333,7 +4333,7 @@ static int cmd_issue(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Label command handlers ===== */
 
-static int cmd_label_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_label_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4361,7 +4361,7 @@ static int cmd_label_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_label_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_label_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4433,7 +4433,7 @@ static int cmd_label_create(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_label_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_label_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4464,7 +4464,7 @@ static int cmd_label_delete(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_label(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_label(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_label();
@@ -4490,7 +4490,7 @@ static int cmd_label(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Milestone command handlers ===== */
 
-static int cmd_milestone_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_milestone_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4523,7 +4523,7 @@ static int cmd_milestone_list(int argc, char **argv, ApiClient *api, GlobalFlags
     return CLI_OK;
 }
 
-static int cmd_milestone_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_milestone_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4590,7 +4590,7 @@ static int cmd_milestone_create(int argc, char **argv, ApiClient *api, GlobalFla
     return CLI_OK;
 }
 
-static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4621,7 +4621,7 @@ static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, GlobalFla
     return CLI_OK;
 }
 
-static int cmd_milestone(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_milestone(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_milestone();
@@ -4647,7 +4647,7 @@ static int cmd_milestone(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== PR command handlers ===== */
 
-static int cmd_pr_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_pr_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4683,7 +4683,7 @@ static int cmd_pr_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_pr_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_pr_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4757,7 +4757,7 @@ static int cmd_pr_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_pr_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_pr_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4785,7 +4785,7 @@ static int cmd_pr_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_pr_close(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_pr_close(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4817,7 +4817,7 @@ static int cmd_pr_close(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_pr_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_pr_reopen(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4849,7 +4849,7 @@ static int cmd_pr_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_pr_merge(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_pr_merge(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4890,7 +4890,7 @@ static int cmd_pr_merge(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_pr(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_pr(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_pr();
@@ -4928,7 +4928,7 @@ static int cmd_pr(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Commit command handlers ===== */
 
-static int cmd_commit_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_commit_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -4987,7 +4987,7 @@ static int cmd_commit_list(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_commit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_commit(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_commit();
@@ -5015,7 +5015,7 @@ static int cmd_commit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Content command handlers ===== */
 
-static int cmd_content_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_content_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5048,7 +5048,7 @@ static int cmd_content_list(int argc, char **argv, ApiClient *api, GlobalFlags *
     return CLI_OK;
 }
 
-static int cmd_content(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_content(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_content();
@@ -5076,7 +5076,7 @@ static int cmd_content(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Key command handlers ===== */
 
-static int cmd_key_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_key_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5104,7 +5104,7 @@ static int cmd_key_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_key_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_key_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5175,7 +5175,7 @@ static int cmd_key_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_key_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_key_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5206,7 +5206,7 @@ static int cmd_key_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     return CLI_OK;
 }
 
-static int cmd_key(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_key(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_key();
@@ -5232,7 +5232,7 @@ static int cmd_key(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Collaborator command handlers ===== */
 
-static int cmd_collaborator_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_collaborator_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5276,7 +5276,7 @@ static int cmd_collaborator_list(int argc, char **argv, ApiClient *api, GlobalFl
     return CLI_OK;
 }
 
-static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5325,7 +5325,7 @@ static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, GlobalFla
     return CLI_OK;
 }
 
-static int cmd_collaborator_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_collaborator_rm(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5355,7 +5355,7 @@ static int cmd_collaborator_rm(int argc, char **argv, ApiClient *api, GlobalFlag
     return CLI_OK;
 }
 
-static int cmd_collaborator(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_collaborator(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_collaborator();
@@ -5385,7 +5385,7 @@ static int cmd_collaborator(int argc, char **argv, ApiClient *api, GlobalFlags *
 
 /* ===== Fork command handlers ===== */
 
-static int cmd_fork_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_fork_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5413,7 +5413,7 @@ static int cmd_fork_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_fork_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_fork_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5468,7 +5468,7 @@ static int cmd_fork_create(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_fork(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_fork(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_fork();
@@ -5492,7 +5492,7 @@ static int cmd_fork(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Hook command handlers ===== */
 
-static int cmd_hook_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_hook_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5520,7 +5520,7 @@ static int cmd_hook_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_hook_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_hook_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5604,7 +5604,7 @@ static int cmd_hook_create(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_hook_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_hook_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5635,7 +5635,7 @@ static int cmd_hook_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_hook(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_hook(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_hook();
@@ -5666,7 +5666,7 @@ static int cmd_hook(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Wiki command handlers ===== */
 
-static int cmd_wiki_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_wiki_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5694,7 +5694,7 @@ static int cmd_wiki_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     return CLI_OK;
 }
 
-static int cmd_wiki_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_wiki_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
@@ -5724,7 +5724,7 @@ static int cmd_wiki_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
     return CLI_OK;
 }
 
-static int cmd_wiki(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_wiki(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_wiki();
@@ -5753,7 +5753,7 @@ static int cmd_wiki(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
 
 /* ===== Command dispatch ===== */
 
-static int cmd_repo(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
+static int cmd_repo(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
         help_repo();
@@ -5848,7 +5848,7 @@ void cli_print_help(const char *cmd)
 int cli_run(int argc, char **argv)
 {
     /* Extract global flags first */
-    GlobalFlags gf;
+    CbGlobalFlags gf;
     char **filtered_argv = NULL;
     int filtered_argc = extract_global_flags(argc, argv, &gf, &filtered_argv);
     if (filtered_argc < 0) {
