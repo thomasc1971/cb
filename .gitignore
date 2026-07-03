@@ -55,5 +55,8 @@ tests/*.log
 tests/*.trs
 tests/test-suite.log
 
+# Bear (clangd compilation database)
+compile_commands.json
+
 # Agent-generated
 AGENTS.md

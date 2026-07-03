@@ -28,4 +28,8 @@ format:
 	    echo "prettier not found - skipping Markdown formatting." >&2; \
 	fi
 
-.PHONY: format
+bear:
+	@command -v bear >/dev/null 2>&1 || { echo "bear not found — install bear (e.g. dnf install bear)" >&2; exit 1; }
+	bear -- $(MAKE)
+
+.PHONY: format bear

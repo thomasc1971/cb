@@ -171,6 +171,18 @@ make check               # Run all 8 test suites
 make check
 ```
 
+### clangd / IDE support
+
+The project includes a `.clangd` config and a `make bear` target for clangd-based editors (VS Code, Neovim, Helix, etc.).
+
+```bash
+./autogen.sh && ./configure        # Must configure first (generates config.h)
+make clean                         # Bear only intercepts commands that actually run
+make bear                          # Generates compile_commands.json
+```
+
+`make bear` wraps the build with [bear](https://github.com/rizsotto/bear) to produce `compile_commands.json`, giving clangd the exact compiler flags, include paths, and defines from `configure`. The `.clangd` config forces C language mode (`-xc`) to prevent false Objective-C++ errors on struct fields named `private`, `protected`, and `template`.
+
 ### Install
 
 ```bash
@@ -611,10 +623,12 @@ Exit codes: `0` success, `1` error, `2` usage error.
 
 ```
 cb/
-├── autogen.sh               # Generates version file + runs autoreconf -fi
+├── autogen.sh                # Generates version file + runs autoreconf -fi
 ├── configure.ac              # Autotools build configuration (git-derived version)
 ├── Makefile.am               # Top-level automake
 ├── build-aux/git-version.sh  # Git-based version generation script
+├── .clang-format             # clang-format style (Allman braces, 4-space indent)
+├── .clangd                   # clangd config (forces C mode, suppresses ObjC++ false positives)
 ├── .forgejo/workflows/       # CI/CD pipeline (Forgejo Actions)
 ├── src/Makefile.am           # Binary build rules (regenerates cb_version.h on every make)
 ├── tests/Makefile.am         # Test binary rules
