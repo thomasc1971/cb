@@ -106,4 +106,3 @@ jobs:
           tag: ${{ github.ref_name }}
           release-dir: release
           token: ${{ secrets.GITHUB_TOKEN }}
-          override: true

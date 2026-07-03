@@ -103,3 +103,11 @@ API functions exist but have no CLI dispatch:
 ## 7. Code cleanup
 
 - [x] ~~Fill in `owner` default with current user in `require_owner_repo()` — added `api_user_get_current()`, auto-fill owner when omitted~~
+
+## 8. CI release notes
+
+- [ ] Consider switching to `override: true` + `release-notes-file` in the
+      `forgejo-release` action so CI owns the full release (notes + assets).
+      This would let the release notes be maintained in a file in the repo
+      (e.g. `RELEASE_NOTES.md`) and attached automatically on tag pushes,
+      instead of creating releases manually with `cb release create`.
