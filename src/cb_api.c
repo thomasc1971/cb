@@ -575,8 +575,6 @@ int api_topic_remove(ApiClient *a, const char *owner, const char *repo, const ch
     return err;
 }
 
-/* ===== Actions (CI/CD) ===== */
-
 static int64_t json_get_int64(const JsonValue *obj, const char *key, int64_t default_val)
 {
     JsonValue *v = json_object_lookup(obj, key);
@@ -584,6 +582,93 @@ static int64_t json_get_int64(const JsonValue *obj, const char *key, int64_t def
         return default_val;
     return (int64_t)json_number(v);
 }
+
+/* ===== Organizations ===== */
+
+static void parse_org(const JsonValue *obj, Organization *o)
+{
+    memset(o, 0, sizeof(*o));
+    o->name = json_dup_string(obj, "name");
+    o->full_name = json_dup_string(obj, "full_name");
+    o->description = json_dup_string(obj, "description");
+    o->email = json_dup_string(obj, "email");
+    o->location = json_dup_string(obj, "location");
+    o->website = json_dup_string(obj, "website");
+    o->visibility = json_dup_string(obj, "visibility");
+    o->avatar_url = json_dup_string(obj, "avatar_url");
+    o->id = json_get_int64(obj, "id", 0);
+    o->repo_admin_change_team_access = json_get_bool(obj, "repo_admin_change_team_access", 0);
+}
+
+void org_free(Organization *o)
+{
+    if (!o)
+        return;
+    free(o->name);
+    free(o->full_name);
+    free(o->description);
+    free(o->email);
+    free(o->location);
+    free(o->website);
+    free(o->visibility);
+    free(o->avatar_url);
+    memset(o, 0, sizeof(*o));
+}
+
+int api_org_create(ApiClient *a, const CreateOrgOpts *opts, Organization *out)
+{
+    if (!opts || !opts->username) {
+        set_error(a, "organization username is required");
+        return API_ERR_VALIDATION;
+    }
+
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "username", opts->username);
+    if (opts->full_name)
+        json_object_set_string(body, "full_name", opts->full_name);
+    if (opts->description)
+        json_object_set_string(body, "description", opts->description);
+    if (opts->email)
+        json_object_set_string(body, "email", opts->email);
+    if (opts->location)
+        json_object_set_string(body, "location", opts->location);
+    if (opts->website)
+        json_object_set_string(body, "website", opts->website);
+    if (opts->visibility)
+        json_object_set_string(body, "visibility", opts->visibility);
+    if (opts->repo_admin_change_team_access)
+        json_object_set_bool(body, "repo_admin_change_team_access", true);
+
+    char *body_str = json_serialize(body, false);
+    json_free(body);
+
+    char *path = build_path(a, "/orgs");
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse API response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_org(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+/* ===== Actions (CI/CD) ===== */
 
 static void parse_action_run(const JsonValue *obj, ActionRun *r)
 {

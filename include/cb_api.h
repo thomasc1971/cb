@@ -167,6 +167,42 @@ void repo_array_free(Repo *arr, size_t count);
 /* Free a topic array (from api_topic_list) */
 void topic_array_free(char **topics, size_t count);
 
+/* ===== Organizations ===== */
+
+/* Organization struct — fields from the Forgejo API response */
+typedef struct
+{
+    char *name;
+    char *full_name;
+    char *description;
+    char *email;
+    char *location;
+    char *website;
+    char *visibility;
+    char *avatar_url;
+    int64_t id;
+    int repo_admin_change_team_access;
+} Organization;
+
+/* Create org options */
+typedef struct
+{
+    const char *username; /* required */
+    const char *full_name;
+    const char *description;
+    const char *email;
+    const char *location;
+    const char *website;
+    const char *visibility; /* may be NULL — "public", "limited", "private" */
+    int repo_admin_change_team_access;
+} CreateOrgOpts;
+
+/* Create an organization. Returns API_OK on success. */
+int api_org_create(ApiClient *a, const CreateOrgOpts *opts, Organization *out);
+
+/* Free an Organization struct */
+void org_free(Organization *o);
+
 /* ===== Actions (CI/CD) ===== */
 
 /* Action run — workflow execution info */

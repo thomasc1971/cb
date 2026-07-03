@@ -493,6 +493,76 @@ static void test_scope_error(void)
     teardown_server();
 }
 
+/* ===== Org create ===== */
+
+static const char *ORG_JSON_STR =
+    "{\"id\":42,\"name\":\"myorg\",\"full_name\":\"myorg\","
+    "\"description\":\"test org\",\"email\":\"org@example.com\","
+    "\"location\":\"Berlin\",\"website\":\"https://example.com\","
+    "\"visibility\":\"public\",\"avatar_url\":\"https://codeberg.org/avatars/42\","
+    "\"repo_admin_change_team_access\":true}";
+
+static void test_org_create_success(void)
+{
+    MockResponse resp = {
+        .method = "POST", .path = "/api/v1/orgs", .status = 201
+    };
+    set_body(&resp, ORG_JSON_STR);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    CreateOrgOpts opts = {
+        .username = "myorg",
+        .description = "test org",
+        .visibility = "public"
+    };
+    Organization o;
+    int rc = api_org_create(&a, &opts, &o);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_STR_EQ(o.name, "myorg");
+    ASSERT_STR_EQ(o.description, "test org");
+    ASSERT_STR_EQ(o.visibility, "public");
+    ASSERT_EQ(o.id, 42);
+    org_free(&o);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_org_create_validation_error(void)
+{
+    MockResponse resp = {
+        .method = "POST", .path = "/api/v1/orgs", .status = 422, .body = "{\"message\":\"organization name is already taken\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    CreateOrgOpts opts = { .username = "myorg" };
+    Organization o;
+    int rc = api_org_create(&a, &opts, &o);
+    ASSERT_EQ(rc, API_ERR_VALIDATION);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_org_create_auth_error(void)
+{
+    MockResponse resp = {
+        .method = "POST", .path = "/api/v1/orgs", .status = 403, .body = "{\"message\":\"forbidden\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    CreateOrgOpts opts = { .username = "myorg" };
+    Organization o;
+    int rc = api_org_create(&a, &opts, &o);
+    ASSERT_EQ(rc, API_ERR_AUTH);
+    api_client_free(&a);
+    teardown_server();
+}
+
 int main(int argc, char *argv[])
 {
     test_parse_args(argc, argv);
@@ -519,6 +589,10 @@ int main(int argc, char *argv[])
     RUN_TEST(test_topic_add);
     RUN_TEST(test_topic_remove);
     RUN_TEST(test_scope_error);
+
+    RUN_TEST(test_org_create_success);
+    RUN_TEST(test_org_create_validation_error);
+    RUN_TEST(test_org_create_auth_error);
 
     TEST_SUMMARY();
 }

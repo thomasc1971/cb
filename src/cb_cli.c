@@ -107,6 +107,18 @@ static const FlagDef GLOBAL_FLAGS[] = {
     { NULL, NULL, 0 }
 };
 
+static const FlagDef ORG_CREATE_FLAGS[] = {
+    { "--description", "-d", 1 },
+    { "--full-name", NULL, 1 },
+    { "--email", NULL, 1 },
+    { "--location", NULL, 1 },
+    { "--website", NULL, 1 },
+    { "--visibility", NULL, 1 },
+    { "--repo-admin-change-team-access", NULL, 0 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
 /* Help flag sentinel — checked before parse_flags in every handler. */
 static int is_help_arg(const char *arg)
 {
@@ -272,6 +284,24 @@ static void help_repo(void)
     printf("  transfer   Transfer ownership\n");
     printf("  topic      Manage topics (add, rm, list, set)\n");
     printf("\nRun 'cb repo <subcommand> --help' for details.\n");
+}
+
+static void help_org_create(void)
+{
+    printf("Usage: cb org create <name> [flags]\n\n");
+    printf("Create a new organization.\n\n");
+    printf("Flags:\n");
+    print_flag_table(ORG_CREATE_FLAGS);
+    printf("  --help, -h              Show this help\n");
+}
+
+static void help_org(void)
+{
+    printf("Usage: cb org <subcommand> [args] [flags]\n\n");
+    printf("Organization management.\n\n");
+    printf("Subcommands:\n");
+    printf("  create     Create a new organization\n");
+    printf("\nRun 'cb org <subcommand> --help' for details.\n");
 }
 
 /* ===== Output helpers ===== */
@@ -5755,6 +5785,136 @@ static int cmd_wiki(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     return CLI_USAGE;
 }
 
+/* ===== Org commands ===== */
+
+static int cmd_org_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_org_create();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, ORG_CREATE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        help_org_create();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+
+    const char *name = positional[0];
+    char verr[256];
+    if (validate_org_name(name, verr, sizeof(verr)) != VALIDATE_OK) {
+        fprintf(stderr, "Error: %s\n", verr);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+
+    CreateOrgOpts opts = { 0 };
+    opts.username = name;
+    int idx;
+
+    idx = find_flag_idx(ORG_CREATE_FLAGS, "--description");
+    if (fv[idx]) {
+        if (validate_description(fv[idx], verr, sizeof(verr)) != VALIDATE_OK) {
+            fprintf(stderr, "Error: %s\n", verr);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        opts.description = fv[idx];
+    }
+    idx = find_flag_idx(ORG_CREATE_FLAGS, "--full-name");
+    if (fv[idx])
+        opts.full_name = fv[idx];
+    idx = find_flag_idx(ORG_CREATE_FLAGS, "--email");
+    if (fv[idx])
+        opts.email = fv[idx];
+    idx = find_flag_idx(ORG_CREATE_FLAGS, "--location");
+    if (fv[idx])
+        opts.location = fv[idx];
+    idx = find_flag_idx(ORG_CREATE_FLAGS, "--website");
+    if (fv[idx]) {
+        if (validate_website(fv[idx], verr, sizeof(verr)) != VALIDATE_OK) {
+            fprintf(stderr, "Error: %s\n", verr);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        opts.website = fv[idx];
+    }
+    idx = find_flag_idx(ORG_CREATE_FLAGS, "--visibility");
+    if (fv[idx]) {
+        if (validate_visibility(fv[idx], verr, sizeof(verr)) != VALIDATE_OK) {
+            fprintf(stderr, "Error: %s\n", verr);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        opts.visibility = fv[idx];
+    }
+    idx = find_flag_idx(ORG_CREATE_FLAGS, "--repo-admin-change-team-access");
+    if (fb[idx])
+        opts.repo_admin_change_team_access = 1;
+
+    Organization o;
+    int rc = api_org_create(api, &opts, &o);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+
+    if (!gf->quiet) {
+        printf("Created %s (%s)\n", o.name ? o.name : name,
+               o.visibility ? o.visibility : "public");
+        if (o.avatar_url)
+            printf("  %s\n", o.avatar_url);
+    }
+    org_free(&o);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_org(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_org();
+        return CLI_USAGE;
+    }
+
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+
+    if (is_help_arg(sub)) {
+        help_org();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "create") == 0)
+        return cmd_org_create(rest_argc, rest_argv, api, gf);
+
+    fprintf(stderr, "Error: unknown org subcommand '%s'\n", sub);
+    help_org();
+    return CLI_USAGE;
+}
+
 /* ===== Command dispatch ===== */
 
 static int cmd_repo(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
@@ -5837,6 +5997,7 @@ void cli_print_help(const char *cmd)
         printf("  collaborator   Manage collaborators (list, add, rm, perms)\n");
         printf("  fork           Manage forks (list, create)\n");
         printf("  hook           Manage webhooks (list, create, show, edit, delete, test)\n");
+        printf("  org            Organization management (create)\n");
         printf("  wiki           Manage wiki pages (list, create, show, edit, delete, revisions)\n");
         printf("\nGlobal flags:\n");
         printf("  --json          Output raw JSON\n");
@@ -5890,7 +6051,8 @@ int cli_run(int argc, char **argv)
         strcmp(cmd, "pr") != 0 && strcmp(cmd, "commit") != 0 &&
         strcmp(cmd, "content") != 0 && strcmp(cmd, "key") != 0 &&
         strcmp(cmd, "collaborator") != 0 && strcmp(cmd, "fork") != 0 &&
-        strcmp(cmd, "hook") != 0 && strcmp(cmd, "wiki") != 0) {
+        strcmp(cmd, "hook") != 0 && strcmp(cmd, "org") != 0 &&
+        strcmp(cmd, "wiki") != 0) {
         fprintf(stderr, "Error: unknown command '%s'\n", cmd);
         free(filtered_argv);
         return CLI_USAGE;
@@ -5956,6 +6118,8 @@ int cli_run(int argc, char **argv)
         rc = cmd_fork(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else if (strcmp(cmd, "hook") == 0)
         rc = cmd_hook(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "org") == 0)
+        rc = cmd_org(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else if (strcmp(cmd, "wiki") == 0)
         rc = cmd_wiki(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else

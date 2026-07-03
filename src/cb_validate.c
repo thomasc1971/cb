@@ -259,6 +259,55 @@ int validate_permission(const char *perm, char *error_out, size_t error_sz)
     return VALIDATE_OK;
 }
 
+int validate_org_name(const char *name, char *error_out, size_t error_sz)
+{
+    if (!name || name[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "organization name is empty");
+        return VALIDATE_ERR;
+    }
+
+    size_t len = strlen(name);
+    if (len > 100) {
+        if (error_out)
+            snprintf(error_out, error_sz, "organization name exceeds 100 characters");
+        return VALIDATE_ERR;
+    }
+
+    /* AlphaDashDot: alphanumeric, dash, dot, underscore */
+    for (size_t i = 0; i < len; i++) {
+        char c = name[i];
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_')) {
+            if (error_out)
+                snprintf(error_out, error_sz,
+                         "organization name contains invalid character '%c' (allowed: alphanumeric, -, ., _)", c);
+            return VALIDATE_ERR;
+        }
+    }
+
+    return VALIDATE_OK;
+}
+
+int validate_visibility(const char *vis, char *error_out, size_t error_sz)
+{
+    if (!vis || vis[0] == '\0') {
+        if (error_out)
+            snprintf(error_out, error_sz, "visibility is empty");
+        return VALIDATE_ERR;
+    }
+
+    if (strcmp(vis, "public") != 0 && strcmp(vis, "limited") != 0 &&
+        strcmp(vis, "private") != 0) {
+        if (error_out)
+            snprintf(error_out, error_sz,
+                     "invalid visibility '%s' (valid: public, limited, private)", vis);
+        return VALIDATE_ERR;
+    }
+
+    return VALIDATE_OK;
+}
+
 int validate_sha(const char *sha, char *error_out, size_t error_sz)
 {
     if (!sha || sha[0] == '\0') {

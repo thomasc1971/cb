@@ -513,6 +513,65 @@ static void test_help_topic_set(void)
     cb_unsetenv("CB_TOKEN");
 }
 
+static void test_cli_org_create(void)
+{
+    MockResponse resp = {
+        .method = "POST", .path = "/api/v1/orgs", .status = 201
+    };
+    set_body(&resp, "{\"id\":42,\"name\":\"myorg\",\"full_name\":\"myorg\","
+                    "\"description\":\"test org\",\"visibility\":\"public\","
+                    "\"avatar_url\":\"https://codeberg.org/avatars/42\"}");
+    setup_server(&resp, 1);
+
+    const char *args[] = { "org", "create", "myorg", "-d", "test org", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    teardown_server();
+}
+
+static void test_cli_org_create_visibility(void)
+{
+    MockResponse resp = {
+        .method = "POST", .path = "/api/v1/orgs", .status = 201
+    };
+    set_body(&resp, "{\"id\":43,\"name\":\"privorg\",\"full_name\":\"privorg\","
+                    "\"visibility\":\"private\","
+                    "\"avatar_url\":\"https://codeberg.org/avatars/43\"}");
+    setup_server(&resp, 1);
+
+    const char *args[] = { "org", "create", "privorg", "--visibility", "private", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    teardown_server();
+}
+
+static void test_help_org_create(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    char buf[4096];
+    const char *args[] = { "org", "create", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "cb org create <name>") != NULL);
+    ASSERT_TRUE(strstr(buf, "--visibility") != NULL);
+    cb_unsetenv("CB_TOKEN");
+}
+
+static void test_cli_org_create_no_args(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    const char *args[] = { "org", "create", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_USAGE);
+    cb_unsetenv("CB_TOKEN");
+}
+
 int main(int argc, char *argv[])
 {
     test_parse_args(argc, argv);
@@ -547,6 +606,11 @@ int main(int argc, char *argv[])
     RUN_TEST(test_help_repo_topic);
     RUN_TEST(test_help_topic_add);
     RUN_TEST(test_help_topic_set);
+
+    RUN_TEST(test_cli_org_create);
+    RUN_TEST(test_cli_org_create_visibility);
+    RUN_TEST(test_help_org_create);
+    RUN_TEST(test_cli_org_create_no_args);
 
     TEST_SUMMARY();
 }

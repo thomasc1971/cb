@@ -54,5 +54,7 @@ int validate_issue_title(const char *title, char *error_out, size_t error_sz);
 int validate_label_color(const char *color, char *error_out, size_t error_sz);
 int validate_permission(const char *perm, char *error_out, size_t error_sz);
 int validate_sha(const char *sha, char *error_out, size_t error_sz);
+int validate_org_name(const char *name, char *error_out, size_t error_sz);
+int validate_visibility(const char *vis, char *error_out, size_t error_sz);
 
 #endif /* CB_VALIDATE_H */

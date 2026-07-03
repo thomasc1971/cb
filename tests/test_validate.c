@@ -191,6 +191,104 @@ static void test_null_merge_style(void)
     ASSERT_EQ(validate_merge_style(NULL, err, sizeof(err)), VALIDATE_ERR);
 }
 
+static void test_validate_visibility_public(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_visibility("public", err, sizeof(err)), VALIDATE_OK);
+}
+
+static void test_validate_visibility_limited(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_visibility("limited", err, sizeof(err)), VALIDATE_OK);
+}
+
+static void test_validate_visibility_private(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_visibility("private", err, sizeof(err)), VALIDATE_OK);
+}
+
+static void test_validate_visibility_null(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_visibility(NULL, err, sizeof(err)), VALIDATE_ERR);
+}
+
+static void test_validate_visibility_empty(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_visibility("", err, sizeof(err)), VALIDATE_ERR);
+}
+
+static void test_validate_visibility_invalid(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_visibility("hidden", err, sizeof(err)), VALIDATE_ERR);
+    ASSERT_TRUE(strlen(err) > 0);
+}
+
+static void test_valid_org_name_simple(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_org_name("myorg", err, sizeof(err)), VALIDATE_OK);
+}
+
+static void test_valid_org_name_with_dash_dot(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_org_name("my-org.123", err, sizeof(err)), VALIDATE_OK);
+}
+
+static void test_valid_org_name_underscore(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_org_name("my_org", err, sizeof(err)), VALIDATE_OK);
+}
+
+static void test_org_name_with_spaces(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_org_name("my org", err, sizeof(err)), VALIDATE_ERR);
+    ASSERT_TRUE(strlen(err) > 0);
+}
+
+static void test_org_name_with_special_chars(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_org_name("my!org", err, sizeof(err)), VALIDATE_ERR);
+}
+
+static void test_org_name_too_long(void)
+{
+    char err[256];
+    char name[120];
+    memset(name, 'a', 101);
+    name[101] = '\0';
+    ASSERT_EQ(validate_org_name(name, err, sizeof(err)), VALIDATE_ERR);
+}
+
+static void test_org_name_empty(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_org_name("", err, sizeof(err)), VALIDATE_ERR);
+}
+
+static void test_org_name_null(void)
+{
+    char err[256];
+    ASSERT_EQ(validate_org_name(NULL, err, sizeof(err)), VALIDATE_ERR);
+}
+
+static void test_org_name_exactly_100(void)
+{
+    char err[256];
+    char name[101];
+    memset(name, 'a', 100);
+    name[100] = '\0';
+    ASSERT_EQ(validate_org_name(name, err, sizeof(err)), VALIDATE_OK);
+}
+
 int main(int argc, char *argv[])
 {
     test_parse_args(argc, argv);
@@ -220,6 +318,23 @@ int main(int argc, char *argv[])
     RUN_TEST(test_valid_merge_styles);
     RUN_TEST(test_invalid_merge_style);
     RUN_TEST(test_null_merge_style);
+
+    RUN_TEST(test_validate_visibility_public);
+    RUN_TEST(test_validate_visibility_limited);
+    RUN_TEST(test_validate_visibility_private);
+    RUN_TEST(test_validate_visibility_null);
+    RUN_TEST(test_validate_visibility_empty);
+    RUN_TEST(test_validate_visibility_invalid);
+
+    RUN_TEST(test_valid_org_name_simple);
+    RUN_TEST(test_valid_org_name_with_dash_dot);
+    RUN_TEST(test_valid_org_name_underscore);
+    RUN_TEST(test_org_name_with_spaces);
+    RUN_TEST(test_org_name_with_special_chars);
+    RUN_TEST(test_org_name_too_long);
+    RUN_TEST(test_org_name_empty);
+    RUN_TEST(test_org_name_null);
+    RUN_TEST(test_org_name_exactly_100);
 
     TEST_SUMMARY();
 }
