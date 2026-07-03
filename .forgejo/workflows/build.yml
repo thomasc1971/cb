@@ -150,7 +150,7 @@ jobs:
           sha256sum cb-linux-amd64.tar.gz > cb-linux-amd64.tar.gz.sha256
           sha256sum cb-windows-amd64-portable.zip > cb-windows-amd64-portable.zip.sha256
           sha256sum cb-darwin-amd64.tar.gz > cb-darwin-amd64.tar.gz.sha256
-      - uses: https://code.forgejo.org/actions/forgejo-release@v2
+      - uses: https://code.forgejo.org/actions/forgejo-release@v2.13.1
         with:
           direction: upload
           url: https://codeberg.org
@@ -158,4 +158,5 @@ jobs:
           release-dir: release
           release-notes-file: RELEASE_NOTES.md
           override: true
+          verbose: true
           token: ${{ secrets.GITHUB_TOKEN }}
