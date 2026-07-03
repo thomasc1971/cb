@@ -106,8 +106,9 @@ API functions exist but have no CLI dispatch:
 
 ## 8. CI release notes
 
-- [ ] Consider switching to `override: true` + `release-notes-file` in the
+- [x] ~~Consider switching to `override: true` + `release-notes-file` in the
       `forgejo-release` action so CI owns the full release (notes + assets).
       This would let the release notes be maintained in a file in the repo
       (e.g. `RELEASE_NOTES.md`) and attached automatically on tag pushes,
-      instead of creating releases manually with `cb release create`.
+      instead of creating releases manually with `cb release create`.~~
+      Done — CI now uses `override: true` + `release-notes-file: RELEASE_NOTES.md`.
