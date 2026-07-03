@@ -100,7 +100,8 @@ jobs:
           tar xzf libressl-4.0.0.tar.gz
           cd libressl-4.0.0
           CC="zig cc -target x86_64-macos" ./configure --host=x86_64-apple-darwin \
-            --prefix=/tmp/libressl-macos --disable-shared --enable-static
+            --prefix=/tmp/libressl-macos --enable-libtls-only \
+            --disable-shared --enable-static --disable-tests --disable-asm
           make -j4
           make install
       - name: Build cb for macOS
