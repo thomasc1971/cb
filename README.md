@@ -108,12 +108,12 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 
 Pre-built binaries are available from the [Codeberg releases page](https://codeberg.org/thomasc/cb/releases).
 
-| File                            | Platform       |
-| ------------------------------- | -------------- |
-| `cb-linux-amd64`                | Linux x86_64   |
-| `cb-windows-amd64-portable.zip` | Windows x86_64 |
+| File                            | Platform       | Contents                    |
+| ------------------------------- | -------------- | --------------------------- |
+| `cb-linux-amd64.tar.gz`         | Linux x86_64   | `cb` binary + `COPYING`     |
+| `cb-windows-amd64-portable.zip` | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
 
-The Windows ZIP contains `cb.exe` and the required LibreSSL DLLs. Extract and run — no installation needed.
+The Linux tarball contains the `cb` binary and the GPLv3 license text. The Windows ZIP contains `cb.exe`, the required LibreSSL DLLs, and the license text.
 
 ## Build
 

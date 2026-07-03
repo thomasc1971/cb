@@ -25,11 +25,14 @@ jobs:
       - name: Prepare artifact
         run: |
           strip src/cb
-          cp src/cb cb-linux-amd64
+          mkdir -p cb-linux-amd64
+          cp src/cb cb-linux-amd64/cb
+          cp COPYING cb-linux-amd64/COPYING
+          tar czf cb-linux-amd64.tar.gz cb-linux-amd64
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-linux-amd64
-          path: cb-linux-amd64
+          path: cb-linux-amd64.tar.gz
 
   build-windows:
     runs-on: codeberg-small
@@ -70,7 +73,8 @@ jobs:
             cb-windows-amd64.exe \
             libretls-33.dll \
             libressl-60.dll \
-            librecrypto-57.dll
+            librecrypto-57.dll \
+            COPYING
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-windows-amd64
@@ -93,7 +97,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd release
-          sha256sum cb-linux-amd64 > cb-linux-amd64.sha256
+          sha256sum cb-linux-amd64.tar.gz > cb-linux-amd64.tar.gz.sha256
           sha256sum cb-windows-amd64-portable.zip > cb-windows-amd64-portable.zip.sha256
       - uses: https://code.forgejo.org/actions/forgejo-release@v2
         with:
