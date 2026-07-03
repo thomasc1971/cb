@@ -158,5 +158,4 @@ jobs:
           release-dir: release
           release-notes-file: RELEASE_NOTES.md
           override: true
-          verbose: true
           token: ${{ secrets.GITHUB_TOKEN }}
