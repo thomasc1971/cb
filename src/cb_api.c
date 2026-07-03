@@ -1620,6 +1620,7 @@ static void parse_user(const JsonValue *obj, User *u)
     u->id = json_get_int64(obj, "id", 0);
     u->login = json_dup_string(obj, "login");
     u->full_name = json_dup_string(obj, "full_name");
+    u->email = json_dup_string(obj, "email");
     u->html_url = json_dup_string(obj, "html_url");
 }
 
@@ -3829,6 +3830,7 @@ void user_free(User *u)
         return;
     free(u->login);
     free(u->full_name);
+    free(u->email);
     free(u->html_url);
     memset(u, 0, sizeof(*u));
 }
@@ -4421,4 +4423,33 @@ int api_repo_mirror_sync(ApiClient *a, const char *owner, const char *repo)
     free(path);
     http_response_free(&resp);
     return err;
+}
+
+/* ===== Current user ===== */
+
+int api_user_get_current(ApiClient *a, User *out)
+{
+    char *path = build_path(a, "/user");
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse user response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_user(parsed, out);
+    json_free(parsed);
+    return API_OK;
 }

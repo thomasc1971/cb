@@ -843,6 +843,7 @@ typedef struct
     int64_t id;
     char *login;
     char *full_name;
+    char *email;
     char *html_url;
 } User;
 
@@ -857,6 +858,10 @@ int api_collaborator_perms(ApiClient *a, const char *owner, const char *repo,
 
 void user_free(User *u);
 void user_array_free(User *arr, size_t count);
+
+/* ===== Current user ===== */
+
+int api_user_get_current(ApiClient *a, User *out);
 
 /* ===== Forks ===== */
 

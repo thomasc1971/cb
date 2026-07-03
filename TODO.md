@@ -102,6 +102,4 @@ API functions exist but have no CLI dispatch:
 
 ## 7. Code cleanup
 
-- [ ] Fill in `owner` default with current user in `cb repo list` (TODO at `src/cb_cli.c:657`)
-- [ ] Remove `cp src/cb cb` workaround — ensure `make` puts the binary in the project root
-- [ ] Verify the top-level `cb` binary is always rebuilt when sources change
+- [x] ~~Fill in `owner` default with current user in `require_owner_repo()` — added `api_user_get_current()`, auto-fill owner when omitted~~

@@ -243,6 +243,8 @@ cb actions log --help         # actions log usage
 
 ### Commands
 
+In commands that take `[owner/]repo`, the `owner/` part is optional — if omitted, it is automatically filled in from your authenticated user. For example, `cb repo show myproj` is equivalent to `cb repo show thomasc/myproj`.
+
 #### `cb repo create <name>`
 
 ```bash
@@ -253,21 +255,22 @@ cb repo create myproj --object-format sha256
 
 Flags: `--private`, `--public`, `--description`/`-d`, `--default-branch`/`-b`, `--license`, `--gitignore`/`-g`, `--auto-init`, `--template`, `--org`, `--object-format`
 
-#### `cb repo delete <owner/repo>`
+#### `cb repo delete [owner/]repo`
 
 ```bash
 cb repo delete thomasc/abandoned-proj --yes
+cb repo delete abandoned-proj --yes       # owner defaults to you
 ```
 
 Requires `--yes` or interactive confirmation.
 
-#### `cb repo rename <owner/repo> <new-name>`
+#### `cb repo rename [owner/]repo <new-name>`
 
 ```bash
 cb repo rename thomasc/old-name new-name
 ```
 
-#### `cb repo edit <owner/repo>`
+#### `cb repo edit [owner/]repo`
 
 Only provided flags are sent — unset fields are not modified.
 
@@ -279,10 +282,11 @@ cb repo edit thomasc/myproj --default-merge-style squash
 
 Flags (each has `--no-*` counterpart for bools): `--description`/`-d`, `--website`/`-w`, `--private`/`--public`, `--default-branch`/`-b`, `--archived`/`--unarchived`, `--template`/`--no-template`, `--has-issues`/`--no-issues`, `--has-wiki`/`--no-wiki`, `--has-prs`/`--no-prs`, `--has-projects`/`--no-projects`, `--has-releases`/`--no-releases`, `--has-packages`/`--no-packages`, `--has-actions`/`--no-actions`, `--allow-merge`/`--no-merge`, `--allow-rebase`/`--no-rebase`, `--allow-squash`/`--no-squash`, `--allow-ff-only`/`--no-ff-only`, `--default-merge-style`, `--delete-branch-after-merge`/`--no-delete-branch-after-merge`, `--allow-maintainer-edit`/`--no-allow-maintainer-edit`
 
-#### `cb repo show <owner/repo>`
+#### `cb repo show [owner/]repo`
 
 ```bash
 cb repo show thomasc/myproj
+cb repo show myproj                       # owner defaults to you
 cb repo show thomasc/myproj --json
 ```
 
@@ -294,7 +298,7 @@ cb repo list --org myorg  # org repos
 cb repo list --user bob   # another user's repos
 ```
 
-#### `cb repo transfer <owner/repo> <new-owner>`
+#### `cb repo transfer [owner/]repo <new-owner>`
 
 ```bash
 cb repo transfer thomasc/myproj codeberg-org --yes
@@ -311,7 +315,7 @@ cb repo topic list thomasc/myproj
 cb repo topic set thomasc/myproj go,cli,codeberg
 ```
 
-#### `cb release <owner/repo> <subcommand>`
+#### `cb release [owner/]repo <subcommand>`
 
 Manage releases.
 
@@ -335,7 +339,7 @@ cb release thomasc/myproj asset delete 42 7 --yes
 
 Subcommands: `list`, `create`, `show`, `latest`, `edit`, `delete`, `by-tag`, `delete-tag`, `asset`
 
-#### `cb tag <owner/repo> <subcommand>`
+#### `cb tag [owner/]repo <subcommand>`
 
 Manage tags.
 
@@ -346,7 +350,7 @@ cb tag thomasc/myproj show v1.0.0
 cb tag thomasc/myproj delete v1.0.0 --yes
 ```
 
-#### `cb branch <owner/repo> <subcommand>`
+#### `cb branch [owner/]repo <subcommand>`
 
 Manage branches.
 
@@ -358,7 +362,7 @@ cb branch thomasc/myproj rename old-name --name new-name
 cb branch thomasc/myproj delete old-branch --yes
 ```
 
-#### `cb issue <owner/repo> <subcommand>`
+#### `cb issue [owner/]repo <subcommand>`
 
 Manage issues.
 
@@ -381,7 +385,7 @@ cb issue thomasc/myproj label add 5 3
 cb issue thomasc/myproj label clear 5
 ```
 
-#### `cb label <owner/repo> <subcommand>`
+#### `cb label [owner/]repo <subcommand>`
 
 Manage repository labels.
 
@@ -391,7 +395,7 @@ cb label thomasc/myproj create --name bug --color ff0000
 cb label thomasc/myproj delete 3 --yes
 ```
 
-#### `cb milestone <owner/repo> <subcommand>`
+#### `cb milestone [owner/]repo <subcommand>`
 
 Manage milestones.
 
@@ -401,7 +405,7 @@ cb milestone thomasc/myproj create --title "v2.0" --due 2025-12-31
 cb milestone thomasc/myproj delete 3 --yes
 ```
 
-#### `cb pr <owner/repo> <subcommand>`
+#### `cb pr [owner/]repo <subcommand>`
 
 Manage pull requests.
 
@@ -419,7 +423,7 @@ cb pr thomasc/myproj merge 7 --style squash --delete-branch
 cb pr thomasc/myproj merge 7 --auto
 ```
 
-#### `cb commit <owner/repo> <subcommand>`
+#### `cb commit [owner/]repo <subcommand>`
 
 View commits and statuses.
 
@@ -429,7 +433,7 @@ cb commit thomasc/myproj list --sha main --path src/
 cb commit thomasc/myproj list --limit 20
 ```
 
-#### `cb content <owner/repo> <subcommand>`
+#### `cb content [owner/]repo <subcommand>`
 
 View and manage repository file contents.
 
@@ -438,7 +442,7 @@ cb content thomasc/myproj list
 cb content thomasc/myproj list --ref main
 ```
 
-#### `cb key <owner/repo> <subcommand>`
+#### `cb key [owner/]repo <subcommand>`
 
 Manage deploy keys.
 
@@ -448,7 +452,7 @@ cb key thomasc/myproj add --title "CI key" --key "ssh-ed25519 AAAA..."
 cb key thomasc/myproj delete 3 --yes
 ```
 
-#### `cb collaborator <owner/repo> <subcommand>`
+#### `cb collaborator [owner/]repo <subcommand>`
 
 Manage collaborators.
 
@@ -459,7 +463,7 @@ cb collaborator thomasc/myproj rm bob --yes
 cb collaborator thomasc/myproj perms bob
 ```
 
-#### `cb fork <owner/repo> <subcommand>`
+#### `cb fork [owner/]repo <subcommand>`
 
 Manage forks.
 
@@ -469,7 +473,7 @@ cb fork thomasc/someproj create
 cb fork thomasc/someproj create --org myorg
 ```
 
-#### `cb hook <owner/repo> <subcommand>`
+#### `cb hook [owner/]repo <subcommand>`
 
 Manage webhooks.
 
@@ -479,7 +483,7 @@ cb hook thomasc/myproj create --type gitea --url https://example.com/hook
 cb hook thomasc/myproj delete 5 --yes
 ```
 
-#### `cb wiki <owner/repo> <subcommand>`
+#### `cb wiki [owner/]repo <subcommand>`
 
 Manage wiki pages.
 
@@ -488,7 +492,7 @@ cb wiki thomasc/myproj list
 cb wiki thomasc/myproj delete OldPage --yes
 ```
 
-#### `cb actions list <owner/repo>`
+#### `cb actions list [owner/]repo`
 
 List recent workflow runs.
 
@@ -497,7 +501,7 @@ cb actions list thomasc/cb
 cb actions list thomasc/cb --json
 ```
 
-#### `cb actions show <owner/repo> <run-id>`
+#### `cb actions show [owner/]repo <run-id>`
 
 Show details of a specific workflow run. `run-id` is the internal API ID (visible in `--json` output as `id`).
 
@@ -505,7 +509,7 @@ Show details of a specific workflow run. `run-id` is the internal API ID (visibl
 cb actions show thomasc/cb 5218484
 ```
 
-#### `cb actions jobs <owner/repo> <run-id>`
+#### `cb actions jobs [owner/]repo <run-id>`
 
 List jobs in a workflow run with status and duration.
 
@@ -522,7 +526,7 @@ Job    Name                 Status     Duration
 2      release              skipped    3s
 ```
 
-#### `cb actions log <owner/repo> <run-id> [job-index] [step-index]`
+#### `cb actions log [owner/]repo <run-id> [job-index] [step-index]`
 
 Show build logs for a workflow run. `run-id` is the short `index_in_repo` number (e.g. `3`). If `job-index` is omitted, defaults to 0. If `step-index` is omitted, shows all steps.
 
@@ -543,7 +547,7 @@ Get:1 http://archive.ubuntu.com/ubuntu noble InRelease [256 kB]
 E: Unable to locate package libretls-dev
 ```
 
-#### `cb actions runners <owner/repo>`
+#### `cb actions runners [owner/]repo`
 
 List CI runners available to the repository.
 
@@ -551,7 +555,7 @@ List CI runners available to the repository.
 cb actions runners thomasc/cb
 ```
 
-#### `cb actions dispatch <owner/repo> <workflow-file>`
+#### `cb actions dispatch [owner/]repo <workflow-file>`
 
 Trigger a workflow run.
 

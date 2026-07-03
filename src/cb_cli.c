@@ -29,6 +29,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Forward declarations */
+static int require_owner_repo(const char *arg, char *owner, size_t owner_sz,
+                              char *repo, size_t repo_sz, ApiClient *api);
+
 /* ===== Flag parsing ===== */
 
 typedef struct
@@ -646,18 +650,9 @@ static int cmd_repo_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
         return CLI_USAGE;
     }
 
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(positional[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
-        free(positional);
-        free(fv);
-        free(fb);
-        return CLI_ERR;
-    }
-    /* owner defaults to empty — TODO: fill with current user */
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo (owner is required for delete)\n");
+    char owner[128], repo[128];
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -707,15 +702,9 @@ static int cmd_repo_rename(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
 
     char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return CLI_ERR;
-    }
 
     const char *new_name = argv[1];
     if (validate_repo_name(new_name, verr, sizeof(verr)) != VALIDATE_OK) {
@@ -763,16 +752,8 @@ static int cmd_repo_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
 
     char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(positional[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
-        free(positional);
-        free(fv);
-        free(fb);
-        return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -894,16 +875,10 @@ static int cmd_repo_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
         return CLI_USAGE;
     }
 
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return CLI_ERR;
-    }
 
     Repo r;
     int rc = api_repo_show(api, owner, repo, &r);
@@ -975,16 +950,10 @@ static int cmd_repo_transfer(int argc, char **argv, ApiClient *api, GlobalFlags 
         return CLI_USAGE;
     }
 
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return CLI_ERR;
-    }
 
     const char *new_owner = argv[1];
 
@@ -1022,16 +991,10 @@ static int cmd_topic_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
         help_topic_add();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return CLI_ERR;
-    }
     int rc = api_topic_add(api, owner, repo, argv[1]);
     if (rc != API_OK) {
         print_api_error(rc, api->last_error);
@@ -1054,16 +1017,10 @@ static int cmd_topic_rm(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
         help_topic_rm();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return CLI_ERR;
-    }
     int rc = api_topic_remove(api, owner, repo, argv[1]);
     if (rc != API_OK) {
         print_api_error(rc, api->last_error);
@@ -1086,16 +1043,10 @@ static int cmd_topic_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf
         help_topic_list();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return CLI_ERR;
-    }
     char **topics;
     size_t count;
     int rc = api_topic_list(api, owner, repo, &topics, &count);
@@ -1120,16 +1071,10 @@ static int cmd_topic_set(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
         help_topic_set();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
-    if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return CLI_ERR;
-    }
 
     /* Parse comma-separated topics */
     char *topics_str = strdup(argv[1]);
@@ -1467,12 +1412,10 @@ static int cmd_actions_list(int argc, char **argv, ApiClient *api, GlobalFlags *
         help_actions_list();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
 
     ActionRun *runs = NULL;
     size_t count = 0;
@@ -1498,12 +1441,10 @@ static int cmd_actions_show(int argc, char **argv, ApiClient *api, GlobalFlags *
         help_actions_show();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     int64_t run_id = strtoll(argv[1], NULL, 10);
     if (run_id <= 0) {
         fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
@@ -1533,12 +1474,10 @@ static int cmd_actions_runners(int argc, char **argv, ApiClient *api, GlobalFlag
         help_actions_runners();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
 
     ActionRunner *runners = NULL;
     size_t count = 0;
@@ -1564,12 +1503,10 @@ static int cmd_actions_dispatch(int argc, char **argv, ApiClient *api, GlobalFla
         help_actions_dispatch();
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     const char *workflowfile = argv[1];
 
     const char *ref = NULL;
@@ -1605,12 +1542,10 @@ static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, Global
         printf("Usage: cb actions secret list <owner/repo>\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
 
     ActionSecret *secrets = NULL;
     size_t count = 0;
@@ -1640,12 +1575,10 @@ static int cmd_actions_secret_set(int argc, char **argv, ApiClient *api, GlobalF
         printf("Usage: cb actions secret set <owner/repo> <name> --value V\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     const char *name = argv[1];
     const char *value = NULL;
     for (int i = 2; i < argc; i++) {
@@ -1681,12 +1614,10 @@ static int cmd_actions_secret_rm(int argc, char **argv, ApiClient *api, GlobalFl
         printf("Usage: cb actions secret rm <owner/repo> <name> [--yes]\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     const char *name = argv[1];
     int yes = gf->yes;
     for (int i = 2; i < argc; i++) {
@@ -1724,12 +1655,10 @@ static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, GlobalFla
         printf("Usage: cb actions var list <owner/repo>\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
 
     ActionVariable *vars = NULL;
     size_t count = 0;
@@ -1758,12 +1687,10 @@ static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, GlobalFla
         printf("Usage: cb actions var show <owner/repo> <name>\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     const char *name = argv[1];
 
     ActionVariable var;
@@ -1793,12 +1720,10 @@ static int cmd_actions_var_set(int argc, char **argv, ApiClient *api, GlobalFlag
         printf("Usage: cb actions var set <owner/repo> <name> --value V\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     const char *name = argv[1];
     const char *value = NULL;
     for (int i = 2; i < argc; i++) {
@@ -1834,12 +1759,10 @@ static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, GlobalFlags
         printf("Usage: cb actions var rm <owner/repo> <name> [--yes]\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     const char *name = argv[1];
     int yes = gf->yes;
     for (int i = 2; i < argc; i++) {
@@ -1880,12 +1803,10 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, GlobalFlags *
         printf("Usage: cb actions jobs <owner/repo> <run-id>\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     int run_id = atoi(argv[1]);
     if (run_id <= 0) {
         fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
@@ -1952,12 +1873,10 @@ static int cmd_actions_log(int argc, char **argv, ApiClient *api, GlobalFlags *g
         printf("Usage: cb actions log <owner/repo> <run-id> [job-index] [step-index]\n\n");
         return CLI_USAGE;
     }
-    char owner[128], repo[128], verr[256];
-    if (validate_owner_repo(argv[0], owner, sizeof(owner),
-                            repo, sizeof(repo), verr, sizeof(verr)) != VALIDATE_OK) {
-        fprintf(stderr, "Error: %s\n", verr);
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    }
     int run_id = atoi(argv[1]);
     if (run_id <= 0) {
         fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
@@ -2492,7 +2411,7 @@ static void help_wiki(void)
 /* (unused: parse_owner_repo_arg kept for future use) */
 
 static int require_owner_repo(const char *arg, char *owner, size_t owner_sz,
-                              char *repo, size_t repo_sz)
+                              char *repo, size_t repo_sz, ApiClient *api)
 {
     char verr[256];
     if (validate_owner_repo(arg, owner, owner_sz, repo, repo_sz,
@@ -2501,8 +2420,20 @@ static int require_owner_repo(const char *arg, char *owner, size_t owner_sz,
         return -1;
     }
     if (owner[0] == '\0') {
-        fprintf(stderr, "Error: please specify owner/repo\n");
-        return -1;
+        static char cached_login[128] = { 0 };
+        if (!cached_login[0] && api) {
+            User u;
+            memset(&u, 0, sizeof(u));
+            if (api_user_get_current(api, &u) == API_OK && u.login)
+                snprintf(cached_login, sizeof(cached_login), "%s", u.login);
+            user_free(&u);
+        }
+        if (cached_login[0])
+            snprintf(owner, owner_sz, "%s", cached_login);
+        else {
+            fprintf(stderr, "Error: please specify owner/repo\n");
+            return -1;
+        }
     }
     return 0;
 }
@@ -2957,7 +2888,7 @@ static int cmd_release_list(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -3016,7 +2947,7 @@ static int cmd_release_create(int argc, char **argv, ApiClient *api, GlobalFlags
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -3088,7 +3019,7 @@ static int cmd_release_show(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t id = atol(argv[1]);
     Release r;
@@ -3116,7 +3047,7 @@ static int cmd_release_latest(int argc, char **argv, ApiClient *api, GlobalFlags
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Release r;
     int rc = api_release_get_latest(api, owner, repo, &r);
@@ -3152,7 +3083,7 @@ static int cmd_release_edit(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -3243,7 +3174,7 @@ static int cmd_release_delete(int argc, char **argv, ApiClient *api, GlobalFlags
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t id = atol(argv[1]);
     if (!gf->yes && !confirm("Delete this release?")) {
@@ -3274,7 +3205,7 @@ static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, GlobalFlags
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Release r;
     int rc = api_release_get_by_tag(api, owner, repo, argv[1], &r);
@@ -3301,7 +3232,7 @@ static int cmd_release_delete_by_tag(int argc, char **argv, ApiClient *api, Glob
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     if (!gf->yes && !confirm("Delete this release by tag?")) {
         printf("Cancelled.\n");
@@ -3331,7 +3262,7 @@ static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, GlobalF
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t release_id = atol(argv[1]);
     Attachment *assets;
@@ -3382,7 +3313,7 @@ static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, Globa
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t release_id = atol(argv[1]);
     int64_t asset_id = atol(argv[2]);
@@ -3473,7 +3404,7 @@ static int cmd_tag_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Tag *tags;
     size_t count;
@@ -3510,7 +3441,7 @@ static int cmd_tag_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -3576,7 +3507,7 @@ static int cmd_tag_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Tag t;
     int rc = api_tag_get(api, owner, repo, argv[1], &t);
@@ -3619,7 +3550,7 @@ static int cmd_tag_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     if (!gf->yes && !confirm("Delete this tag?")) {
         printf("Cancelled.\n");
@@ -3677,7 +3608,7 @@ static int cmd_branch_list(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Branch *branches;
     size_t count;
@@ -3714,7 +3645,7 @@ static int cmd_branch_create(int argc, char **argv, ApiClient *api, GlobalFlags 
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -3775,7 +3706,7 @@ static int cmd_branch_show(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Branch b;
     int rc = api_branch_get(api, owner, repo, argv[1], &b);
@@ -3826,7 +3757,7 @@ static int cmd_branch_rename(int argc, char **argv, ApiClient *api, GlobalFlags 
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -3872,7 +3803,7 @@ static int cmd_branch_delete(int argc, char **argv, ApiClient *api, GlobalFlags 
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     if (!gf->yes && !confirm("Delete this branch?")) {
         printf("Cancelled.\n");
@@ -3941,7 +3872,7 @@ static int cmd_issue_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -4004,7 +3935,7 @@ static int cmd_issue_create(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -4061,7 +3992,7 @@ static int cmd_issue_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     Issue is;
@@ -4098,7 +4029,7 @@ static int cmd_issue_edit(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -4159,7 +4090,7 @@ static int cmd_issue_delete(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     if (!gf->yes && !confirm("Delete this issue?")) {
@@ -4190,7 +4121,7 @@ static int cmd_issue_close(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     EditIssueOpts opts = { 0 };
@@ -4222,7 +4153,7 @@ static int cmd_issue_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     EditIssueOpts opts = { 0 };
@@ -4254,7 +4185,7 @@ static int cmd_issue_comment(int argc, char **argv, ApiClient *api, GlobalFlags 
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     const char *body = NULL;
@@ -4290,7 +4221,7 @@ static int cmd_issue_label_add(int argc, char **argv, ApiClient *api, GlobalFlag
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     size_t label_count = (size_t)(argc - 2);
@@ -4322,7 +4253,7 @@ static int cmd_issue_label_clear(int argc, char **argv, ApiClient *api, GlobalFl
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     int rc = api_issue_label_clear(api, owner, repo, number);
@@ -4416,7 +4347,7 @@ static int cmd_label_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Label *labels;
     size_t count;
@@ -4453,7 +4384,7 @@ static int cmd_label_create(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -4516,7 +4447,7 @@ static int cmd_label_delete(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t id = atol(argv[1]);
     if (!gf->yes && !confirm("Delete this label?")) {
@@ -4573,7 +4504,7 @@ static int cmd_milestone_list(int argc, char **argv, ApiClient *api, GlobalFlags
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     const char *state = NULL;
     for (int i = 1; i < argc; i++) {
@@ -4615,7 +4546,7 @@ static int cmd_milestone_create(int argc, char **argv, ApiClient *api, GlobalFla
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -4673,7 +4604,7 @@ static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, GlobalFla
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t id = atol(argv[1]);
     if (!gf->yes && !confirm("Delete this milestone?")) {
@@ -4730,7 +4661,7 @@ static int cmd_pr_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     const char *state = NULL;
     int limit = 0;
@@ -4775,7 +4706,7 @@ static int cmd_pr_create(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -4840,7 +4771,7 @@ static int cmd_pr_show(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     PullRequest p;
@@ -4868,7 +4799,7 @@ static int cmd_pr_close(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     EditPullRequestOpts opts = { 0 };
@@ -4900,7 +4831,7 @@ static int cmd_pr_reopen(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     EditPullRequestOpts opts = { 0 };
@@ -4932,7 +4863,7 @@ static int cmd_pr_merge(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int number = atoi(argv[1]);
     MergePullRequestOpts opts = { 0 };
@@ -5020,7 +4951,7 @@ static int cmd_commit_list(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -5098,7 +5029,7 @@ static int cmd_content_list(int argc, char **argv, ApiClient *api, GlobalFlags *
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     const char *ref = NULL;
     for (int i = 1; i < argc; i++) {
@@ -5159,7 +5090,7 @@ static int cmd_key_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     DeployKey *keys;
     size_t count;
@@ -5196,7 +5127,7 @@ static int cmd_key_add(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -5258,7 +5189,7 @@ static int cmd_key_delete(int argc, char **argv, ApiClient *api, GlobalFlags *gf
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t id = atol(argv[1]);
     if (!gf->yes && !confirm("Delete this deploy key?")) {
@@ -5315,7 +5246,7 @@ static int cmd_collaborator_list(int argc, char **argv, ApiClient *api, GlobalFl
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     User *users;
     size_t count;
@@ -5368,7 +5299,7 @@ static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, GlobalFla
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -5408,7 +5339,7 @@ static int cmd_collaborator_rm(int argc, char **argv, ApiClient *api, GlobalFlag
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     if (!gf->yes && !confirm("Remove this collaborator?")) {
         printf("Cancelled.\n");
@@ -5468,7 +5399,7 @@ static int cmd_fork_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Repo *forks;
     size_t count;
@@ -5505,7 +5436,7 @@ static int cmd_fork_create(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -5575,7 +5506,7 @@ static int cmd_hook_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     Hook *hooks;
     size_t count;
@@ -5612,7 +5543,7 @@ static int cmd_hook_create(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(positional[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0) {
+                           repo, sizeof(repo), api) != 0) {
         free(positional);
         free(fv);
         free(fb);
@@ -5687,7 +5618,7 @@ static int cmd_hook_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     int64_t id = atol(argv[1]);
     if (!gf->yes && !confirm("Delete this webhook?")) {
@@ -5749,7 +5680,7 @@ static int cmd_wiki_list(int argc, char **argv, ApiClient *api, GlobalFlags *gf)
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     WikiPage *pages;
     size_t count;
@@ -5777,7 +5708,7 @@ static int cmd_wiki_delete(int argc, char **argv, ApiClient *api, GlobalFlags *g
     }
     char owner[128], repo[128];
     if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo)) != 0)
+                           repo, sizeof(repo), api) != 0)
         return CLI_ERR;
     if (!gf->yes && !confirm("Delete this wiki page?")) {
         printf("Cancelled.\n");

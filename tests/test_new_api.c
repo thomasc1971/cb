@@ -1371,6 +1371,36 @@ static void test_repo_languages(void)
     teardown_server();
 }
 
+/* ===== User get current ===== */
+
+static void test_user_get_current(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/user",
+        .status = 200,
+    };
+    set_body(&resp,
+             "{\"id\":1,\"login\":\"thomasc\",\"full_name\":\"Thomas C\","
+             "\"email\":\"tc@example.com\",\"active\":true}");
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    User user;
+    memset(&user, 0, sizeof(user));
+    int rc = api_user_get_current(&a, &user);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(user.id, 1);
+    ASSERT_STR_EQ(user.login, "thomasc");
+    ASSERT_STR_EQ(user.full_name, "Thomas C");
+    ASSERT_STR_EQ(user.email, "tc@example.com");
+
+    user_free(&user);
+    api_client_free(&a);
+    teardown_server();
+}
+
 int main(void)
 {
     printf("Running new API tests:\n");
@@ -1438,6 +1468,8 @@ int main(void)
 
     RUN_TEST(test_repo_mirror_sync);
     RUN_TEST(test_repo_languages);
+
+    RUN_TEST(test_user_get_current);
 
     TEST_SUMMARY();
 }
