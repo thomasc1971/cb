@@ -356,6 +356,7 @@ cb release thomasc/myproj delete 42 --yes
 cb release thomasc/myproj delete-tag v1.0.0 --yes
 
 cb release thomasc/myproj asset list 42
+cb release thomasc/myproj asset edit 42 7 --name new-filename.zip
 cb release thomasc/myproj asset delete 42 7 --yes
 ```
 

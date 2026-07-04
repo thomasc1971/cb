@@ -1,6 +1,6 @@
 # TODO — Remaining work for Forgejo `/repos/` endpoints
 
-All 15 phases have API-level structs, functions, and tests. The CLI has 16 top-level
+All 15 phases have API-level structs, functions, and tests. The CLI has 17 top-level
 commands with help text and core subcommands implemented. The remaining work is:
 
 ## 1. Implement stubbed CLI subcommands
