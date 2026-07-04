@@ -3333,6 +3333,61 @@ static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, CbGloba
     return CLI_OK;
 }
 
+static int cmd_release_asset_edit(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release <owner/repo> asset edit <release-id> <asset-id> --name <name>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 3) {
+        fprintf(stderr, "Error: asset edit requires owner/repo, release-id, and asset-id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
+        return CLI_ERR;
+    int64_t release_id = atol(argv[1]);
+    int64_t asset_id = atol(argv[2]);
+
+    static FlagDef flags[] = {
+        { "--name", NULL, 1 },
+        { NULL, NULL, 0 },
+    };
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc - 3, argv + 3, flags, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    int name_idx = find_flag_idx(flags, "--name");
+    if (!fv[name_idx]) {
+        fprintf(stderr, "Error: --name is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+
+    Attachment out;
+    memset(&out, 0, sizeof(out));
+    int rc = api_release_asset_edit(api, owner, repo, release_id, asset_id,
+                                    fv[name_idx], &out);
+    free(positional);
+    free(fv);
+    free(fb);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Renamed asset #%lld to %s\n", (long long)asset_id, out.name ? out.name : "");
+    attachment_free(&out);
+    return CLI_OK;
+}
+
 static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
@@ -3411,6 +3466,8 @@ static int cmd_release(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
         }
         if (strcmp(asub, "list") == 0)
             return cmd_release_asset_list(a_argc, a_argv, api, gf);
+        if (strcmp(asub, "edit") == 0)
+            return cmd_release_asset_edit(a_argc, a_argv, api, gf);
         if (strcmp(asub, "delete") == 0)
             return cmd_release_asset_delete(a_argc, a_argv, api, gf);
         fprintf(stderr, "Error: unknown asset subcommand '%s'\n", asub);
