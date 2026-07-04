@@ -28,7 +28,7 @@ includes the version tag in all release artifact filenames.
 make
 ```
 
-See [README.md](https://codeberg.org/thomasc/cb/src/commit/9940c20/README.md) for full build instructions.
+See [README.md](https://codeberg.org/thomasc/cb/src/commit/f2b62d7/README.md) for full build instructions.
 
 ### License
 
