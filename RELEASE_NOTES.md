@@ -15,11 +15,11 @@ validation, API, and CLI support.
 
 ### Downloads
 
-| File                            | Platform       | Contents                    |
-| ------------------------------- | -------------- | --------------------------- |
-| `cb-linux-amd64.tar.gz`         | Linux x86_64   | `cb` binary + `COPYING`     |
-| `cb-darwin-amd64.tar.gz`        | macOS x86_64   | `cb` binary + `COPYING`     |
-| `cb-windows-amd64-portable.zip` | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
+| File                          | Platform       | Contents                    |
+| ----------------------------- | -------------- | --------------------------- |
+| `cb-v0.3-linux-amd64.tar.gz`  | Linux x86_64   | `cb` binary + `COPYING`     |
+| `cb-v0.3-darwin-amd64.tar.gz` | macOS x86_64   | `cb` binary + `COPYING`     |
+| `cb-v0.3-windows-amd64.zip`   | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
 
 ### Build from source
 

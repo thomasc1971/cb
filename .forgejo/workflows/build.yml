@@ -69,7 +69,7 @@ jobs:
           cp /tmp/mingw64/bin/libretls-33.dll .
           cp /tmp/mingw64/bin/libressl-60.dll .
           cp /tmp/mingw64/bin/librecrypto-57.dll .
-          zip cb-windows-amd64-portable.zip \
+          zip cb-windows-amd64.zip \
             cb-windows-amd64.exe \
             libretls-33.dll \
             libressl-60.dll \
@@ -78,7 +78,7 @@ jobs:
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-windows-amd64
-          path: cb-windows-amd64-portable.zip
+          path: cb-windows-amd64.zip
 
   build-macos:
     runs-on: codeberg-small
@@ -144,12 +144,16 @@ jobs:
         with:
           name: cb-darwin-amd64
           path: release
-      - name: Generate checksums
+      - name: Rename artifacts and generate checksums
         run: |
           cd release
-          sha256sum cb-linux-amd64.tar.gz > cb-linux-amd64.tar.gz.sha256
-          sha256sum cb-windows-amd64-portable.zip > cb-windows-amd64-portable.zip.sha256
-          sha256sum cb-darwin-amd64.tar.gz > cb-darwin-amd64.tar.gz.sha256
+          V=${{ github.ref_name }}
+          mv cb-linux-amd64.tar.gz cb-${V}-linux-amd64.tar.gz
+          mv cb-windows-amd64.zip cb-${V}-windows-amd64.zip
+          mv cb-darwin-amd64.tar.gz cb-${V}-darwin-amd64.tar.gz
+          sha256sum cb-${V}-linux-amd64.tar.gz > cb-${V}-linux-amd64.tar.gz.sha256
+          sha256sum cb-${V}-windows-amd64.zip > cb-${V}-windows-amd64.zip.sha256
+          sha256sum cb-${V}-darwin-amd64.tar.gz > cb-${V}-darwin-amd64.tar.gz.sha256
       - uses: https://code.forgejo.org/actions/forgejo-release@v2.13.1
         with:
           direction: upload
