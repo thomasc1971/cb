@@ -111,4 +111,5 @@ API functions exist but have no CLI dispatch:
       This would let the release notes be maintained in a file in the repo
       (e.g. `RELEASE_NOTES.md`) and attached automatically on tag pushes,
       instead of creating releases manually with `cb release create`.~~
-      Done — CI now uses `override: true` + `release-notes-file: RELEASE_NOTES.md`.
+      Reverted — release notes are now created directly with `cb release create`
+      at release time, not from a file in the repo.
