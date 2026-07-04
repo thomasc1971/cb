@@ -1,25 +1,24 @@
-## cb v0.3 — Organization Management
+## cb v0.4 — Release Asset Editing
 
-Adds `cb org create` for creating Forgejo organizations, with full
-validation, API, and CLI support.
+Adds `cb release asset edit` for renaming release assets, and
+includes the version tag in all release artifact filenames.
 
 ### What's new
 
-- **`cb org create`** — Create organizations on Codeberg/Forgejo.
-  Supports `--description`, `--full-name`, `--email`, `--location`,
-  `--website`, `--visibility` (public/limited/private), and
-  `--repo-admin-change-team-access` flags.
-- **Validation** — Organization names validated (alphanumeric, dash,
-  dot, underscore, max 100 chars); visibility checked against
-  `public`/`limited`/`private` enum.
+- **`cb release asset edit`** — Rename release assets in place
+  without re-uploading. Usage: `cb release <owner/repo> asset edit
+<release-id> <asset-id> --name <new-name>`
+- **Versioned artifact filenames** — Release downloads now include
+  the version tag (e.g. `cb-v0.4-linux-amd64.tar.gz` instead of
+  `cb-linux-amd64.tar.gz`).
 
 ### Downloads
 
 | File                          | Platform       | Contents                    |
 | ----------------------------- | -------------- | --------------------------- |
-| `cb-v0.3-linux-amd64.tar.gz`  | Linux x86_64   | `cb` binary + `COPYING`     |
-| `cb-v0.3-darwin-amd64.tar.gz` | macOS x86_64   | `cb` binary + `COPYING`     |
-| `cb-v0.3-windows-amd64.zip`   | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
+| `cb-v0.4-linux-amd64.tar.gz`  | Linux x86_64   | `cb` binary + `COPYING`     |
+| `cb-v0.4-darwin-amd64.tar.gz` | macOS x86_64   | `cb` binary + `COPYING`     |
+| `cb-v0.4-windows-amd64.zip`   | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
 
 ### Build from source
 
@@ -29,7 +28,7 @@ validation, API, and CLI support.
 make
 ```
 
-See [README.md](https://codeberg.org/thomasc/cb/src/commit/fa4a1bd/README.md) for full build instructions.
+See [README.md](https://codeberg.org/thomasc/cb/src/commit/9940c20/README.md) for full build instructions.
 
 ### License
 
