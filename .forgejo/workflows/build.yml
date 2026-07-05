@@ -160,5 +160,4 @@ jobs:
           url: https://codeberg.org
           tag: ${{ github.ref_name }}
           release-dir: release
-          override: true
           token: ${{ secrets.GITHUB_TOKEN }}
