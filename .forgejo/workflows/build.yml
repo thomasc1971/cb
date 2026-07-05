@@ -157,10 +157,13 @@ jobs:
           sha256sum cb-${V}-linux-amd64.tar.gz > cb-${V}-linux-amd64.tar.gz.sha256
           sha256sum cb-${V}-windows-amd64.zip > cb-${V}-windows-amd64.zip.sha256
           sha256sum cb-${V}-darwin-amd64.tar.gz > cb-${V}-darwin-amd64.tar.gz.sha256
-      - uses: https://code.forgejo.org/actions/forgejo-release@v2.13.1
+      - uses: https://code.forgejo.org/actions/softprops/action-gh-release@v2
         with:
-          direction: upload
-          url: https://codeberg.org
-          tag: ${{ github.ref_name }}
-          release-dir: release
+          files: |
+            release/cb-${{ github.ref_name }}-linux-amd64.tar.gz
+            release/cb-${{ github.ref_name }}-linux-amd64.tar.gz.sha256
+            release/cb-${{ github.ref_name }}-windows-amd64.zip
+            release/cb-${{ github.ref_name }}-windows-amd64.zip.sha256
+            release/cb-${{ github.ref_name }}-darwin-amd64.tar.gz
+            release/cb-${{ github.ref_name }}-darwin-amd64.tar.gz.sha256
           token: ${{ secrets.GITHUB_TOKEN }}
