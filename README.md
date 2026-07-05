@@ -112,13 +112,13 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 
 Pre-built binaries are available from the [Codeberg releases page](https://codeberg.org/thomasc/cb/releases).
 
-| File                          | Platform       | Contents                    |
-| ----------------------------- | -------------- | --------------------------- |
-| `cb-v0.4-linux-amd64.tar.gz`  | Linux x86_64   | `cb` binary + `COPYING`     |
-| `cb-v0.4-darwin-amd64.tar.gz` | macOS x86_64   | `cb` binary + `COPYING`     |
-| `cb-v0.4-windows-amd64.zip`   | Windows x86_64 | `cb.exe` + DLLs + `COPYING` |
+| File                               | Platform       | Contents                                  |
+| ---------------------------------- | -------------- | ----------------------------------------- |
+| `cb-<version>-linux-amd64.tar.gz`  | Linux x86_64   | `cb` binary + `COPYING` + `README.md`     |
+| `cb-<version>-darwin-amd64.tar.gz` | macOS x86_64   | `cb` binary + `COPYING` + `README.md`     |
+| `cb-<version>-windows-amd64.zip`   | Windows x86_64 | `cb.exe` + DLLs + `COPYING` + `README.md` |
 
-The Linux and macOS tarballs contain the `cb` binary and the GPLv3 license text. The macOS build statically links LibreSSL, so there are no external dylib dependencies. The Windows ZIP contains `cb.exe`, the required LibreSSL DLLs, and the license text.
+The Linux and macOS tarballs contain the `cb` binary, GPLv3 license text, and README. The macOS build statically links LibreSSL, so there are no external dylib dependencies. The Windows ZIP contains `cb.exe`, the required LibreSSL DLLs, the license text, and README.
 
 ## Build
 
