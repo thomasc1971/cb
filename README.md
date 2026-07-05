@@ -198,6 +198,38 @@ make bear                          # Generates compile_commands.json
 make install
 ```
 
+### Shell completions
+
+Generate completion scripts for Bash, Zsh, and Fish from the built binary:
+
+```bash
+make completions
+```
+
+This runs `cb --help-spec` and produces `completions/cb.bash`, `completions/cb.zsh`, and `completions/cb.fish`.
+
+Install them to your shell's completion directory:
+
+**Bash:**
+
+```bash
+cp completions/cb.bash ~/.local/share/bash-completion/completions/cb
+```
+
+**Zsh:**
+
+```bash
+cp completions/cb.zsh ~/.zsh/completions/_cb
+```
+
+Add `~/.zsh/completions` to `$fpath` in `~/.zshrc` if not already present.
+
+**Fish:**
+
+```bash
+cp completions/cb.fish ~/.config/fish/completions/cb.fish
+```
+
 ## Configuration
 
 ### Token
