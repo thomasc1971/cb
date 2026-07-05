@@ -28,6 +28,7 @@ jobs:
           mkdir -p cb-linux-amd64
           cp src/cb cb-linux-amd64/cb
           cp COPYING cb-linux-amd64/COPYING
+          cp README.md cb-linux-amd64/README.md
           tar czf cb-linux-amd64.tar.gz cb-linux-amd64
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
@@ -74,7 +75,8 @@ jobs:
             libretls-33.dll \
             libressl-60.dll \
             librecrypto-57.dll \
-            COPYING
+            COPYING \
+            README.md
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-windows-amd64
@@ -120,6 +122,7 @@ jobs:
           mkdir -p cb-darwin-amd64
           cp src/cb cb-darwin-amd64/cb
           cp COPYING cb-darwin-amd64/COPYING
+          cp README.md cb-darwin-amd64/README.md
           tar czf cb-darwin-amd64.tar.gz cb-darwin-amd64
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
