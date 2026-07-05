@@ -28,6 +28,13 @@ format:
 	else \
 	    echo "prettier not found - skipping Markdown formatting." >&2; \
 	fi
+	@if command -v shfmt >/dev/null 2>&1; then \
+	    echo "Formatting shell scripts with shfmt..."; \
+	    find $(srcdir)/build-aux -name '*.sh' -print0 \
+	        | xargs -0 shfmt -w; \
+	else \
+	    echo "shfmt not found - skipping shell formatting." >&2; \
+	fi
 
 completions:
 	@CB=$(top_builddir)/src/cb; \

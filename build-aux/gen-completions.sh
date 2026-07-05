@@ -20,34 +20,34 @@ mkdir -p "$OUTDIR"
 CMDS=$(echo "$SPEC" | awk -F'\t' '$1 == "CMD" { print $2 }' | tr '\n' ' ' | sed 's/ $//')
 SUBS_FILE=$(mktemp)
 FLAGS_FILE=$(mktemp)
-echo "$SPEC" | awk -F'\t' '$1 == "SUB" { print $2 "\t" $3 }' > "$SUBS_FILE"
-echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' > "$FLAGS_FILE"
+echo "$SPEC" | awk -F'\t' '$1 == "SUB" { print $2 "\t" $3 }' >"$SUBS_FILE"
+echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' >"$FLAGS_FILE"
 
 # ---- Bash ----
 {
-    echo '# cb bash completion (auto-generated — do not edit)'
-    echo '# Regenerate with: make completions'
-    echo ''
-    echo '_cb()'
-    echo '{'
-    echo '    local cur prev words cword'
-    echo '    _init_completion || return'
-    echo ''
-    printf '    if [ $cword -eq 1 ]; then\n'
-    printf '        COMPREPLY=($(compgen -W "%s --help -h --version -v" -- "$cur"))\n' "$CMDS"
-    printf '        return 0\n'
-    printf '    fi\n'
-    printf '\n'
-    printf '    case "$cur" in\n'
-    printf '        --*) COMPREPLY=($(compgen -W "--json --quiet -q --base-url --yes --help -h --version -v" -- "$cur")); return 0;;\n'
-    printf '    esac\n'
-    printf '\n'
-    printf '    local cmd="${words[1]}"\n'
-    printf '    local subcmd="${words[2]}"\n'
-    printf '\n'
+	echo '# cb bash completion (auto-generated — do not edit)'
+	echo '# Regenerate with: make completions'
+	echo ''
+	echo '_cb()'
+	echo '{'
+	echo '    local cur prev words cword'
+	echo '    _init_completion || return'
+	echo ''
+	printf '    if [ $cword -eq 1 ]; then\n'
+	printf '        COMPREPLY=($(compgen -W "%s --help -h --version -v" -- "$cur"))\n' "$CMDS"
+	printf '        return 0\n'
+	printf '    fi\n'
+	printf '\n'
+	printf '    case "$cur" in\n'
+	printf '        --*) COMPREPLY=($(compgen -W "--json --quiet -q --base-url --yes --help -h --version -v" -- "$cur")); return 0;;\n'
+	printf '    esac\n'
+	printf '\n'
+	printf '    local cmd="${words[1]}"\n'
+	printf '    local subcmd="${words[2]}"\n'
+	printf '\n'
 
-    # Per-command subcommand completion at position 2
-    awk -F'\t' '
+	# Per-command subcommand completion at position 2
+	awk -F'\t' '
         {
             c = $1
             s = $2
@@ -67,10 +67,10 @@ echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' > "$FLAGS_
         }
     ' "$SUBS_FILE"
 
-    printf '\n'
+	printf '\n'
 
-    # Per-subcommand flag completion at position >= 3
-    awk -F'\t' '
+	# Per-subcommand flag completion at position >= 3
+	awk -F'\t' '
         {
             c = $1
             s = $2
@@ -93,38 +93,38 @@ echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' > "$FLAGS_
         }
     ' "$FLAGS_FILE"
 
-    printf '\n'
-    printf '    return 0\n'
-    printf '}\n'
-    printf 'complete -F _cb cb\n'
-} > "$OUTDIR/cb.bash"
+	printf '\n'
+	printf '    return 0\n'
+	printf '}\n'
+	printf 'complete -F _cb cb\n'
+} >"$OUTDIR/cb.bash"
 
 # ---- Zsh ----
 {
-    echo '#compdef cb'
-    echo '# cb zsh completion (auto-generated — do not edit)'
-    echo '# Regenerate with: make completions'
-    echo ''
-    echo '_cb() {'
-    echo '    local -a commands'
-    echo '    commands=('
+	echo '#compdef cb'
+	echo '# cb zsh completion (auto-generated — do not edit)'
+	echo '# Regenerate with: make completions'
+	echo ''
+	echo '_cb() {'
+	echo '    local -a commands'
+	echo '    commands=('
 
-    echo "$CMDS" | tr ' ' '\n' | sed "s/^/        '/;s/$/'/"
+	echo "$CMDS" | tr ' ' '\n' | sed "s/^/        '/;s/$/'/"
 
-    echo '    )'
-    echo ''
-    echo '    if (( CURRENT == 2 )); then'
-    echo '        _describe command commands'
-    echo '        _values "global flags" --json --quiet -q --base-url --yes --help -h --version -v'
-    echo '        return'
-    echo '    fi'
-    echo ''
-    echo '    local cmd=$words[2]'
-    echo '    local subcmd=$words[3]'
-    echo ''
+	echo '    )'
+	echo ''
+	echo '    if (( CURRENT == 2 )); then'
+	echo '        _describe command commands'
+	echo '        _values "global flags" --json --quiet -q --base-url --yes --help -h --version -v'
+	echo '        return'
+	echo '    fi'
+	echo ''
+	echo '    local cmd=$words[2]'
+	echo '    local subcmd=$words[3]'
+	echo ''
 
-    # Subcommand completion
-    awk -F'\t' '
+	# Subcommand completion
+	awk -F'\t' '
         {
             c = $1
             s = $2
@@ -144,10 +144,10 @@ echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' > "$FLAGS_
         }
     ' "$SUBS_FILE"
 
-    echo ''
+	echo ''
 
-    # Flag completion
-    awk -F'\t' '
+	# Flag completion
+	awk -F'\t' '
         {
             c = $1
             s = $2
@@ -170,21 +170,21 @@ echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' > "$FLAGS_
         }
     ' "$FLAGS_FILE"
 
-    echo '}'
-    echo '_cb "$@"'
-} > "$OUTDIR/cb.zsh"
+	echo '}'
+	echo '_cb "$@"'
+} >"$OUTDIR/cb.zsh"
 
 # ---- Fish ----
 {
-    echo '# cb fish completion (auto-generated — do not edit)'
-    echo '# Regenerate with: make completions'
-    echo ''
+	echo '# cb fish completion (auto-generated — do not edit)'
+	echo '# Regenerate with: make completions'
+	echo ''
 
-    # Top-level commands
-    echo "$CMDS" | tr ' ' '\n' | awk '{ printf "complete -c cb -n \"__fish_use_subcommand\" -a %s\n", $1 }'
+	# Top-level commands
+	echo "$CMDS" | tr ' ' '\n' | awk '{ printf "complete -c cb -n \"__fish_use_subcommand\" -a %s\n", $1 }'
 
-    # Global flags
-    echo "$SPEC" | awk -F'\t' '
+	# Global flags
+	echo "$SPEC" | awk -F'\t' '
         $1 == "GFLAG" {
             flag = $2
             gsub(/^--/, "", flag)
@@ -192,13 +192,13 @@ echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' > "$FLAGS_
         }
     '
 
-    # Subcommands
-    awk -F'\t' '
+	# Subcommands
+	awk -F'\t' '
         { printf "complete -c cb -n \"__fish_seen_subcommand_from %s\" -a %s\n", $1, $2 }
     ' "$SUBS_FILE"
 
-    # Per-subcommand flags
-    awk -F'\t' '
+	# Per-subcommand flags
+	awk -F'\t' '
         {
             c = $1
             s = $2
@@ -207,7 +207,7 @@ echo "$SPEC" | awk -F'\t' '$1 == "FLAG" { print $2 "\t" $3 "\t" $4 }' > "$FLAGS_
             printf "complete -c cb -n \"__fish_seen_subcommand_from %s; and __fish_seen_subcommand_from %s\" -l %s\n", c, s, f
         }
     ' "$FLAGS_FILE"
-} > "$OUTDIR/cb.fish"
+} >"$OUTDIR/cb.fish"
 
 rm -f "$SUBS_FILE" "$FLAGS_FILE"
 
