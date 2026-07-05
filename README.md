@@ -599,7 +599,7 @@ cb actions dispatch thomasc/cb build.yml --ref master
 
 Flags: `--ref REF` (git ref to dispatch on, default: master)
 
-#### `cb actions secret <list|set|rm>`
+#### `cb actions secret [owner/]repo <list|set|rm>`
 
 Manage repository action secrets. Secret values are never returned by the API.
 
@@ -609,7 +609,7 @@ cb actions secret set thomasc/cb MY_TOKEN --value "secret-value"
 cb actions secret rm thomasc/cb MY_TOKEN --yes
 ```
 
-#### `cb actions var <list|show|set|rm>`
+#### `cb actions var [owner/]repo <list|show|set|rm>`
 
 Manage repository action variables.
 

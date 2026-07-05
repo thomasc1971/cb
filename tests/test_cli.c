@@ -407,7 +407,7 @@ static void test_help_repo_edit(void)
     const char *args[] = { "repo", "edit", "-h", NULL };
     int rc = run_cli_captured(args, buf, sizeof(buf));
     ASSERT_EQ(rc, CLI_OK);
-    ASSERT_TRUE(strstr(buf, "cb repo edit <owner/repo>") != NULL);
+    ASSERT_TRUE(strstr(buf, "cb repo edit [owner/]repo") != NULL);
     ASSERT_TRUE(strstr(buf, "--website") != NULL);
     ASSERT_TRUE(strstr(buf, "--allow-squash") != NULL);
     cb_unsetenv("CB_TOKEN");

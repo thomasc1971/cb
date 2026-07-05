@@ -177,7 +177,7 @@ static void help_repo_create(void)
 
 static void help_repo_delete(void)
 {
-    printf("Usage: cb repo delete <owner/repo> [--yes]\n\n");
+    printf("Usage: cb repo delete [owner/]repo [--yes]\n\n");
     printf("Delete a repository. Requires --yes or interactive confirmation.\n\n");
     printf("Flags:\n");
     printf("  --yes                   Skip confirmation prompt\n");
@@ -186,14 +186,14 @@ static void help_repo_delete(void)
 
 static void help_repo_rename(void)
 {
-    printf("Usage: cb repo rename <owner/repo> <new-name>\n\n");
+    printf("Usage: cb repo rename [owner/]repo <new-name>\n\n");
     printf("Rename a repository.\n");
     printf("  --help, -h              Show this help\n");
 }
 
 static void help_repo_edit(void)
 {
-    printf("Usage: cb repo edit <owner/repo> [flags]\n\n");
+    printf("Usage: cb repo edit [owner/]repo [flags]\n\n");
     printf("Edit repository settings. Only provided flags are sent; unset\n");
     printf("fields are not modified.\n\n");
     printf("Flags:\n");
@@ -203,7 +203,7 @@ static void help_repo_edit(void)
 
 static void help_repo_show(void)
 {
-    printf("Usage: cb repo show <owner/repo>\n\n");
+    printf("Usage: cb repo show [owner/]repo\n\n");
     printf("Show repository details.\n\n");
     printf("Flags:\n");
     printf("  --json                  Output raw JSON\n");
@@ -222,7 +222,7 @@ static void help_repo_list(void)
 
 static void help_repo_transfer(void)
 {
-    printf("Usage: cb repo transfer <owner/repo> <new-owner> [--yes]\n\n");
+    printf("Usage: cb repo transfer [owner/]repo <new-owner> [--yes]\n\n");
     printf("Transfer a repository to a new owner. Requires --yes or\n");
     printf("interactive confirmation.\n\n");
     printf("Flags:\n");
@@ -235,37 +235,37 @@ static void help_repo_topic(void)
     printf("Usage: cb repo topic <add|rm|list|set> ...\n\n");
     printf("Manage repository topics.\n\n");
     printf("Subcommands:\n");
-    printf("  add    <owner/repo> <topic>          Add a topic\n");
-    printf("  rm     <owner/repo> <topic>          Remove a topic\n");
-    printf("  list   <owner/repo>                  List topics\n");
-    printf("  set    <owner/repo> <t1,t2,...>      Replace all topics\n");
+    printf("  add    [owner/]repo <topic>          Add a topic\n");
+    printf("  rm     [owner/]repo <topic>          Remove a topic\n");
+    printf("  list   [owner/]repo                  List topics\n");
+    printf("  set    [owner/]repo <t1,t2,...>      Replace all topics\n");
     printf("\nRun 'cb repo topic <subcommand> --help' for details.\n");
 }
 
 static void help_topic_add(void)
 {
-    printf("Usage: cb repo topic add <owner/repo> <topic>\n\n");
+    printf("Usage: cb repo topic add [owner/]repo <topic>\n\n");
     printf("Add a topic to a repository.\n");
     printf("  --help, -h              Show this help\n");
 }
 
 static void help_topic_rm(void)
 {
-    printf("Usage: cb repo topic rm <owner/repo> <topic>\n\n");
+    printf("Usage: cb repo topic rm [owner/]repo <topic>\n\n");
     printf("Remove a topic from a repository.\n");
     printf("  --help, -h              Show this help\n");
 }
 
 static void help_topic_list(void)
 {
-    printf("Usage: cb repo topic list <owner/repo>\n\n");
+    printf("Usage: cb repo topic list [owner/]repo\n\n");
     printf("List topics on a repository.\n");
     printf("  --help, -h              Show this help\n");
 }
 
 static void help_topic_set(void)
 {
-    printf("Usage: cb repo topic set <owner/repo> <topic1,topic2,...>\n\n");
+    printf("Usage: cb repo topic set [owner/]repo <topic1,topic2,...>\n\n");
     printf("Replace all topics on a repository with the given list.\n");
     printf("  --help, -h              Show this help\n");
 }
@@ -283,7 +283,9 @@ static void help_repo(void)
     printf("  list       List repositories\n");
     printf("  transfer   Transfer ownership\n");
     printf("  topic      Manage topics (add, rm, list, set)\n");
-    printf("\nRun 'cb repo <subcommand> --help' for details.\n");
+    printf("\nWhere [owner/]repo appears, the owner/ prefix is optional\n"
+           "and defaults to the authenticated user.\n\n");
+    printf("Run 'cb repo <subcommand> --help' for details.\n");
 }
 
 static void help_org_create(void)
@@ -1156,15 +1158,15 @@ static int cmd_topic_set(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 
 static void help_actions(void)
 {
-    printf("Usage: cb actions <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb actions [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage CI/CD actions for a repository.\n\n");
     printf("Subcommands:\n");
-    printf("  list       <owner/repo>                  List recent workflow runs\n");
-    printf("  show       <owner/repo> <run-id>          Show details of a run\n");
-    printf("  runners    <owner/repo>                   List available runners\n");
-    printf("  dispatch   <owner/repo> <workflow>        Trigger a workflow\n");
-    printf("  jobs       <owner/repo> <run-id>          List jobs in a run\n");
-    printf("  log        <owner/repo> <run-id> [job]    Show log output for a run\n");
+    printf("  list       [owner/]repo                  List recent workflow runs\n");
+    printf("  show       [owner/]repo <run-id>          Show details of a run\n");
+    printf("  runners    [owner/]repo                   List available runners\n");
+    printf("  dispatch   [owner/]repo <workflow>        Trigger a workflow\n");
+    printf("  jobs       [owner/]repo <run-id>          List jobs in a run\n");
+    printf("  log        [owner/]repo <run-id> [job]    Show log output for a run\n");
     printf("  secret     list|set|rm                    Manage secrets\n");
     printf("  var        list|show|set|rm               Manage variables\n");
     printf("\nRun 'cb actions <subcommand> --help' for details.\n");
@@ -1172,7 +1174,7 @@ static void help_actions(void)
 
 static void help_actions_list(void)
 {
-    printf("Usage: cb actions list <owner/repo>\n\n");
+    printf("Usage: cb actions list [owner/]repo\n\n");
     printf("List recent workflow runs.\n\n");
     printf("Flags:\n");
     printf("  --json                  Output raw JSON\n");
@@ -1181,7 +1183,7 @@ static void help_actions_list(void)
 
 static void help_actions_show(void)
 {
-    printf("Usage: cb actions show <owner/repo> <run-id>\n\n");
+    printf("Usage: cb actions show [owner/]repo <run-id>\n\n");
     printf("Show details of a specific workflow run.\n\n");
     printf("Flags:\n");
     printf("  --json                  Output raw JSON\n");
@@ -1190,7 +1192,7 @@ static void help_actions_show(void)
 
 static void help_actions_runners(void)
 {
-    printf("Usage: cb actions runners <owner/repo>\n\n");
+    printf("Usage: cb actions runners [owner/]repo\n\n");
     printf("List CI runners available to this repository.\n\n");
     printf("Flags:\n");
     printf("  --json                  Output raw JSON\n");
@@ -1199,7 +1201,7 @@ static void help_actions_runners(void)
 
 static void help_actions_dispatch(void)
 {
-    printf("Usage: cb actions dispatch <owner/repo> <workflow-file>\n\n");
+    printf("Usage: cb actions dispatch [owner/]repo <workflow-file>\n\n");
     printf("Trigger a workflow run.\n\n");
     printf("Flags:\n");
     printf("  --ref REF               Git ref to dispatch on (default: master)\n");
@@ -1208,24 +1210,24 @@ static void help_actions_dispatch(void)
 
 static void help_actions_secret(void)
 {
-    printf("Usage: cb actions secret <list|set|rm> <owner/repo> [args]\n\n");
+    printf("Usage: cb actions secret <list|set|rm> [owner/]repo [args]\n\n");
     printf("Manage repository action secrets.\n\n");
     printf("Subcommands:\n");
-    printf("  list   <owner/repo>                  List secret names\n");
-    printf("  set    <owner/repo> <name> --value V  Create or update a secret\n");
-    printf("  rm     <owner/repo> <name>            Delete a secret\n");
+    printf("  list   [owner/]repo                  List secret names\n");
+    printf("  set    [owner/]repo <name> --value V  Create or update a secret\n");
+    printf("  rm     [owner/]repo <name>            Delete a secret\n");
     printf("\nRun 'cb actions secret <subcommand> --help' for details.\n");
 }
 
 static void help_actions_var(void)
 {
-    printf("Usage: cb actions var <list|show|set|rm> <owner/repo> [args]\n\n");
+    printf("Usage: cb actions var <list|show|set|rm> [owner/]repo [args]\n\n");
     printf("Manage repository action variables.\n\n");
     printf("Subcommands:\n");
-    printf("  list   <owner/repo>                  List variables\n");
-    printf("  show   <owner/repo> <name>           Show a variable's value\n");
-    printf("  set    <owner/repo> <name> --value V  Create or update a variable\n");
-    printf("  rm     <owner/repo> <name>            Delete a variable\n");
+    printf("  list   [owner/]repo                  List variables\n");
+    printf("  show   [owner/]repo <name>           Show a variable's value\n");
+    printf("  set    [owner/]repo <name> --value V  Create or update a variable\n");
+    printf("  rm     [owner/]repo <name>            Delete a variable\n");
     printf("\nRun 'cb actions var <subcommand> --help' for details.\n");
 }
 
@@ -1565,7 +1567,7 @@ static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, CbGlob
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions secret list <owner/repo>\n\n");
+            printf("Usage: cb actions secret list [owner/]repo\n\n");
             printf("List action secrets (names only).\n");
             printf("  --json                  Output raw JSON\n");
             printf("  --help, -h              Show this help\n");
@@ -1573,7 +1575,7 @@ static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, CbGlob
         }
     }
     if (argc < 1) {
-        printf("Usage: cb actions secret list <owner/repo>\n\n");
+        printf("Usage: cb actions secret list [owner/]repo\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1598,7 +1600,7 @@ static int cmd_actions_secret_set(int argc, char **argv, ApiClient *api, CbGloba
     (void)gf;
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions secret set <owner/repo> <name> --value V\n\n");
+            printf("Usage: cb actions secret set [owner/]repo <name> --value V\n\n");
             printf("Create or update a secret.\n");
             printf("  --value V               Secret value\n");
             printf("  --help, -h              Show this help\n");
@@ -1606,7 +1608,7 @@ static int cmd_actions_secret_set(int argc, char **argv, ApiClient *api, CbGloba
         }
     }
     if (argc < 2) {
-        printf("Usage: cb actions secret set <owner/repo> <name> --value V\n\n");
+        printf("Usage: cb actions secret set [owner/]repo <name> --value V\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1637,7 +1639,7 @@ static int cmd_actions_secret_rm(int argc, char **argv, ApiClient *api, CbGlobal
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions secret rm <owner/repo> <name> [--yes]\n\n");
+            printf("Usage: cb actions secret rm [owner/]repo <name> [--yes]\n\n");
             printf("Delete a secret.\n");
             printf("  --yes                   Skip confirmation\n");
             printf("  --help, -h              Show this help\n");
@@ -1645,7 +1647,7 @@ static int cmd_actions_secret_rm(int argc, char **argv, ApiClient *api, CbGlobal
         }
     }
     if (argc < 2) {
-        printf("Usage: cb actions secret rm <owner/repo> <name> [--yes]\n\n");
+        printf("Usage: cb actions secret rm [owner/]repo <name> [--yes]\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1678,7 +1680,7 @@ static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions var list <owner/repo>\n\n");
+            printf("Usage: cb actions var list [owner/]repo\n\n");
             printf("List action variables.\n");
             printf("  --json                  Output raw JSON\n");
             printf("  --help, -h              Show this help\n");
@@ -1686,7 +1688,7 @@ static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, CbGlobalF
         }
     }
     if (argc < 1) {
-        printf("Usage: cb actions var list <owner/repo>\n\n");
+        printf("Usage: cb actions var list [owner/]repo\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1710,7 +1712,7 @@ static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions var show <owner/repo> <name>\n\n");
+            printf("Usage: cb actions var show [owner/]repo <name>\n\n");
             printf("Show a variable's value.\n");
             printf("  --json                  Output raw JSON\n");
             printf("  --help, -h              Show this help\n");
@@ -1718,7 +1720,7 @@ static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, CbGlobalF
         }
     }
     if (argc < 2) {
-        printf("Usage: cb actions var show <owner/repo> <name>\n\n");
+        printf("Usage: cb actions var show [owner/]repo <name>\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1743,7 +1745,7 @@ static int cmd_actions_var_set(int argc, char **argv, ApiClient *api, CbGlobalFl
     (void)gf;
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions var set <owner/repo> <name> --value V\n\n");
+            printf("Usage: cb actions var set [owner/]repo <name> --value V\n\n");
             printf("Create or update a variable.\n");
             printf("  --value V               Variable value\n");
             printf("  --help, -h              Show this help\n");
@@ -1751,7 +1753,7 @@ static int cmd_actions_var_set(int argc, char **argv, ApiClient *api, CbGlobalFl
         }
     }
     if (argc < 2) {
-        printf("Usage: cb actions var set <owner/repo> <name> --value V\n\n");
+        printf("Usage: cb actions var set [owner/]repo <name> --value V\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1782,7 +1784,7 @@ static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions var rm <owner/repo> <name> [--yes]\n\n");
+            printf("Usage: cb actions var rm [owner/]repo <name> [--yes]\n\n");
             printf("Delete a variable.\n");
             printf("  --yes                   Skip confirmation\n");
             printf("  --help, -h              Show this help\n");
@@ -1790,7 +1792,7 @@ static int cmd_actions_var_rm(int argc, char **argv, ApiClient *api, CbGlobalFla
         }
     }
     if (argc < 2) {
-        printf("Usage: cb actions var rm <owner/repo> <name> [--yes]\n\n");
+        printf("Usage: cb actions var rm [owner/]repo <name> [--yes]\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1825,7 +1827,7 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions jobs <owner/repo> <run-id>\n\n");
+            printf("Usage: cb actions jobs [owner/]repo <run-id>\n\n");
             printf("List jobs in a workflow run.\n\n");
             printf("Flags:\n");
             printf("  --json                  Output raw JSON\n");
@@ -1834,7 +1836,7 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, CbGlobalFlags
         }
     }
     if (argc < 2) {
-        printf("Usage: cb actions jobs <owner/repo> <run-id>\n\n");
+        printf("Usage: cb actions jobs [owner/]repo <run-id>\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -1895,7 +1897,7 @@ static int cmd_actions_log(int argc, char **argv, ApiClient *api, CbGlobalFlags 
     (void)gf;
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb actions log <owner/repo> <run-id> [job-index] [step-index]\n\n");
+            printf("Usage: cb actions log [owner/]repo <run-id> [job-index] [step-index]\n\n");
             printf("Show log output for a workflow run.\n");
             printf("If job-index is omitted, shows logs for job 0.\n");
             printf("If step-index is omitted, shows logs for all steps.\n");
@@ -1904,7 +1906,7 @@ static int cmd_actions_log(int argc, char **argv, ApiClient *api, CbGlobalFlags 
         }
     }
     if (argc < 2) {
-        printf("Usage: cb actions log <owner/repo> <run-id> [job-index] [step-index]\n\n");
+        printf("Usage: cb actions log [owner/]repo <run-id> [job-index] [step-index]\n\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -2203,7 +2205,7 @@ static const FlagDef HOOK_CREATE_FLAGS[] = {
 
 static void help_release(void)
 {
-    printf("Usage: cb release <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb release [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage releases.\n\n");
     printf("Subcommands:\n");
     printf("  list          List releases\n");
@@ -2220,7 +2222,7 @@ static void help_release(void)
 
 static void help_release_list(void)
 {
-    printf("Usage: cb release <owner/repo> list [flags]\n\n");
+    printf("Usage: cb release [owner/]repo list [flags]\n\n");
     printf("List releases.\n\n");
     printf("Flags:\n");
     print_flag_table(RELEASE_LIST_FLAGS);
@@ -2229,7 +2231,7 @@ static void help_release_list(void)
 
 static void help_release_create(void)
 {
-    printf("Usage: cb release <owner/repo> create --tag <tag> [flags]\n\n");
+    printf("Usage: cb release [owner/]repo create --tag <tag> [flags]\n\n");
     printf("Create a release.\n\n");
     printf("Flags:\n");
     print_flag_table(RELEASE_CREATE_FLAGS);
@@ -2238,7 +2240,7 @@ static void help_release_create(void)
 
 static void help_release_edit(void)
 {
-    printf("Usage: cb release <owner/repo> edit <id> [flags]\n\n");
+    printf("Usage: cb release [owner/]repo edit <id> [flags]\n\n");
     printf("Edit a release. Only provided flags are sent.\n\n");
     printf("Flags:\n");
     print_flag_table(RELEASE_EDIT_FLAGS);
@@ -2247,7 +2249,7 @@ static void help_release_edit(void)
 
 static void help_release_asset(void)
 {
-    printf("Usage: cb release <owner/repo> asset <subcommand> ...\n\n");
+    printf("Usage: cb release [owner/]repo asset <subcommand> ...\n\n");
     printf("Manage release assets.\n\n");
     printf("Subcommands:\n");
     printf("  list    <release-id>              List assets\n");
@@ -2260,7 +2262,7 @@ static void help_release_asset(void)
 
 static void help_tag(void)
 {
-    printf("Usage: cb tag <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb tag [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage tags.\n\n");
     printf("Subcommands:\n");
     printf("  list      List tags\n");
@@ -2272,7 +2274,7 @@ static void help_tag(void)
 
 static void help_branch(void)
 {
-    printf("Usage: cb branch <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb branch [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage branches.\n\n");
     printf("Subcommands:\n");
     printf("  list      List branches\n");
@@ -2285,7 +2287,7 @@ static void help_branch(void)
 
 static void help_issue(void)
 {
-    printf("Usage: cb issue <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb issue [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage issues.\n\n");
     printf("Subcommands:\n");
     printf("  list      List issues\n");
@@ -2305,7 +2307,7 @@ static void help_issue(void)
 
 static void help_label(void)
 {
-    printf("Usage: cb label <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb label [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage repository labels.\n\n");
     printf("Subcommands:\n");
     printf("  list      List labels\n");
@@ -2318,7 +2320,7 @@ static void help_label(void)
 
 static void help_milestone(void)
 {
-    printf("Usage: cb milestone <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb milestone [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage milestones.\n\n");
     printf("Subcommands:\n");
     printf("  list      List milestones\n");
@@ -2331,7 +2333,7 @@ static void help_milestone(void)
 
 static void help_pr(void)
 {
-    printf("Usage: cb pr <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb pr [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage pull requests.\n\n");
     printf("Subcommands:\n");
     printf("  list      List pull requests\n");
@@ -2351,7 +2353,7 @@ static void help_pr(void)
 
 static void help_commit(void)
 {
-    printf("Usage: cb commit <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb commit [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("View commits and commit statuses.\n\n");
     printf("Subcommands:\n");
     printf("  list      List commits\n");
@@ -2365,7 +2367,7 @@ static void help_commit(void)
 
 static void help_content(void)
 {
-    printf("Usage: cb content <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb content [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("View and manage repository file contents.\n\n");
     printf("Subcommands:\n");
     printf("  list      List directory contents\n");
@@ -2380,7 +2382,7 @@ static void help_content(void)
 
 static void help_key(void)
 {
-    printf("Usage: cb key <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb key [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage deploy keys.\n\n");
     printf("Subcommands:\n");
     printf("  list      List deploy keys\n");
@@ -2392,7 +2394,7 @@ static void help_key(void)
 
 static void help_collaborator(void)
 {
-    printf("Usage: cb collaborator <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb collaborator [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage collaborators.\n\n");
     printf("Subcommands:\n");
     printf("  list      List collaborators\n");
@@ -2404,7 +2406,7 @@ static void help_collaborator(void)
 
 static void help_fork(void)
 {
-    printf("Usage: cb fork <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb fork [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage forks.\n\n");
     printf("Subcommands:\n");
     printf("  list      List forks\n");
@@ -2414,7 +2416,7 @@ static void help_fork(void)
 
 static void help_hook(void)
 {
-    printf("Usage: cb hook <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb hook [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage webhooks.\n\n");
     printf("Subcommands:\n");
     printf("  list      List webhooks\n");
@@ -2428,7 +2430,7 @@ static void help_hook(void)
 
 static void help_wiki(void)
 {
-    printf("Usage: cb wiki <owner/repo> <subcommand> [args] [flags]\n\n");
+    printf("Usage: cb wiki [owner/]repo <subcommand> [args] [flags]\n\n");
     printf("Manage wiki pages.\n\n");
     printf("Subcommands:\n");
     printf("  list        List wiki pages\n");
@@ -2465,7 +2467,7 @@ static int require_owner_repo(const char *arg, char *owner, size_t owner_sz,
         if (cached_login[0])
             snprintf(owner, owner_sz, "%s", cached_login);
         else {
-            fprintf(stderr, "Error: please specify owner/repo\n");
+            fprintf(stderr, "Error: could not determine owner from token; please specify owner/repo\n");
             return -1;
         }
     }
@@ -3043,12 +3045,12 @@ static int cmd_release_show(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> show <id>\n");
+            printf("Usage: cb release [owner/]repo show <id>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: release show requires owner/repo and id\n");
+        fprintf(stderr, "Error: release show requires repo and id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3071,12 +3073,12 @@ static int cmd_release_latest(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> latest\n");
+            printf("Usage: cb release [owner/]repo latest\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: release latest requires owner/repo\n");
+        fprintf(stderr, "Error: release latest requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3198,12 +3200,12 @@ static int cmd_release_delete(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> delete <id> [--yes]\n");
+            printf("Usage: cb release [owner/]repo delete <id> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: release delete requires owner/repo and id\n");
+        fprintf(stderr, "Error: release delete requires repo and id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3229,12 +3231,12 @@ static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> by-tag <tag>\n");
+            printf("Usage: cb release [owner/]repo by-tag <tag>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: release by-tag requires owner/repo and tag\n");
+        fprintf(stderr, "Error: release by-tag requires repo and tag\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3256,12 +3258,12 @@ static int cmd_release_delete_by_tag(int argc, char **argv, ApiClient *api, CbGl
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> delete-tag <tag> [--yes]\n");
+            printf("Usage: cb release [owner/]repo delete-tag <tag> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: release delete-tag requires owner/repo and tag\n");
+        fprintf(stderr, "Error: release delete-tag requires repo and tag\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3286,12 +3288,12 @@ static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, CbGloba
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> asset list <release-id>\n");
+            printf("Usage: cb release [owner/]repo asset list <release-id>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: asset list requires owner/repo and release-id\n");
+        fprintf(stderr, "Error: asset list requires repo and release-id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3337,12 +3339,12 @@ static int cmd_release_asset_edit(int argc, char **argv, ApiClient *api, CbGloba
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> asset edit <release-id> <asset-id> --name <name>\n");
+            printf("Usage: cb release [owner/]repo asset edit <release-id> <asset-id> --name <name>\n");
             return CLI_OK;
         }
     }
     if (argc < 3) {
-        fprintf(stderr, "Error: asset edit requires owner/repo, release-id, and asset-id\n");
+        fprintf(stderr, "Error: asset edit requires repo, release-id, and asset-id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3392,12 +3394,12 @@ static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, CbGlo
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release <owner/repo> asset delete <release-id> <asset-id> [--yes]\n");
+            printf("Usage: cb release [owner/]repo asset delete <release-id> <asset-id> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 3) {
-        fprintf(stderr, "Error: asset delete requires owner/repo, release-id, and asset-id\n");
+        fprintf(stderr, "Error: asset delete requires repo, release-id, and asset-id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3485,12 +3487,12 @@ static int cmd_tag_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag <owner/repo> list [--limit N]\n");
+            printf("Usage: cb tag [owner/]repo list [--limit N]\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: tag list requires owner/repo\n");
+        fprintf(stderr, "Error: tag list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3513,7 +3515,7 @@ static int cmd_tag_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag <owner/repo> create --tag <tag> [--message <msg>] [--target <ref>]\n");
+            printf("Usage: cb tag [owner/]repo create --tag <tag> [--message <msg>] [--target <ref>]\n");
             return CLI_OK;
         }
     }
@@ -3524,7 +3526,7 @@ static int cmd_tag_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: tag create requires owner/repo\n");
+        fprintf(stderr, "Error: tag create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -3588,12 +3590,12 @@ static int cmd_tag_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag <owner/repo> show <tag>\n");
+            printf("Usage: cb tag [owner/]repo show <tag>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: tag show requires owner/repo and tag name\n");
+        fprintf(stderr, "Error: tag show requires repo and tag name\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3631,12 +3633,12 @@ static int cmd_tag_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag <owner/repo> delete <tag> [--yes]\n");
+            printf("Usage: cb tag [owner/]repo delete <tag> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: tag delete requires owner/repo and tag name\n");
+        fprintf(stderr, "Error: tag delete requires repo and tag name\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3689,12 +3691,12 @@ static int cmd_branch_list(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch <owner/repo> list\n");
+            printf("Usage: cb branch [owner/]repo list\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: branch list requires owner/repo\n");
+        fprintf(stderr, "Error: branch list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3717,7 +3719,7 @@ static int cmd_branch_create(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch <owner/repo> create --name <name> [--from <ref>]\n");
+            printf("Usage: cb branch [owner/]repo create --name <name> [--from <ref>]\n");
             return CLI_OK;
         }
     }
@@ -3728,7 +3730,7 @@ static int cmd_branch_create(int argc, char **argv, ApiClient *api, CbGlobalFlag
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: branch create requires owner/repo\n");
+        fprintf(stderr, "Error: branch create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -3787,12 +3789,12 @@ static int cmd_branch_show(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch <owner/repo> show <branch>\n");
+            printf("Usage: cb branch [owner/]repo show <branch>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: branch show requires owner/repo and branch name\n");
+        fprintf(stderr, "Error: branch show requires repo and branch name\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3829,7 +3831,7 @@ static int cmd_branch_rename(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch <owner/repo> rename <branch> --name <new-name>\n");
+            printf("Usage: cb branch [owner/]repo rename <branch> --name <new-name>\n");
             return CLI_OK;
         }
     }
@@ -3840,7 +3842,7 @@ static int cmd_branch_rename(int argc, char **argv, ApiClient *api, CbGlobalFlag
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 2) {
-        fprintf(stderr, "Error: branch rename requires owner/repo and branch name\n");
+        fprintf(stderr, "Error: branch rename requires repo and branch name\n");
         free(positional);
         free(fv);
         free(fb);
@@ -3884,12 +3886,12 @@ static int cmd_branch_delete(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch <owner/repo> delete <branch> [--yes]\n");
+            printf("Usage: cb branch [owner/]repo delete <branch> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: branch delete requires owner/repo and branch name\n");
+        fprintf(stderr, "Error: branch delete requires repo and branch name\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -3944,7 +3946,7 @@ static int cmd_issue_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> list [--state open|closed|all] [--labels l1,l2] [--limit N]\n");
+            printf("Usage: cb issue [owner/]repo list [--state open|closed|all] [--labels l1,l2] [--limit N]\n");
             return CLI_OK;
         }
     }
@@ -3955,7 +3957,7 @@ static int cmd_issue_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: issue list requires owner/repo\n");
+        fprintf(stderr, "Error: issue list requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -4007,7 +4009,7 @@ static int cmd_issue_create(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> create --title <title> [--body <body>] [--label <id>]\n");
+            printf("Usage: cb issue [owner/]repo create --title <title> [--body <body>] [--label <id>]\n");
             return CLI_OK;
         }
     }
@@ -4018,7 +4020,7 @@ static int cmd_issue_create(int argc, char **argv, ApiClient *api, CbGlobalFlags
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: issue create requires owner/repo\n");
+        fprintf(stderr, "Error: issue create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -4073,12 +4075,12 @@ static int cmd_issue_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> show <number>\n");
+            printf("Usage: cb issue [owner/]repo show <number>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: issue show requires owner/repo and issue number\n");
+        fprintf(stderr, "Error: issue show requires repo and issue number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4101,7 +4103,7 @@ static int cmd_issue_edit(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> edit <number> [--title <title>] [--body <body>] [--state open|closed]\n");
+            printf("Usage: cb issue [owner/]repo edit <number> [--title <title>] [--body <body>] [--state open|closed]\n");
             return CLI_OK;
         }
     }
@@ -4112,7 +4114,7 @@ static int cmd_issue_edit(int argc, char **argv, ApiClient *api, CbGlobalFlags *
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 2) {
-        fprintf(stderr, "Error: issue edit requires owner/repo and issue number\n");
+        fprintf(stderr, "Error: issue edit requires repo and issue number\n");
         free(positional);
         free(fv);
         free(fb);
@@ -4171,12 +4173,12 @@ static int cmd_issue_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> delete <number> [--yes]\n");
+            printf("Usage: cb issue [owner/]repo delete <number> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: issue delete requires owner/repo and issue number\n");
+        fprintf(stderr, "Error: issue delete requires repo and issue number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4202,12 +4204,12 @@ static int cmd_issue_close(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> close <number>\n");
+            printf("Usage: cb issue [owner/]repo close <number>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: issue close requires owner/repo and issue number\n");
+        fprintf(stderr, "Error: issue close requires repo and issue number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4234,12 +4236,12 @@ static int cmd_issue_reopen(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> reopen <number>\n");
+            printf("Usage: cb issue [owner/]repo reopen <number>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: issue reopen requires owner/repo and issue number\n");
+        fprintf(stderr, "Error: issue reopen requires repo and issue number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4266,12 +4268,12 @@ static int cmd_issue_comment(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> comment <number> --body <text>\n");
+            printf("Usage: cb issue [owner/]repo comment <number> --body <text>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: issue comment requires owner/repo and issue number\n");
+        fprintf(stderr, "Error: issue comment requires repo and issue number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4302,12 +4304,12 @@ static int cmd_issue_label_add(int argc, char **argv, ApiClient *api, CbGlobalFl
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> label add <number> <label_id> [<label_id>...]\n");
+            printf("Usage: cb issue [owner/]repo label add <number> <label_id> [<label_id>...]\n");
             return CLI_OK;
         }
     }
     if (argc < 3) {
-        fprintf(stderr, "Error: issue label add requires owner/repo, issue number, and label IDs\n");
+        fprintf(stderr, "Error: issue label add requires repo, issue number, and label IDs\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4334,12 +4336,12 @@ static int cmd_issue_label_clear(int argc, char **argv, ApiClient *api, CbGlobal
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue <owner/repo> label clear <number>\n");
+            printf("Usage: cb issue [owner/]repo label clear <number>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: issue label clear requires owner/repo and issue number\n");
+        fprintf(stderr, "Error: issue label clear requires repo and issue number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4400,14 +4402,14 @@ static int cmd_issue(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     }
     if (strcmp(sub, "label") == 0) {
         if (rest_argc < 1) {
-            printf("Usage: cb issue <owner/repo> label <add|set|rm|clear> ...\n");
+            printf("Usage: cb issue [owner/]repo label <add|set|rm|clear> ...\n");
             return CLI_USAGE;
         }
         const char *lsub = rest_argv[0];
         int l_argc = rest_argc - 1;
         char **l_argv = rest_argv + 1;
         if (is_help_arg(lsub)) {
-            printf("Usage: cb issue <owner/repo> label <add|set|rm|clear> ...\n");
+            printf("Usage: cb issue [owner/]repo label <add|set|rm|clear> ...\n");
             return CLI_OK;
         }
         if (strcmp(lsub, "add") == 0)
@@ -4428,12 +4430,12 @@ static int cmd_label_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb label <owner/repo> list\n");
+            printf("Usage: cb label [owner/]repo list\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: label list requires owner/repo\n");
+        fprintf(stderr, "Error: label list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4456,7 +4458,7 @@ static int cmd_label_create(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb label <owner/repo> create --name <name> --color <hex> [--description <desc>]\n");
+            printf("Usage: cb label [owner/]repo create --name <name> --color <hex> [--description <desc>]\n");
             return CLI_OK;
         }
     }
@@ -4467,7 +4469,7 @@ static int cmd_label_create(int argc, char **argv, ApiClient *api, CbGlobalFlags
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: label create requires owner/repo\n");
+        fprintf(stderr, "Error: label create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -4528,12 +4530,12 @@ static int cmd_label_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb label <owner/repo> delete <id> [--yes]\n");
+            printf("Usage: cb label [owner/]repo delete <id> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: label delete requires owner/repo and label id\n");
+        fprintf(stderr, "Error: label delete requires repo and label id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4585,12 +4587,12 @@ static int cmd_milestone_list(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb milestone <owner/repo> list [--state open|closed|all]\n");
+            printf("Usage: cb milestone [owner/]repo list [--state open|closed|all]\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: milestone list requires owner/repo\n");
+        fprintf(stderr, "Error: milestone list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4618,7 +4620,7 @@ static int cmd_milestone_create(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb milestone <owner/repo> create --title <title> [--description <desc>] [--due <date>]\n");
+            printf("Usage: cb milestone [owner/]repo create --title <title> [--description <desc>] [--due <date>]\n");
             return CLI_OK;
         }
     }
@@ -4629,7 +4631,7 @@ static int cmd_milestone_create(int argc, char **argv, ApiClient *api, CbGlobalF
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: milestone create requires owner/repo\n");
+        fprintf(stderr, "Error: milestone create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -4685,12 +4687,12 @@ static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb milestone <owner/repo> delete <id> [--yes]\n");
+            printf("Usage: cb milestone [owner/]repo delete <id> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: milestone delete requires owner/repo and milestone id\n");
+        fprintf(stderr, "Error: milestone delete requires repo and milestone id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4742,12 +4744,12 @@ static int cmd_pr_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr <owner/repo> list [--state open|closed|all] [--limit N]\n");
+            printf("Usage: cb pr [owner/]repo list [--state open|closed|all] [--limit N]\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: pr list requires owner/repo\n");
+        fprintf(stderr, "Error: pr list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4778,7 +4780,7 @@ static int cmd_pr_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr <owner/repo> create --title <title> --head <branch> [--base <branch>] [--body <body>]\n");
+            printf("Usage: cb pr [owner/]repo create --title <title> --head <branch> [--base <branch>] [--body <body>]\n");
             return CLI_OK;
         }
     }
@@ -4789,7 +4791,7 @@ static int cmd_pr_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: pr create requires owner/repo\n");
+        fprintf(stderr, "Error: pr create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -4852,12 +4854,12 @@ static int cmd_pr_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr <owner/repo> show <number>\n");
+            printf("Usage: cb pr [owner/]repo show <number>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: pr show requires owner/repo and PR number\n");
+        fprintf(stderr, "Error: pr show requires repo and PR number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4880,12 +4882,12 @@ static int cmd_pr_close(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr <owner/repo> close <number>\n");
+            printf("Usage: cb pr [owner/]repo close <number>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: pr close requires owner/repo and PR number\n");
+        fprintf(stderr, "Error: pr close requires repo and PR number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4912,12 +4914,12 @@ static int cmd_pr_reopen(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr <owner/repo> reopen <number>\n");
+            printf("Usage: cb pr [owner/]repo reopen <number>\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: pr reopen requires owner/repo and PR number\n");
+        fprintf(stderr, "Error: pr reopen requires repo and PR number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -4944,12 +4946,12 @@ static int cmd_pr_merge(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr <owner/repo> merge <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]\n");
+            printf("Usage: cb pr [owner/]repo merge <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: pr merge requires owner/repo and PR number\n");
+        fprintf(stderr, "Error: pr merge requires repo and PR number\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5023,7 +5025,7 @@ static int cmd_commit_list(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb commit <owner/repo> list [--sha <ref>] [--path <path>] [--limit N]\n");
+            printf("Usage: cb commit [owner/]repo list [--sha <ref>] [--path <path>] [--limit N]\n");
             return CLI_OK;
         }
     }
@@ -5034,7 +5036,7 @@ static int cmd_commit_list(int argc, char **argv, ApiClient *api, CbGlobalFlags 
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: commit list requires owner/repo\n");
+        fprintf(stderr, "Error: commit list requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -5110,12 +5112,12 @@ static int cmd_content_list(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb content <owner/repo> list [--ref <ref>]\n");
+            printf("Usage: cb content [owner/]repo list [--ref <ref>]\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: content list requires owner/repo\n");
+        fprintf(stderr, "Error: content list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5171,12 +5173,12 @@ static int cmd_key_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb key <owner/repo> list\n");
+            printf("Usage: cb key [owner/]repo list\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: key list requires owner/repo\n");
+        fprintf(stderr, "Error: key list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5199,7 +5201,7 @@ static int cmd_key_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb key <owner/repo> add --title <title> --key <key> [--read-only]\n");
+            printf("Usage: cb key [owner/]repo add --title <title> --key <key> [--read-only]\n");
             return CLI_OK;
         }
     }
@@ -5210,7 +5212,7 @@ static int cmd_key_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: key add requires owner/repo\n");
+        fprintf(stderr, "Error: key add requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -5270,12 +5272,12 @@ static int cmd_key_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb key <owner/repo> delete <id> [--yes]\n");
+            printf("Usage: cb key [owner/]repo delete <id> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: key delete requires owner/repo and key id\n");
+        fprintf(stderr, "Error: key delete requires repo and key id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5327,12 +5329,12 @@ static int cmd_collaborator_list(int argc, char **argv, ApiClient *api, CbGlobal
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb collaborator <owner/repo> list\n");
+            printf("Usage: cb collaborator [owner/]repo list\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: collaborator list requires owner/repo\n");
+        fprintf(stderr, "Error: collaborator list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5371,7 +5373,7 @@ static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb collaborator <owner/repo> add <username> [--permission read|write|admin]\n");
+            printf("Usage: cb collaborator [owner/]repo add <username> [--permission read|write|admin]\n");
             return CLI_OK;
         }
     }
@@ -5382,7 +5384,7 @@ static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, CbGlobalF
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 2) {
-        fprintf(stderr, "Error: collaborator add requires owner/repo and username\n");
+        fprintf(stderr, "Error: collaborator add requires repo and username\n");
         free(positional);
         free(fv);
         free(fb);
@@ -5420,12 +5422,12 @@ static int cmd_collaborator_rm(int argc, char **argv, ApiClient *api, CbGlobalFl
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb collaborator <owner/repo> rm <username> [--yes]\n");
+            printf("Usage: cb collaborator [owner/]repo rm <username> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: collaborator rm requires owner/repo and username\n");
+        fprintf(stderr, "Error: collaborator rm requires repo and username\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5480,12 +5482,12 @@ static int cmd_fork_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb fork <owner/repo> list\n");
+            printf("Usage: cb fork [owner/]repo list\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: fork list requires owner/repo\n");
+        fprintf(stderr, "Error: fork list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5508,7 +5510,7 @@ static int cmd_fork_create(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb fork <owner/repo> create [--name <repo-name>] [--org <organization>]\n");
+            printf("Usage: cb fork [owner/]repo create [--name <repo-name>] [--org <organization>]\n");
             return CLI_OK;
         }
     }
@@ -5519,7 +5521,7 @@ static int cmd_fork_create(int argc, char **argv, ApiClient *api, CbGlobalFlags 
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: fork create requires owner/repo\n");
+        fprintf(stderr, "Error: fork create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -5587,12 +5589,12 @@ static int cmd_hook_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb hook <owner/repo> list\n");
+            printf("Usage: cb hook [owner/]repo list\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: hook list requires owner/repo\n");
+        fprintf(stderr, "Error: hook list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5615,7 +5617,7 @@ static int cmd_hook_create(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb hook <owner/repo> create --type <type> --url <url> [--event <event>] [--active]\n");
+            printf("Usage: cb hook [owner/]repo create --type <type> --url <url> [--event <event>] [--active]\n");
             return CLI_OK;
         }
     }
@@ -5626,7 +5628,7 @@ static int cmd_hook_create(int argc, char **argv, ApiClient *api, CbGlobalFlags 
     if (npos < 0)
         return CLI_USAGE;
     if (npos < 1) {
-        fprintf(stderr, "Error: hook create requires owner/repo\n");
+        fprintf(stderr, "Error: hook create requires repo\n");
         free(positional);
         free(fv);
         free(fb);
@@ -5699,12 +5701,12 @@ static int cmd_hook_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb hook <owner/repo> delete <id> [--yes]\n");
+            printf("Usage: cb hook [owner/]repo delete <id> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: hook delete requires owner/repo and hook id\n");
+        fprintf(stderr, "Error: hook delete requires repo and hook id\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5761,12 +5763,12 @@ static int cmd_wiki_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb wiki <owner/repo> list\n");
+            printf("Usage: cb wiki [owner/]repo list\n");
             return CLI_OK;
         }
     }
     if (argc < 1) {
-        fprintf(stderr, "Error: wiki list requires owner/repo\n");
+        fprintf(stderr, "Error: wiki list requires repo\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -5789,12 +5791,12 @@ static int cmd_wiki_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb wiki <owner/repo> delete <pageName> [--yes]\n");
+            printf("Usage: cb wiki [owner/]repo delete <pageName> [--yes]\n");
             return CLI_OK;
         }
     }
     if (argc < 2) {
-        fprintf(stderr, "Error: wiki delete requires owner/repo and page name\n");
+        fprintf(stderr, "Error: wiki delete requires repo and page name\n");
         return CLI_USAGE;
     }
     char owner[128], repo[128];
@@ -6056,7 +6058,9 @@ void cli_print_help(const char *cmd)
         printf("  hook           Manage webhooks (list, create, show, edit, delete, test)\n");
         printf("  org            Organization management (create)\n");
         printf("  wiki           Manage wiki pages (list, create, show, edit, delete, revisions)\n");
-        printf("\nGlobal flags:\n");
+        printf("\nWhere [owner/]repo appears, the owner/ prefix is optional\n"
+               "and defaults to the authenticated user.\n\n");
+        printf("Global flags:\n");
         printf("  --json          Output raw JSON\n");
         printf("  --quiet, -q     Suppress non-essential output\n");
         printf("  --base-url URL  Override API base URL\n");
