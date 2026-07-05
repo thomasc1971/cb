@@ -50,6 +50,9 @@ stamp-h1
 version
 src/cb_version.h
 
+# Generated completions
+completions/
+
 # Test artifacts
 tests/*.log
 tests/*.trs

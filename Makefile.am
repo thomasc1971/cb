@@ -4,6 +4,7 @@ SUBDIRS = src tests
 EXTRA_DIST = \
     autogen.sh \
     build-aux/git-version.sh \
+    build-aux/gen-completions.sh \
     version
 
 # Stamp the version file into the dist tarball so tarball builds can read it
@@ -28,8 +29,17 @@ format:
 	    echo "prettier not found - skipping Markdown formatting." >&2; \
 	fi
 
+completions:
+	@CB=$(top_builddir)/src/cb; \
+	if [ ! -x "$$CB" ]; then \
+	    echo "Building cb first..."; \
+	    $(MAKE) -C src cb; \
+	    CB=$(top_builddir)/src/cb; \
+	fi; \
+	$(SHELL) "$(top_srcdir)/build-aux/gen-completions.sh" "$$CB" "$(top_builddir)/completions"
+
 bear:
 	@command -v bear >/dev/null 2>&1 || { echo "bear not found — install bear (e.g. dnf install bear)" >&2; exit 1; }
 	bear -- $(MAKE)
 
-.PHONY: format bear
+.PHONY: format bear completions

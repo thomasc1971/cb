@@ -34,6 +34,48 @@
 static int require_owner_repo(const char *arg, char *owner, size_t owner_sz,
                               char *repo, size_t repo_sz, ApiClient *api);
 
+/* Forward declarations for help wrappers (defined after command tree) */
+static void help_repo(void);
+static void help_repo_create(void);
+static void help_repo_delete(void);
+static void help_repo_rename(void);
+static void help_repo_edit(void);
+static void help_repo_show(void);
+static void help_repo_list(void);
+static void help_repo_transfer(void);
+static void help_repo_topic(void);
+static void help_topic_add(void);
+static void help_topic_rm(void);
+static void help_topic_list(void);
+static void help_topic_set(void);
+static void help_org(void);
+static void help_org_create(void);
+static void help_actions(void);
+static void help_actions_list(void);
+static void help_actions_show(void);
+static void help_actions_runners(void);
+static void help_actions_dispatch(void);
+static void help_actions_secret(void);
+static void help_actions_var(void);
+static void help_release(void);
+static void help_release_list(void);
+static void help_release_create(void);
+static void help_release_edit(void);
+static void help_release_asset(void);
+static void help_tag(void);
+static void help_branch(void);
+static void help_issue(void);
+static void help_label(void);
+static void help_milestone(void);
+static void help_pr(void);
+static void help_commit(void);
+static void help_content(void);
+static void help_key(void);
+static void help_collaborator(void);
+static void help_fork(void);
+static void help_hook(void);
+static void help_wiki(void);
+
 /* ===== Flag parsing ===== */
 
 typedef struct
@@ -125,19 +167,6 @@ static int is_help_arg(const char *arg)
     return strcmp(arg, "--help") == 0 || strcmp(arg, "-h") == 0;
 }
 
-/* Print all flags in a table as aligned "  --name, -alias  description" lines. */
-static void print_flag_table(const FlagDef *table)
-{
-    for (int i = 0; table[i].name; i++) {
-        if (strcmp(table[i].name, "--help") == 0)
-            continue;
-        if (table[i].alias)
-            printf("  %s, %s\n", table[i].name, table[i].alias);
-        else
-            printf("  %s\n", table[i].name);
-    }
-}
-
 /* Check if a string matches a flag definition (by name or alias). */
 static int matches_flag(const char *arg, const FlagDef *def)
 {
@@ -162,148 +191,6 @@ static int find_flag(const char *arg, const FlagDef *table)
 static int is_global_flag(const char *arg)
 {
     return find_flag(arg, GLOBAL_FLAGS) >= 0;
-}
-
-/* ===== Help text ===== */
-
-static void help_repo_create(void)
-{
-    printf("Usage: cb repo create <name> [flags]\n\n");
-    printf("Create a new repository.\n\n");
-    printf("Flags:\n");
-    print_flag_table(CREATE_FLAGS);
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo_delete(void)
-{
-    printf("Usage: cb repo delete [owner/]repo [--yes]\n\n");
-    printf("Delete a repository. Requires --yes or interactive confirmation.\n\n");
-    printf("Flags:\n");
-    printf("  --yes                   Skip confirmation prompt\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo_rename(void)
-{
-    printf("Usage: cb repo rename [owner/]repo <new-name>\n\n");
-    printf("Rename a repository.\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo_edit(void)
-{
-    printf("Usage: cb repo edit [owner/]repo [flags]\n\n");
-    printf("Edit repository settings. Only provided flags are sent; unset\n");
-    printf("fields are not modified.\n\n");
-    printf("Flags:\n");
-    print_flag_table(EDIT_FLAGS);
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo_show(void)
-{
-    printf("Usage: cb repo show [owner/]repo\n\n");
-    printf("Show repository details.\n\n");
-    printf("Flags:\n");
-    printf("  --json                  Output raw JSON\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo_list(void)
-{
-    printf("Usage: cb repo list [--user U | --org O]\n\n");
-    printf("List repositories. With no flags, lists your own repos.\n\n");
-    printf("Flags:\n");
-    printf("  --user U                List repos for a specific user\n");
-    printf("  --org O                 List repos for an organization\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo_transfer(void)
-{
-    printf("Usage: cb repo transfer [owner/]repo <new-owner> [--yes]\n\n");
-    printf("Transfer a repository to a new owner. Requires --yes or\n");
-    printf("interactive confirmation.\n\n");
-    printf("Flags:\n");
-    printf("  --yes                   Skip confirmation prompt\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo_topic(void)
-{
-    printf("Usage: cb repo topic <add|rm|list|set> ...\n\n");
-    printf("Manage repository topics.\n\n");
-    printf("Subcommands:\n");
-    printf("  add    [owner/]repo <topic>          Add a topic\n");
-    printf("  rm     [owner/]repo <topic>          Remove a topic\n");
-    printf("  list   [owner/]repo                  List topics\n");
-    printf("  set    [owner/]repo <t1,t2,...>      Replace all topics\n");
-    printf("\nRun 'cb repo topic <subcommand> --help' for details.\n");
-}
-
-static void help_topic_add(void)
-{
-    printf("Usage: cb repo topic add [owner/]repo <topic>\n\n");
-    printf("Add a topic to a repository.\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_topic_rm(void)
-{
-    printf("Usage: cb repo topic rm [owner/]repo <topic>\n\n");
-    printf("Remove a topic from a repository.\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_topic_list(void)
-{
-    printf("Usage: cb repo topic list [owner/]repo\n\n");
-    printf("List topics on a repository.\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_topic_set(void)
-{
-    printf("Usage: cb repo topic set [owner/]repo <topic1,topic2,...>\n\n");
-    printf("Replace all topics on a repository with the given list.\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_repo(void)
-{
-    printf("Usage: cb repo <subcommand> [args] [flags]\n\n");
-    printf("Repository management.\n\n");
-    printf("Subcommands:\n");
-    printf("  create     Create a new repository\n");
-    printf("  delete     Delete a repository\n");
-    printf("  rename     Rename a repository\n");
-    printf("  edit       Edit repository settings\n");
-    printf("  show       Show repository details\n");
-    printf("  list       List repositories\n");
-    printf("  transfer   Transfer ownership\n");
-    printf("  topic      Manage topics (add, rm, list, set)\n");
-    printf("\nWhere [owner/]repo appears, the owner/ prefix is optional\n"
-           "and defaults to the authenticated user.\n\n");
-    printf("Run 'cb repo <subcommand> --help' for details.\n");
-}
-
-static void help_org_create(void)
-{
-    printf("Usage: cb org create <name> [flags]\n\n");
-    printf("Create a new organization.\n\n");
-    printf("Flags:\n");
-    print_flag_table(ORG_CREATE_FLAGS);
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_org(void)
-{
-    printf("Usage: cb org <subcommand> [args] [flags]\n\n");
-    printf("Organization management.\n\n");
-    printf("Subcommands:\n");
-    printf("  create     Create a new organization\n");
-    printf("\nRun 'cb org <subcommand> --help' for details.\n");
 }
 
 /* ===== Output helpers ===== */
@@ -1152,83 +1039,6 @@ static int cmd_topic_set(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
     free(topics);
     free(topics_str);
     return CLI_OK;
-}
-
-/* ===== Actions (CI/CD) help text ===== */
-
-static void help_actions(void)
-{
-    printf("Usage: cb actions [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage CI/CD actions for a repository.\n\n");
-    printf("Subcommands:\n");
-    printf("  list       [owner/]repo                  List recent workflow runs\n");
-    printf("  show       [owner/]repo <run-id>          Show details of a run\n");
-    printf("  runners    [owner/]repo                   List available runners\n");
-    printf("  dispatch   [owner/]repo <workflow>        Trigger a workflow\n");
-    printf("  jobs       [owner/]repo <run-id>          List jobs in a run\n");
-    printf("  log        [owner/]repo <run-id> [job]    Show log output for a run\n");
-    printf("  secret     list|set|rm                    Manage secrets\n");
-    printf("  var        list|show|set|rm               Manage variables\n");
-    printf("\nRun 'cb actions <subcommand> --help' for details.\n");
-}
-
-static void help_actions_list(void)
-{
-    printf("Usage: cb actions list [owner/]repo\n\n");
-    printf("List recent workflow runs.\n\n");
-    printf("Flags:\n");
-    printf("  --json                  Output raw JSON\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_actions_show(void)
-{
-    printf("Usage: cb actions show [owner/]repo <run-id>\n\n");
-    printf("Show details of a specific workflow run.\n\n");
-    printf("Flags:\n");
-    printf("  --json                  Output raw JSON\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_actions_runners(void)
-{
-    printf("Usage: cb actions runners [owner/]repo\n\n");
-    printf("List CI runners available to this repository.\n\n");
-    printf("Flags:\n");
-    printf("  --json                  Output raw JSON\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_actions_dispatch(void)
-{
-    printf("Usage: cb actions dispatch [owner/]repo <workflow-file>\n\n");
-    printf("Trigger a workflow run.\n\n");
-    printf("Flags:\n");
-    printf("  --ref REF               Git ref to dispatch on (default: master)\n");
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_actions_secret(void)
-{
-    printf("Usage: cb actions secret <list|set|rm> [owner/]repo [args]\n\n");
-    printf("Manage repository action secrets.\n\n");
-    printf("Subcommands:\n");
-    printf("  list   [owner/]repo                  List secret names\n");
-    printf("  set    [owner/]repo <name> --value V  Create or update a secret\n");
-    printf("  rm     [owner/]repo <name>            Delete a secret\n");
-    printf("\nRun 'cb actions secret <subcommand> --help' for details.\n");
-}
-
-static void help_actions_var(void)
-{
-    printf("Usage: cb actions var <list|show|set|rm> [owner/]repo [args]\n\n");
-    printf("Manage repository action variables.\n\n");
-    printf("Subcommands:\n");
-    printf("  list   [owner/]repo                  List variables\n");
-    printf("  show   [owner/]repo <name>           Show a variable's value\n");
-    printf("  set    [owner/]repo <name> --value V  Create or update a variable\n");
-    printf("  rm     [owner/]repo <name>            Delete a variable\n");
-    printf("\nRun 'cb actions var <subcommand> --help' for details.\n");
 }
 
 /* ===== Actions output helpers ===== */
@@ -2201,245 +2011,802 @@ static const FlagDef HOOK_CREATE_FLAGS[] = {
     { NULL, NULL, 0 }
 };
 
-/* ===== New command help text ===== */
+/* ===== Command tree (single source of truth for --help and --help-spec) ===== */
 
-static void help_release(void)
+typedef struct Cmd Cmd;
+typedef struct SubCmd SubCmd;
+
+struct SubCmd
 {
-    printf("Usage: cb release [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage releases.\n\n");
-    printf("Subcommands:\n");
-    printf("  list          List releases\n");
-    printf("  create        Create a release\n");
-    printf("  show          Show a release by ID\n");
-    printf("  latest        Show latest release\n");
-    printf("  edit          Edit a release\n");
-    printf("  delete        Delete a release\n");
-    printf("  by-tag        Show release by tag name\n");
-    printf("  delete-tag    Delete release by tag name\n");
-    printf("  asset         Manage release assets (list, upload, show, edit, delete)\n");
-    printf("\nRun 'cb release <subcommand> --help' for details.\n");
+    const char *name;      /* subcommand name, e.g. "create" */
+    const char *desc;      /* short description for help listing */
+    const char *usage;     /* full usage line, e.g. "cb repo create <name> [flags]" */
+    const char *help_text; /* extra help paragraph (may be NULL) */
+    const FlagDef *flags;  /* flag table (NULL = no flags beyond --help) */
+    const SubCmd *subsubs; /* nested subcommands (NULL = leaf command) */
+};
+
+struct Cmd
+{
+    const char *name;      /* top-level command, e.g. "repo" */
+    const char *desc;      /* short description for top-level listing */
+    const char *usage;     /* full usage line */
+    const char *help_text; /* extra help paragraph (may be NULL) */
+    const SubCmd *subs;    /* subcommands (NULL = leaf, but all top-level have subs) */
+};
+
+static const SubCmd TOPIC_SUBS[] = {
+    { "add", "Add a topic",
+      "cb repo topic add [owner/]repo <topic>",
+      "Add a topic to a repository.", NULL, NULL },
+    { "rm", "Remove a topic",
+      "cb repo topic rm [owner/]repo <topic>",
+      "Remove a topic from a repository.", NULL, NULL },
+    { "list", "List topics",
+      "cb repo topic list [owner/]repo",
+      "List topics on a repository.", NULL, NULL },
+    { "set", "Replace all topics",
+      "cb repo topic set [owner/]repo <topic1,topic2,...>",
+      "Replace all topics on a repository with the given list.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd REPO_SUBS[] = {
+    { "create", "Create a new repository",
+      "cb repo create <name> [flags]",
+      "Create a new repository.", CREATE_FLAGS, NULL },
+    { "delete", "Delete a repository",
+      "cb repo delete [owner/]repo [--yes]",
+      "Delete a repository. Requires --yes or interactive confirmation.", NULL, NULL },
+    { "rename", "Rename a repository",
+      "cb repo rename [owner/]repo <new-name>",
+      "Rename a repository.", NULL, NULL },
+    { "edit", "Edit repository settings",
+      "cb repo edit [owner/]repo [flags]",
+      "Edit repository settings. Only provided flags are sent; unset\n"
+      "fields are not modified.",
+      EDIT_FLAGS, NULL },
+    { "show", "Show repository details",
+      "cb repo show [owner/]repo",
+      "Show repository details.", NULL, NULL },
+    { "list", "List repositories",
+      "cb repo list [--user U | --org O]",
+      "List repositories. With no flags, lists your own repos.", NULL, NULL },
+    { "transfer", "Transfer ownership",
+      "cb repo transfer [owner/]repo <new-owner> [--yes]",
+      "Transfer a repository to a new owner. Requires --yes or\n"
+      "interactive confirmation.",
+      NULL, NULL },
+    { "topic", "Manage topics (add, rm, list, set)",
+      "cb repo topic <add|rm|list|set> ...",
+      "Manage repository topics.", NULL, TOPIC_SUBS },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd ACTIONS_SECRET_SUBS[] = {
+    { "list", "List secret names",
+      "cb actions secret list [owner/]repo",
+      "List action secrets (names only).", NULL, NULL },
+    { "set", "Create or update a secret",
+      "cb actions secret set [owner/]repo <name> --value V",
+      "Create or update a secret.", NULL, NULL },
+    { "rm", "Delete a secret",
+      "cb actions secret rm [owner/]repo <name> [--yes]",
+      "Delete a secret.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd ACTIONS_VAR_SUBS[] = {
+    { "list", "List variables",
+      "cb actions var list [owner/]repo",
+      "List action variables.", NULL, NULL },
+    { "show", "Show a variable's value",
+      "cb actions var show [owner/]repo <name>",
+      "Show a variable's value.", NULL, NULL },
+    { "set", "Create or update a variable",
+      "cb actions var set [owner/]repo <name> --value V",
+      "Create or update a variable.", NULL, NULL },
+    { "rm", "Delete a variable",
+      "cb actions var rm [owner/]repo <name> [--yes]",
+      "Delete a variable.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd ACTIONS_SUBS[] = {
+    { "list", "List recent workflow runs",
+      "cb actions list [owner/]repo",
+      "List recent workflow runs.", NULL, NULL },
+    { "show", "Show details of a run",
+      "cb actions show [owner/]repo <run-id>",
+      "Show details of a specific workflow run.", NULL, NULL },
+    { "runners", "List available runners",
+      "cb actions runners [owner/]repo",
+      "List CI runners available to this repository.", NULL, NULL },
+    { "dispatch", "Trigger a workflow",
+      "cb actions dispatch [owner/]repo <workflow-file>",
+      "Trigger a workflow run.", NULL, NULL },
+    { "jobs", "List jobs in a run",
+      "cb actions jobs [owner/]repo <run-id>",
+      "List jobs in a workflow run.", NULL, NULL },
+    { "log", "Show log output for a run",
+      "cb actions log [owner/]repo <run-id> [job-index] [step-index]",
+      "Show log output for a workflow run.\n"
+      "If job-index is omitted, shows logs for job 0.\n"
+      "If step-index is omitted, shows logs for all steps.",
+      NULL, NULL },
+    { "secret", "Manage secrets",
+      "cb actions secret <list|set|rm> [owner/]repo [args]",
+      "Manage repository action secrets.", NULL, ACTIONS_SECRET_SUBS },
+    { "var", "Manage variables",
+      "cb actions var <list|show|set|rm> [owner/]repo [args]",
+      "Manage repository action variables.", NULL, ACTIONS_VAR_SUBS },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd RELEASE_ASSET_SUBS[] = {
+    { "list", "List assets",
+      "cb release [owner/]repo asset list <release-id>",
+      "List assets for a release.", NULL, NULL },
+    { "upload", "Upload a file",
+      "cb release [owner/]repo asset upload <release-id> --file <path>",
+      "Upload a file as a release asset.", NULL, NULL },
+    { "show", "Show asset",
+      "cb release [owner/]repo asset show <release-id> <asset-id>",
+      "Show details of a release asset.", NULL, NULL },
+    { "edit", "Edit asset",
+      "cb release [owner/]repo asset edit <release-id> <asset-id> --name <name>",
+      "Edit a release asset (rename).", NULL, NULL },
+    { "delete", "Delete asset",
+      "cb release [owner/]repo asset delete <release-id> <asset-id> [--yes]",
+      "Delete a release asset.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd RELEASE_SUBS[] = {
+    { "list", "List releases",
+      "cb release [owner/]repo list [flags]",
+      "List releases.", RELEASE_LIST_FLAGS, NULL },
+    { "create", "Create a release",
+      "cb release [owner/]repo create --tag <tag> [flags]",
+      "Create a release.", RELEASE_CREATE_FLAGS, NULL },
+    { "show", "Show a release by ID",
+      "cb release [owner/]repo show <id>",
+      "Show a release by ID.", NULL, NULL },
+    { "latest", "Show latest release",
+      "cb release [owner/]repo latest",
+      "Show the latest release.", NULL, NULL },
+    { "edit", "Edit a release",
+      "cb release [owner/]repo edit <id> [flags]",
+      "Edit a release. Only provided flags are sent.", RELEASE_EDIT_FLAGS, NULL },
+    { "delete", "Delete a release",
+      "cb release [owner/]repo delete <id> [--yes]",
+      "Delete a release.", NULL, NULL },
+    { "by-tag", "Show release by tag name",
+      "cb release [owner/]repo by-tag <tag>",
+      "Show a release by tag name.", NULL, NULL },
+    { "delete-tag", "Delete release by tag name",
+      "cb release [owner/]repo delete-tag <tag> [--yes]",
+      "Delete a release by tag name.", NULL, NULL },
+    { "asset", "Manage release assets (list, upload, show, edit, delete)",
+      "cb release [owner/]repo asset <subcommand> ...",
+      "Manage release assets.", NULL, RELEASE_ASSET_SUBS },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd TAG_SUBS[] = {
+    { "list", "List tags",
+      "cb tag [owner/]repo list [--limit N]",
+      "List tags.", NULL, NULL },
+    { "create", "Create a tag",
+      "cb tag [owner/]repo create --tag <tag> [--message <msg>] [--target <ref>]",
+      "Create a tag.", TAG_CREATE_FLAGS, NULL },
+    { "show", "Show a tag",
+      "cb tag [owner/]repo show <tag>",
+      "Show a tag.", NULL, NULL },
+    { "delete", "Delete a tag",
+      "cb tag [owner/]repo delete <tag> [--yes]",
+      "Delete a tag.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd BRANCH_SUBS[] = {
+    { "list", "List branches",
+      "cb branch [owner/]repo list",
+      "List branches.", NULL, NULL },
+    { "create", "Create a branch",
+      "cb branch [owner/]repo create --name <name> [--from <ref>]",
+      "Create a branch.", BRANCH_CREATE_FLAGS, NULL },
+    { "show", "Show a branch",
+      "cb branch [owner/]repo show <branch>",
+      "Show a branch.", NULL, NULL },
+    { "rename", "Rename a branch",
+      "cb branch [owner/]repo rename <branch> --name <new-name>",
+      "Rename a branch.", NULL, NULL },
+    { "delete", "Delete a branch",
+      "cb branch [owner/]repo delete <branch> [--yes]",
+      "Delete a branch.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd ISSUE_LABEL_SUBS[] = {
+    { "add", "Add labels to an issue",
+      "cb issue [owner/]repo label add <number> <label_id> [<label_id>...]",
+      "Add labels to an issue.", NULL, NULL },
+    { "set", "Replace labels on an issue",
+      "cb issue [owner/]repo label set <number> <label_id> [<label_id>...]",
+      "Replace all labels on an issue.", NULL, NULL },
+    { "rm", "Remove labels from an issue",
+      "cb issue [owner/]repo label rm <number> <label_id> [<label_id>...]",
+      "Remove labels from an issue.", NULL, NULL },
+    { "clear", "Clear all labels",
+      "cb issue [owner/]repo label clear <number>",
+      "Clear all labels on an issue.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd ISSUE_SUBS[] = {
+    { "list", "List issues",
+      "cb issue [owner/]repo list [--state open|closed|all] [--labels l1,l2] [--limit N]",
+      "List issues.", ISSUE_LIST_FLAGS, NULL },
+    { "create", "Create an issue",
+      "cb issue [owner/]repo create --title <title> [--body <body>] [--label <id>]",
+      "Create an issue.", ISSUE_CREATE_FLAGS, NULL },
+    { "show", "Show an issue",
+      "cb issue [owner/]repo show <number>",
+      "Show an issue.", NULL, NULL },
+    { "edit", "Edit an issue",
+      "cb issue [owner/]repo edit <number> [--title <title>] [--body <body>] [--state open|closed]",
+      "Edit an issue.", ISSUE_EDIT_FLAGS, NULL },
+    { "delete", "Delete an issue",
+      "cb issue [owner/]repo delete <number> [--yes]",
+      "Delete an issue.", NULL, NULL },
+    { "close", "Close an issue (shorthand)",
+      "cb issue [owner/]repo close <number>",
+      "Close an issue (shorthand for edit --state closed).", NULL, NULL },
+    { "reopen", "Reopen an issue (shorthand)",
+      "cb issue [owner/]repo reopen <number>",
+      "Reopen an issue (shorthand for edit --state open).", NULL, NULL },
+    { "comment", "Add a comment",
+      "cb issue [owner/]repo comment <number> --body <text>",
+      "Add a comment to an issue.", NULL, NULL },
+    { "label", "Manage issue labels (add, set, rm, clear)",
+      "cb issue [owner/]repo label <add|set|rm|clear> ...",
+      "Manage labels on an issue.", NULL, ISSUE_LABEL_SUBS },
+    { "pin", "Pin an issue",
+      "cb issue [owner/]repo pin <number>",
+      "Pin an issue.", NULL, NULL },
+    { "unpin", "Unpin an issue",
+      "cb issue [owner/]repo unpin <number>",
+      "Unpin an issue.", NULL, NULL },
+    { "deadline", "Set a due date",
+      "cb issue [owner/]repo deadline <number> <date>",
+      "Set a due date on an issue.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd LABEL_SUBS[] = {
+    { "list", "List labels",
+      "cb label [owner/]repo list",
+      "List labels.", NULL, NULL },
+    { "create", "Create a label",
+      "cb label [owner/]repo create --name <name> --color <hex> [--description <desc>]",
+      "Create a label.", LABEL_CREATE_FLAGS, NULL },
+    { "show", "Show a label",
+      "cb label [owner/]repo show <id>",
+      "Show a label.", NULL, NULL },
+    { "edit", "Edit a label",
+      "cb label [owner/]repo edit <id> [flags]",
+      "Edit a label.", NULL, NULL },
+    { "delete", "Delete a label",
+      "cb label [owner/]repo delete <id> [--yes]",
+      "Delete a label.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd MILESTONE_SUBS[] = {
+    { "list", "List milestones",
+      "cb milestone [owner/]repo list [--state open|closed|all]",
+      "List milestones.", NULL, NULL },
+    { "create", "Create a milestone",
+      "cb milestone [owner/]repo create --title <title> [--description <desc>] [--due <date>]",
+      "Create a milestone.", MILESTONE_CREATE_FLAGS, NULL },
+    { "show", "Show a milestone",
+      "cb milestone [owner/]repo show <id>",
+      "Show a milestone.", NULL, NULL },
+    { "edit", "Edit a milestone",
+      "cb milestone [owner/]repo edit <id> [flags]",
+      "Edit a milestone.", NULL, NULL },
+    { "delete", "Delete a milestone",
+      "cb milestone [owner/]repo delete <id> [--yes]",
+      "Delete a milestone.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd PR_SUBS[] = {
+    { "list", "List pull requests",
+      "cb pr [owner/]repo list [--state open|closed|all] [--limit N]",
+      "List pull requests.", NULL, NULL },
+    { "create", "Create a pull request",
+      "cb pr [owner/]repo create --title <title> --head <branch> [--base <branch>] [--body <body>]",
+      "Create a pull request.", PR_CREATE_FLAGS, NULL },
+    { "show", "Show a pull request",
+      "cb pr [owner/]repo show <number>",
+      "Show a pull request.", NULL, NULL },
+    { "edit", "Edit a pull request",
+      "cb pr [owner/]repo edit <number> [flags]",
+      "Edit a pull request.", NULL, NULL },
+    { "merge", "Merge a pull request",
+      "cb pr [owner/]repo merge <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]",
+      "Merge a pull request.", NULL, NULL },
+    { "unmerge", "Cancel scheduled auto-merge",
+      "cb pr [owner/]repo unmerge <number>",
+      "Cancel a scheduled auto-merge.", NULL, NULL },
+    { "close", "Close a pull request (shorthand)",
+      "cb pr [owner/]repo close <number>",
+      "Close a pull request (shorthand).", NULL, NULL },
+    { "reopen", "Reopen a pull request (shorthand)",
+      "cb pr [owner/]repo reopen <number>",
+      "Reopen a pull request (shorthand).", NULL, NULL },
+    { "files", "List changed files",
+      "cb pr [owner/]repo files <number>",
+      "List changed files in a pull request.", NULL, NULL },
+    { "commits", "List commits",
+      "cb pr [owner/]repo commits <number>",
+      "List commits in a pull request.", NULL, NULL },
+    { "diff", "Show diff (or patch)",
+      "cb pr [owner/]repo diff <number>",
+      "Show the diff for a pull request.", NULL, NULL },
+    { "review", "Manage reviews (list, create, request, unrequest)",
+      "cb pr [owner/]repo review <subcommand> ...",
+      "Manage reviews on a pull request.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd COMMIT_SUBS[] = {
+    { "list", "List commits",
+      "cb commit [owner/]repo list [--sha <ref>] [--path <path>] [--limit N]",
+      "List commits.", COMMIT_LIST_FLAGS, NULL },
+    { "show", "Show a commit",
+      "cb commit [owner/]repo show <sha>",
+      "Show a commit.", NULL, NULL },
+    { "status", "Show combined status for a ref",
+      "cb commit [owner/]repo status <ref>",
+      "Show combined status for a ref.", NULL, NULL },
+    { "diff", "Show diff (or patch)",
+      "cb commit [owner/]repo diff <sha>",
+      "Show diff for a commit.", NULL, NULL },
+    { "compare", "Compare two refs",
+      "cb commit [owner/]repo compare <base> <head>",
+      "Compare two refs.", NULL, NULL },
+    { "note", "Manage git notes (show, set, rm)",
+      "cb commit [owner/]repo note <show|set|rm> ...",
+      "Manage git notes.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd CONTENT_SUBS[] = {
+    { "list", "List directory contents",
+      "cb content [owner/]repo list [--ref <ref>]",
+      "List directory contents.", NULL, NULL },
+    { "show", "Show file or directory contents",
+      "cb content [owner/]repo show <path> [--ref <ref>]",
+      "Show file or directory contents.", NULL, NULL },
+    { "create", "Create a file",
+      "cb content [owner/]repo create <path> --message <msg> --content <text>",
+      "Create a file.", NULL, NULL },
+    { "update", "Update a file",
+      "cb content [owner/]repo update <path> --message <msg> --content <text>",
+      "Update a file.", NULL, NULL },
+    { "delete", "Delete a file",
+      "cb content [owner/]repo delete <path> --message <msg>",
+      "Delete a file.", NULL, NULL },
+    { "raw", "Get raw file content",
+      "cb content [owner/]repo raw <path> [--ref <ref>]",
+      "Get raw file content.", NULL, NULL },
+    { "archive", "Download an archive",
+      "cb content [owner/]repo archive [--ref <ref>] [--format <fmt>]",
+      "Download an archive of the repository.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd KEY_SUBS[] = {
+    { "list", "List deploy keys",
+      "cb key [owner/]repo list",
+      "List deploy keys.", NULL, NULL },
+    { "add", "Add a deploy key",
+      "cb key [owner/]repo add --title <title> --key <key> [--read-only]",
+      "Add a deploy key.", KEY_ADD_FLAGS, NULL },
+    { "show", "Show a deploy key",
+      "cb key [owner/]repo show <id>",
+      "Show a deploy key.", NULL, NULL },
+    { "delete", "Delete a deploy key",
+      "cb key [owner/]repo delete <id> [--yes]",
+      "Delete a deploy key.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd COLLAB_SUBS[] = {
+    { "list", "List collaborators",
+      "cb collaborator [owner/]repo list",
+      "List collaborators.", NULL, NULL },
+    { "add", "Add a collaborator",
+      "cb collaborator [owner/]repo add <username> [--permission read|write|admin]",
+      "Add a collaborator.", COLLAB_ADD_FLAGS, NULL },
+    { "rm", "Remove a collaborator",
+      "cb collaborator [owner/]repo rm <username> [--yes]",
+      "Remove a collaborator.", NULL, NULL },
+    { "perms", "Show collaborator permissions",
+      "cb collaborator [owner/]repo perms <username>",
+      "Show collaborator permissions.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd FORK_SUBS[] = {
+    { "list", "List forks",
+      "cb fork [owner/]repo list",
+      "List forks.", NULL, NULL },
+    { "create", "Fork a repository",
+      "cb fork [owner/]repo create [--name <repo-name>] [--org <organization>]",
+      "Fork a repository.", FORK_CREATE_FLAGS, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd HOOK_SUBS[] = {
+    { "list", "List webhooks",
+      "cb hook [owner/]repo list",
+      "List webhooks.", NULL, NULL },
+    { "create", "Create a webhook",
+      "cb hook [owner/]repo create --type <type> --url <url> [--event <event>] [--active]",
+      "Create a webhook.", HOOK_CREATE_FLAGS, NULL },
+    { "show", "Show a webhook",
+      "cb hook [owner/]repo show <id>",
+      "Show a webhook.", NULL, NULL },
+    { "edit", "Edit a webhook",
+      "cb hook [owner/]repo edit <id> [flags]",
+      "Edit a webhook.", NULL, NULL },
+    { "delete", "Delete a webhook",
+      "cb hook [owner/]repo delete <id> [--yes]",
+      "Delete a webhook.", NULL, NULL },
+    { "test", "Test a webhook",
+      "cb hook [owner/]repo test <id>",
+      "Test a webhook.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd ORG_SUBS[] = {
+    { "create", "Create a new organization",
+      "cb org create <name> [flags]",
+      "Create a new organization.", ORG_CREATE_FLAGS, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd WIKI_SUBS[] = {
+    { "list", "List wiki pages",
+      "cb wiki [owner/]repo list",
+      "List wiki pages.", NULL, NULL },
+    { "create", "Create a wiki page",
+      "cb wiki [owner/]repo create --title <title> --content <text>",
+      "Create a wiki page.", NULL, NULL },
+    { "show", "Show a wiki page",
+      "cb wiki [owner/]repo show <pageName>",
+      "Show a wiki page.", NULL, NULL },
+    { "edit", "Edit a wiki page",
+      "cb wiki [owner/]repo edit <pageName> --content <text>",
+      "Edit a wiki page.", NULL, NULL },
+    { "delete", "Delete a wiki page",
+      "cb wiki [owner/]repo delete <pageName> [--yes]",
+      "Delete a wiki page.", NULL, NULL },
+    { "revisions", "Show page revisions",
+      "cb wiki [owner/]repo revisions <pageName>",
+      "Show revisions for a wiki page.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const Cmd COMMANDS[] = {
+    { "repo", "Repository management (create, delete, rename, edit, show, list, transfer, topic)",
+      "cb repo <subcommand> [args] [flags]",
+      "Repository management.\n\n"
+      "Where [owner/]repo appears, the owner/ prefix is optional\n"
+      "and defaults to the authenticated user.",
+      REPO_SUBS },
+    { "actions", "CI/CD actions (list runs, show run, runners, dispatch, secrets, variables)",
+      "cb actions [owner/]repo <subcommand> [args] [flags]",
+      "Manage CI/CD actions for a repository.", ACTIONS_SUBS },
+    { "release", "Manage releases (list, create, show, edit, delete, assets)",
+      "cb release [owner/]repo <subcommand> [args] [flags]",
+      "Manage releases.", RELEASE_SUBS },
+    { "tag", "Manage tags (list, create, show, delete)",
+      "cb tag [owner/]repo <subcommand> [args] [flags]",
+      "Manage tags.", TAG_SUBS },
+    { "branch", "Manage branches (list, create, show, rename, delete)",
+      "cb branch [owner/]repo <subcommand> [args] [flags]",
+      "Manage branches.", BRANCH_SUBS },
+    { "issue", "Manage issues (list, create, show, edit, delete, comment, labels)",
+      "cb issue [owner/]repo <subcommand> [args] [flags]",
+      "Manage issues.", ISSUE_SUBS },
+    { "label", "Manage repository labels (list, create, show, edit, delete)",
+      "cb label [owner/]repo <subcommand> [args] [flags]",
+      "Manage repository labels.", LABEL_SUBS },
+    { "milestone", "Manage milestones (list, create, show, edit, delete)",
+      "cb milestone [owner/]repo <subcommand> [args] [flags]",
+      "Manage milestones.", MILESTONE_SUBS },
+    { "pr", "Manage pull requests (list, create, show, merge, close)",
+      "cb pr [owner/]repo <subcommand> [args] [flags]",
+      "Manage pull requests.", PR_SUBS },
+    { "commit", "View commits and statuses (list, show, status, compare)",
+      "cb commit [owner/]repo <subcommand> [args] [flags]",
+      "View commits and commit statuses.", COMMIT_SUBS },
+    { "content", "View and manage file contents (list, show, create, update, delete, raw)",
+      "cb content [owner/]repo <subcommand> [args] [flags]",
+      "View and manage repository file contents.", CONTENT_SUBS },
+    { "key", "Manage deploy keys (list, add, show, delete)",
+      "cb key [owner/]repo <subcommand> [args] [flags]",
+      "Manage deploy keys.", KEY_SUBS },
+    { "collaborator", "Manage collaborators (list, add, rm, perms)",
+      "cb collaborator [owner/]repo <subcommand> [args] [flags]",
+      "Manage collaborators.", COLLAB_SUBS },
+    { "fork", "Manage forks (list, create)",
+      "cb fork [owner/]repo <subcommand> [args] [flags]",
+      "Manage forks.", FORK_SUBS },
+    { "hook", "Manage webhooks (list, create, show, edit, delete, test)",
+      "cb hook [owner/]repo <subcommand> [args] [flags]",
+      "Manage webhooks.", HOOK_SUBS },
+    { "org", "Organization management (create)",
+      "cb org <subcommand> [args] [flags]",
+      "Organization management.", ORG_SUBS },
+    { "wiki", "Manage wiki pages (list, create, show, edit, delete, revisions)",
+      "cb wiki [owner/]repo <subcommand> [args] [flags]",
+      "Manage wiki pages.", WIKI_SUBS },
+    { NULL, NULL, NULL, NULL, NULL }
+};
+
+/* Lookup helpers */
+
+static const Cmd *find_command(const char *name)
+{
+    for (int i = 0; COMMANDS[i].name; i++) {
+        if (strcmp(COMMANDS[i].name, name) == 0)
+            return &COMMANDS[i];
+    }
+    return NULL;
 }
 
-static void help_release_list(void)
+static const SubCmd *find_subcmd(const SubCmd *subs, const char *name)
 {
-    printf("Usage: cb release [owner/]repo list [flags]\n\n");
-    printf("List releases.\n\n");
-    printf("Flags:\n");
-    print_flag_table(RELEASE_LIST_FLAGS);
+    if (!subs)
+        return NULL;
+    for (int i = 0; subs[i].name; i++) {
+        if (strcmp(subs[i].name, name) == 0)
+            return &subs[i];
+    }
+    return NULL;
+}
+
+/* Print flags for a subcommand, including --help, in human format. */
+static void print_subcmd_flags_human(const FlagDef *flags)
+{
+    if (flags) {
+        for (int i = 0; flags[i].name; i++) {
+            if (strcmp(flags[i].name, "--help") == 0)
+                continue;
+            if (flags[i].alias)
+                printf("  %s, %s\n", flags[i].name, flags[i].alias);
+            else
+                printf("  %s\n", flags[i].name);
+        }
+    }
     printf("  --help, -h              Show this help\n");
 }
 
-static void help_release_create(void)
+/* Print human help for a leaf subcommand (no nested subsubs). */
+static void print_subcmd_help_human(const char *cmd_name, const SubCmd *sub)
 {
-    printf("Usage: cb release [owner/]repo create --tag <tag> [flags]\n\n");
-    printf("Create a release.\n\n");
-    printf("Flags:\n");
-    print_flag_table(RELEASE_CREATE_FLAGS);
-    printf("  --help, -h              Show this help\n");
+    (void)cmd_name;
+    printf("Usage: %s\n\n", sub->usage);
+    if (sub->help_text)
+        printf("%s\n\n", sub->help_text);
+    if (sub->flags) {
+        printf("Flags:\n");
+        print_subcmd_flags_human(sub->flags);
+    } else {
+        printf("  --help, -h              Show this help\n");
+    }
 }
 
-static void help_release_edit(void)
+/* Print human help for a group subcommand (has nested subsubs). */
+static void print_subcmd_group_help_human(const char *cmd_name, const SubCmd *sub)
 {
-    printf("Usage: cb release [owner/]repo edit <id> [flags]\n\n");
-    printf("Edit a release. Only provided flags are sent.\n\n");
-    printf("Flags:\n");
-    print_flag_table(RELEASE_EDIT_FLAGS);
-    printf("  --help, -h              Show this help\n");
-}
-
-static void help_release_asset(void)
-{
-    printf("Usage: cb release [owner/]repo asset <subcommand> ...\n\n");
-    printf("Manage release assets.\n\n");
+    printf("Usage: %s\n\n", sub->usage);
+    if (sub->help_text)
+        printf("%s\n\n", sub->help_text);
     printf("Subcommands:\n");
-    printf("  list    <release-id>              List assets\n");
-    printf("  upload  <release-id> --file <path> Upload a file\n");
-    printf("  show    <release-id> <asset-id>   Show asset\n");
-    printf("  edit    <release-id> <asset-id>   Edit asset\n");
-    printf("  delete  <release-id> <asset-id>   Delete asset\n");
-    printf("\nRun 'cb release asset <subcommand> --help' for details.\n");
+    for (int i = 0; sub->subsubs[i].name; i++) {
+        printf("  %-10s %s\n", sub->subsubs[i].name, sub->subsubs[i].desc);
+    }
+    printf("\nRun 'cb %s %s <subcommand> --help' for details.\n", cmd_name, sub->name);
 }
 
-static void help_tag(void)
+/* Print human help for a top-level command. */
+static void print_command_help_human(const Cmd *cmd)
 {
-    printf("Usage: cb tag [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage tags.\n\n");
+    printf("Usage: %s\n\n", cmd->usage);
+    if (cmd->help_text)
+        printf("%s\n\n", cmd->help_text);
+    else
+        printf("%s\n\n", cmd->desc);
     printf("Subcommands:\n");
-    printf("  list      List tags\n");
-    printf("  create    Create a tag\n");
-    printf("  show      Show a tag\n");
-    printf("  delete    Delete a tag\n");
-    printf("\nRun 'cb tag <subcommand> --help' for details.\n");
+    for (int i = 0; cmd->subs[i].name; i++) {
+        printf("  %-14s %s\n", cmd->subs[i].name, cmd->subs[i].desc);
+    }
+    printf("\nRun 'cb %s <subcommand> --help' for details.\n", cmd->name);
 }
 
-static void help_branch(void)
+/* Print top-level help (cb --help). */
+static void print_top_help_human(void)
 {
-    printf("Usage: cb branch [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage branches.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List branches\n");
-    printf("  create    Create a branch\n");
-    printf("  show      Show a branch\n");
-    printf("  rename    Rename a branch\n");
-    printf("  delete    Delete a branch\n");
-    printf("\nRun 'cb branch <subcommand> --help' for details.\n");
+    printf("cb — Codeberg (Forgejo) repository management CLI\n\n");
+    printf("Usage: cb [global flags] <command> [subcommand] [args] [flags]\n\n");
+    printf("Commands:\n");
+    for (int i = 0; COMMANDS[i].name; i++) {
+        printf("  %-14s %s\n", COMMANDS[i].name, COMMANDS[i].desc);
+    }
+    printf("\nWhere [owner/]repo appears, the owner/ prefix is optional\n"
+           "and defaults to the authenticated user.\n\n");
+    printf("Global flags:\n");
+    printf("  --json          Output raw JSON\n");
+    printf("  --quiet, -q     Suppress non-essential output\n");
+    printf("  --base-url URL  Override API base URL\n");
+    printf("  --yes           Skip confirmation prompts\n");
+    printf("  --version, -v   Show version\n");
+    printf("  --help, -h      Show this help\n");
+    printf("\nRun 'cb repo --help' for subcommand details.\n");
 }
 
-static void help_issue(void)
+/* Dispatch human help for a command path: cb <cmd> [sub] [subsub] --help */
+static void print_help_human(int argc, char **argv)
 {
-    printf("Usage: cb issue [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage issues.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List issues\n");
-    printf("  create    Create an issue\n");
-    printf("  show      Show an issue\n");
-    printf("  edit      Edit an issue\n");
-    printf("  delete    Delete an issue\n");
-    printf("  close     Close an issue (shorthand)\n");
-    printf("  reopen    Reopen an issue (shorthand)\n");
-    printf("  comment   Add a comment\n");
-    printf("  label     Manage issue labels (add, set, rm, clear)\n");
-    printf("  pin       Pin an issue\n");
-    printf("  unpin     Unpin an issue\n");
-    printf("  deadline  Set a due date\n");
-    printf("\nRun 'cb issue <subcommand> --help' for details.\n");
+    /* argv starts after "cb", e.g. ["repo", "create", "--help"] */
+    if (argc < 1) {
+        print_top_help_human();
+        return;
+    }
+    const Cmd *cmd = find_command(argv[0]);
+    if (!cmd) {
+        print_top_help_human();
+        return;
+    }
+    if (argc < 2) {
+        print_command_help_human(cmd);
+        return;
+    }
+    const SubCmd *sub = find_subcmd(cmd->subs, argv[1]);
+    if (!sub) {
+        print_command_help_human(cmd);
+        return;
+    }
+    if (sub->subsubs) {
+        if (argc >= 3) {
+            const SubCmd *subsub = find_subcmd(sub->subsubs, argv[2]);
+            if (subsub) {
+                print_subcmd_help_human(cmd->name, subsub);
+                return;
+            }
+        }
+        print_subcmd_group_help_human(cmd->name, sub);
+        return;
+    }
+    print_subcmd_help_human(cmd->name, sub);
 }
 
-static void help_label(void)
+/* Thin wrappers so call sites can use named functions instead of building argv. */
+#define HELP_WRAPPER_1(name, c1) \
+    static void name(void) { print_help_human(1, (char *[]){ c1 }); }
+#define HELP_WRAPPER_2(name, c1, c2) \
+    static void name(void) { print_help_human(2, (char *[]){ c1, c2 }); }
+#define HELP_WRAPPER_3(name, c1, c2, c3) \
+    static void name(void) { print_help_human(3, (char *[]){ c1, c2, c3 }); }
+
+HELP_WRAPPER_1(help_repo, "repo")
+HELP_WRAPPER_1(help_org, "org")
+HELP_WRAPPER_1(help_actions, "actions")
+HELP_WRAPPER_1(help_release, "release")
+HELP_WRAPPER_1(help_tag, "tag")
+HELP_WRAPPER_1(help_branch, "branch")
+HELP_WRAPPER_1(help_issue, "issue")
+HELP_WRAPPER_1(help_label, "label")
+HELP_WRAPPER_1(help_milestone, "milestone")
+HELP_WRAPPER_1(help_pr, "pr")
+HELP_WRAPPER_1(help_commit, "commit")
+HELP_WRAPPER_1(help_content, "content")
+HELP_WRAPPER_1(help_key, "key")
+HELP_WRAPPER_1(help_collaborator, "collaborator")
+HELP_WRAPPER_1(help_fork, "fork")
+HELP_WRAPPER_1(help_hook, "hook")
+HELP_WRAPPER_1(help_wiki, "wiki")
+
+HELP_WRAPPER_2(help_repo_create, "repo", "create")
+HELP_WRAPPER_2(help_repo_delete, "repo", "delete")
+HELP_WRAPPER_2(help_repo_rename, "repo", "rename")
+HELP_WRAPPER_2(help_repo_edit, "repo", "edit")
+HELP_WRAPPER_2(help_repo_show, "repo", "show")
+HELP_WRAPPER_2(help_repo_list, "repo", "list")
+HELP_WRAPPER_2(help_repo_transfer, "repo", "transfer")
+HELP_WRAPPER_2(help_repo_topic, "repo", "topic")
+HELP_WRAPPER_3(help_topic_add, "repo", "topic", "add")
+HELP_WRAPPER_3(help_topic_rm, "repo", "topic", "rm")
+HELP_WRAPPER_3(help_topic_list, "repo", "topic", "list")
+HELP_WRAPPER_3(help_topic_set, "repo", "topic", "set")
+HELP_WRAPPER_2(help_org_create, "org", "create")
+HELP_WRAPPER_2(help_actions_list, "actions", "list")
+HELP_WRAPPER_2(help_actions_show, "actions", "show")
+HELP_WRAPPER_2(help_actions_runners, "actions", "runners")
+HELP_WRAPPER_2(help_actions_dispatch, "actions", "dispatch")
+HELP_WRAPPER_2(help_actions_secret, "actions", "secret")
+HELP_WRAPPER_2(help_actions_var, "actions", "var")
+HELP_WRAPPER_2(help_release_list, "release", "list")
+HELP_WRAPPER_2(help_release_create, "release", "create")
+HELP_WRAPPER_2(help_release_edit, "release", "edit")
+HELP_WRAPPER_2(help_release_asset, "release", "asset")
+
+/* ===== Machine-readable help spec (--help-spec) ===== */
+
+static void print_flag_spec(const FlagDef *flags, const char *cmd_name,
+                            const char *sub_name, const char *subsub_name)
 {
-    printf("Usage: cb label [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage repository labels.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List labels\n");
-    printf("  create    Create a label\n");
-    printf("  show      Show a label\n");
-    printf("  edit      Edit a label\n");
-    printf("  delete    Delete a label\n");
-    printf("\nRun 'cb label <subcommand> --help' for details.\n");
+    if (!flags) {
+        /* Emit --help as the only flag */
+        if (subsub_name)
+            printf("FLAG2\t%s\t%s\t%s\t--help\t-h\t0\n", cmd_name, sub_name, subsub_name);
+        else
+            printf("FLAG\t%s\t%s\t--help\t-h\t0\n", cmd_name, sub_name);
+        return;
+    }
+    for (int i = 0; flags[i].name; i++) {
+        const char *alias = flags[i].alias ? flags[i].alias : "-";
+        if (subsub_name)
+            printf("FLAG2\t%s\t%s\t%s\t%s\t%s\t%d\n",
+                   cmd_name, sub_name, subsub_name,
+                   flags[i].name, alias, flags[i].takes_value);
+        else
+            printf("FLAG\t%s\t%s\t%s\t%s\t%d\n",
+                   cmd_name, sub_name, flags[i].name, alias, flags[i].takes_value);
+    }
 }
 
-static void help_milestone(void)
+static void print_help_spec(void)
 {
-    printf("Usage: cb milestone [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage milestones.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List milestones\n");
-    printf("  create    Create a milestone\n");
-    printf("  show      Show a milestone\n");
-    printf("  edit      Edit a milestone\n");
-    printf("  delete    Delete a milestone\n");
-    printf("\nRun 'cb milestone <subcommand> --help' for details.\n");
-}
+    /* Global flags */
+    for (int i = 0; GLOBAL_FLAGS[i].name; i++) {
+        const char *alias = GLOBAL_FLAGS[i].alias ? GLOBAL_FLAGS[i].alias : "-";
+        printf("GFLAG\t%s\t%s\t%d\n",
+               GLOBAL_FLAGS[i].name, alias, GLOBAL_FLAGS[i].takes_value);
+    }
+    /* Version flag (not in GLOBAL_FLAGS table, handled specially) */
+    printf("GFLAG\t--version\t-v\t0\n");
 
-static void help_pr(void)
-{
-    printf("Usage: cb pr [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage pull requests.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List pull requests\n");
-    printf("  create    Create a pull request\n");
-    printf("  show      Show a pull request\n");
-    printf("  edit      Edit a pull request\n");
-    printf("  merge     Merge a pull request\n");
-    printf("  unmerge   Cancel scheduled auto-merge\n");
-    printf("  close     Close a pull request (shorthand)\n");
-    printf("  reopen    Reopen a pull request (shorthand)\n");
-    printf("  files     List changed files\n");
-    printf("  commits   List commits\n");
-    printf("  diff      Show diff (or patch)\n");
-    printf("  review    Manage reviews (list, create, request, unrequest)\n");
-    printf("\nRun 'cb pr <subcommand> --help' for details.\n");
-}
+    /* Commands and subcommands */
+    for (int i = 0; COMMANDS[i].name; i++) {
+        const Cmd *cmd = &COMMANDS[i];
+        printf("CMD\t%s\t%s\n", cmd->name, cmd->desc);
 
-static void help_commit(void)
-{
-    printf("Usage: cb commit [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("View commits and commit statuses.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List commits\n");
-    printf("  show      Show a commit\n");
-    printf("  status    Show combined status for a ref\n");
-    printf("  diff      Show diff (or patch)\n");
-    printf("  compare   Compare two refs\n");
-    printf("  note      Manage git notes (show, set, rm)\n");
-    printf("\nRun 'cb commit <subcommand> --help' for details.\n");
-}
+        if (!cmd->subs)
+            continue;
+        for (int j = 0; cmd->subs[j].name; j++) {
+            const SubCmd *sub = &cmd->subs[j];
+            printf("SUB\t%s\t%s\t%s\n", cmd->name, sub->name, sub->desc);
 
-static void help_content(void)
-{
-    printf("Usage: cb content [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("View and manage repository file contents.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List directory contents\n");
-    printf("  show      Show file or directory contents\n");
-    printf("  create    Create a file\n");
-    printf("  update    Update a file\n");
-    printf("  delete    Delete a file\n");
-    printf("  raw       Get raw file content\n");
-    printf("  archive   Download an archive\n");
-    printf("\nRun 'cb content <subcommand> --help' for details.\n");
-}
-
-static void help_key(void)
-{
-    printf("Usage: cb key [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage deploy keys.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List deploy keys\n");
-    printf("  add       Add a deploy key\n");
-    printf("  show      Show a deploy key\n");
-    printf("  delete    Delete a deploy key\n");
-    printf("\nRun 'cb key <subcommand> --help' for details.\n");
-}
-
-static void help_collaborator(void)
-{
-    printf("Usage: cb collaborator [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage collaborators.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List collaborators\n");
-    printf("  add       Add a collaborator\n");
-    printf("  rm        Remove a collaborator\n");
-    printf("  perms     Show collaborator permissions\n");
-    printf("\nRun 'cb collaborator <subcommand> --help' for details.\n");
-}
-
-static void help_fork(void)
-{
-    printf("Usage: cb fork [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage forks.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List forks\n");
-    printf("  create    Fork a repository\n");
-    printf("\nRun 'cb fork <subcommand> --help' for details.\n");
-}
-
-static void help_hook(void)
-{
-    printf("Usage: cb hook [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage webhooks.\n\n");
-    printf("Subcommands:\n");
-    printf("  list      List webhooks\n");
-    printf("  create    Create a webhook\n");
-    printf("  show      Show a webhook\n");
-    printf("  edit      Edit a webhook\n");
-    printf("  delete    Delete a webhook\n");
-    printf("  test      Test a webhook\n");
-    printf("\nRun 'cb hook <subcommand> --help' for details.\n");
-}
-
-static void help_wiki(void)
-{
-    printf("Usage: cb wiki [owner/]repo <subcommand> [args] [flags]\n\n");
-    printf("Manage wiki pages.\n\n");
-    printf("Subcommands:\n");
-    printf("  list        List wiki pages\n");
-    printf("  create      Create a wiki page\n");
-    printf("  show        Show a wiki page\n");
-    printf("  edit        Edit a wiki page\n");
-    printf("  delete      Delete a wiki page\n");
-    printf("  revisions   Show page revisions\n");
-    printf("\nRun 'cb wiki <subcommand> --help' for details.\n");
+            if (sub->subsubs) {
+                for (int k = 0; sub->subsubs[k].name; k++) {
+                    const SubCmd *subsub = &sub->subsubs[k];
+                    printf("SUB2\t%s\t%s\t%s\t%s\n",
+                           cmd->name, sub->name, subsub->name, subsub->desc);
+                    print_flag_spec(subsub->flags, cmd->name, sub->name, subsub->name);
+                }
+            } else {
+                print_flag_spec(sub->flags, cmd->name, sub->name, NULL);
+            }
+        }
+    }
 }
 
 /* ===== New output helpers ===== */
@@ -6037,39 +6404,8 @@ static int cmd_repo(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 void cli_print_help(const char *cmd)
 {
-    if (!cmd) {
-        printf("cb — Codeberg (Forgejo) repository management CLI\n\n");
-        printf("Usage: cb [global flags] <command> [subcommand] [args] [flags]\n\n");
-        printf("Commands:\n");
-        printf("  repo           Repository management (create, delete, rename, edit, show, list, transfer, topic)\n");
-        printf("  actions        CI/CD actions (list runs, show run, runners, dispatch, secrets, variables)\n");
-        printf("  release        Manage releases (list, create, show, edit, delete, assets)\n");
-        printf("  tag            Manage tags (list, create, show, delete)\n");
-        printf("  branch         Manage branches (list, create, show, rename, delete)\n");
-        printf("  issue          Manage issues (list, create, show, edit, delete, comment, labels)\n");
-        printf("  label          Manage repository labels (list, create, show, edit, delete)\n");
-        printf("  milestone      Manage milestones (list, create, show, edit, delete)\n");
-        printf("  pr             Manage pull requests (list, create, show, merge, close)\n");
-        printf("  commit         View commits and statuses (list, show, status, compare)\n");
-        printf("  content        View and manage file contents (list, show, create, update, delete, raw)\n");
-        printf("  key            Manage deploy keys (list, add, show, delete)\n");
-        printf("  collaborator   Manage collaborators (list, add, rm, perms)\n");
-        printf("  fork           Manage forks (list, create)\n");
-        printf("  hook           Manage webhooks (list, create, show, edit, delete, test)\n");
-        printf("  org            Organization management (create)\n");
-        printf("  wiki           Manage wiki pages (list, create, show, edit, delete, revisions)\n");
-        printf("\nWhere [owner/]repo appears, the owner/ prefix is optional\n"
-               "and defaults to the authenticated user.\n\n");
-        printf("Global flags:\n");
-        printf("  --json          Output raw JSON\n");
-        printf("  --quiet, -q     Suppress non-essential output\n");
-        printf("  --base-url URL  Override API base URL\n");
-        printf("  --yes           Skip confirmation prompts\n");
-        printf("  --version, -v   Show version\n");
-        printf("  --help, -h      Show this help\n");
-        printf("\nRun 'cb repo --help' for subcommand details.\n");
-        return;
-    }
+    (void)cmd;
+    print_top_help_human();
 }
 
 int cli_run(int argc, char **argv)
@@ -6093,27 +6429,25 @@ int cli_run(int argc, char **argv)
     }
 
     if (filtered_argc < 2) {
-        cli_print_help(NULL);
+        print_top_help_human();
         free(filtered_argv);
         return CLI_USAGE;
     }
 
     const char *cmd = filtered_argv[1];
     if (strcmp(cmd, "--help") == 0 || strcmp(cmd, "-h") == 0) {
-        cli_print_help(NULL);
+        print_top_help_human();
         free(filtered_argv);
         return CLI_OK;
     }
 
-    if (strcmp(cmd, "repo") != 0 && strcmp(cmd, "actions") != 0 &&
-        strcmp(cmd, "release") != 0 && strcmp(cmd, "tag") != 0 &&
-        strcmp(cmd, "branch") != 0 && strcmp(cmd, "issue") != 0 &&
-        strcmp(cmd, "label") != 0 && strcmp(cmd, "milestone") != 0 &&
-        strcmp(cmd, "pr") != 0 && strcmp(cmd, "commit") != 0 &&
-        strcmp(cmd, "content") != 0 && strcmp(cmd, "key") != 0 &&
-        strcmp(cmd, "collaborator") != 0 && strcmp(cmd, "fork") != 0 &&
-        strcmp(cmd, "hook") != 0 && strcmp(cmd, "org") != 0 &&
-        strcmp(cmd, "wiki") != 0) {
+    if (strcmp(cmd, "--help-spec") == 0) {
+        print_help_spec();
+        free(filtered_argv);
+        return CLI_OK;
+    }
+
+    if (!find_command(cmd)) {
         fprintf(stderr, "Error: unknown command '%s'\n", cmd);
         free(filtered_argv);
         return CLI_USAGE;
