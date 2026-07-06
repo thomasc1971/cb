@@ -155,6 +155,9 @@ int cb_unsetenv(const char *name)
 
 const char *cb_config_dir(void)
 {
+    const char *xdg = getenv("XDG_CONFIG_HOME");
+    if (xdg && xdg[0])
+        return xdg;
     const char *dir = getenv("APPDATA");
     if (dir && dir[0])
         return dir;

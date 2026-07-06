@@ -249,14 +249,14 @@ Generate a token at `https://codeberg.org/user/settings/applications`. The token
 
 1. `--base-url` CLI flag
 2. `CB_BASE_URL` env var
-3. `~/.config/cb/config` file (`%APPDATA%\cb\config` on Windows)
+3. `~/.config/cb/config` file (`%APPDATA%\cb\config` on Windows, or `$XDG_CONFIG_HOME/cb/config` if `XDG_CONFIG_HOME` is set)
 4. Default: `https://codeberg.org/api/v1`
 
 Token is read from `CB_TOKEN` env var or the config file:
 
 ```toml
 # ~/.config/cb/config (mode 0600)
-# %APPDATA%\cb\config on Windows
+# %APPDATA%\cb\config on Windows (or $XDG_CONFIG_HOME/cb/config if set)
 token = "your-token-here"
 base_url = "https://codeberg.org/api/v1"
 ```
