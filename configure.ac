@@ -85,5 +85,32 @@ AS_IF([test "x$enable_werror" != xno], [CFLAGS="$CFLAGS -Werror"])
 # Also pass -Wall -Wextra unconditionally
 CFLAGS="$CFLAGS -Wall -Wextra"
 
+# --- Shell completion directories ---
+AC_ARG_WITH([bash-completion-dir],
+  [AS_HELP_STRING([--with-bash-completion-dir=DIR],
+    [install bash completions in DIR [auto]])],
+  [bashcompdir="$withval"],
+  [bashcompdir=])
+AS_IF([test -z "$bashcompdir"], [
+  PKG_CHECK_VAR([bashcompdir], [bash-completion], [completionsdir], [], [
+    bashcompdir="${datadir}/bash-completion/completions"
+  ])
+])
+AC_SUBST([bashcompdir])
+
+AC_ARG_WITH([zsh-completion-dir],
+  [AS_HELP_STRING([--with-zsh-completion-dir=DIR],
+    [install zsh completions in DIR [auto]])],
+  [zshcompdir="$withval"],
+  [zshcompdir="${datadir}/zsh/site-functions"])
+AC_SUBST([zshcompdir])
+
+AC_ARG_WITH([fish-completion-dir],
+  [AS_HELP_STRING([--with-fish-completion-dir=DIR],
+    [install fish completions in DIR [auto]])],
+  [fishcompdir="$withval"],
+  [fishcompdir="${datadir}/fish/vendor_completions.d"])
+AC_SUBST([fishcompdir])
+
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile])
 AC_OUTPUT

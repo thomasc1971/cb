@@ -200,17 +200,17 @@ make bear                          # Generates compile_commands.json
 make install
 ```
 
-### Shell completions
+`make install` installs the binary and shell completions for Bash, Zsh, and Fish. Completion directories are auto-detected via `pkg-config` (Bash) or use standard defaults; override them with `--with-bash-completion-dir`, `--with-zsh-completion-dir`, or `--with-fish-completion-dir`.
 
-Generate completion scripts for Bash, Zsh, and Fish from the built binary:
+### Shell completions (manual)
+
+If you prefer to install completions manually, generate them from the built binary:
 
 ```bash
 make completions
 ```
 
 This runs `cb --help-spec` and produces `completions/cb.bash`, `completions/cb.zsh`, and `completions/cb.fish`.
-
-Install them to your shell's completion directory:
 
 **Bash:**
 
