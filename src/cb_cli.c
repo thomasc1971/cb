@@ -3045,6 +3045,34 @@ static void print_label_list(const Label *arr, size_t count, int json)
     }
 }
 
+static void print_label(const Label *l, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", l->id);
+        if (l->name)
+            json_object_set_string(obj, "name", l->name);
+        if (l->color)
+            json_object_set_string(obj, "color", l->color);
+        if (l->description)
+            json_object_set_string(obj, "description", l->description);
+        json_object_set_bool(obj, "exclusive", l->exclusive);
+        json_object_set_bool(obj, "is_archived", l->is_archived);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%lld  %s  #%s\n", (long long)l->id,
+               l->name ? l->name : "", l->color ? l->color : "");
+        if (l->description && l->description[0])
+            printf("  %s\n", l->description);
+        printf("  exclusive: %s  archived: %s\n",
+               l->exclusive ? "yes" : "no",
+               l->is_archived ? "yes" : "no");
+    }
+}
+
 static void print_milestone_list(const Milestone *arr, size_t count, int json)
 {
     if (json) {
@@ -3070,6 +3098,42 @@ static void print_milestone_list(const Milestone *arr, size_t count, int json)
                    (long long)arr[i].id, arr[i].title ? arr[i].title : "",
                    arr[i].state ? arr[i].state : "",
                    arr[i].open_issues, arr[i].closed_issues);
+    }
+}
+
+static void print_milestone(const Milestone *m, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", m->id);
+        if (m->title)
+            json_object_set_string(obj, "title", m->title);
+        if (m->description)
+            json_object_set_string(obj, "description", m->description);
+        if (m->state)
+            json_object_set_string(obj, "state", m->state);
+        if (m->due_on)
+            json_object_set_string(obj, "due_on", m->due_on);
+        if (m->created_at)
+            json_object_set_string(obj, "created_at", m->created_at);
+        if (m->updated_at)
+            json_object_set_string(obj, "updated_at", m->updated_at);
+        json_object_set_number(obj, "open_issues", m->open_issues);
+        json_object_set_number(obj, "closed_issues", m->closed_issues);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%lld  %s  [%s]\n", (long long)m->id,
+               m->title ? m->title : "", m->state ? m->state : "");
+        if (m->description && m->description[0])
+            printf("  %s\n", m->description);
+        printf("  %d open / %d closed\n", m->open_issues, m->closed_issues);
+        if (m->due_on && m->due_on[0])
+            printf("  due: %s\n", m->due_on);
+        if (m->created_at)
+            printf("  created: %s\n", m->created_at);
     }
 }
 
@@ -3216,6 +3280,73 @@ static void print_deploykey_list(const DeployKey *arr, size_t count, int json)
                    arr[i].title ? arr[i].title : "",
                    arr[i].fingerprint ? arr[i].fingerprint : "",
                    arr[i].read_only ? "read-only" : "read-write");
+    }
+}
+
+static void print_deploykey(const DeployKey *k, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", k->id);
+        if (k->title)
+            json_object_set_string(obj, "title", k->title);
+        if (k->key)
+            json_object_set_string(obj, "key", k->key);
+        if (k->fingerprint)
+            json_object_set_string(obj, "fingerprint", k->fingerprint);
+        json_object_set_bool(obj, "read_only", k->read_only);
+        if (k->created_at)
+            json_object_set_string(obj, "created_at", k->created_at);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%lld  %s  %s\n", (long long)k->id,
+               k->title ? k->title : "",
+               k->read_only ? "read-only" : "read-write");
+        if (k->fingerprint)
+            printf("  fingerprint: %s\n", k->fingerprint);
+        if (k->key)
+            printf("  %s\n", k->key);
+        if (k->created_at)
+            printf("  created: %s\n", k->created_at);
+    }
+}
+
+static void print_attachment(const Attachment *a, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", a->id);
+        if (a->name)
+            json_object_set_string(obj, "name", a->name);
+        if (a->type)
+            json_object_set_string(obj, "type", a->type);
+        json_object_set_number(obj, "size", a->size);
+        json_object_set_number(obj, "download_count", a->download_count);
+        if (a->uuid)
+            json_object_set_string(obj, "uuid", a->uuid);
+        if (a->browser_download_url)
+            json_object_set_string(obj, "browser_download_url", a->browser_download_url);
+        if (a->created_at)
+            json_object_set_string(obj, "created_at", a->created_at);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%lld  %s  (%lld bytes, %lld downloads)\n",
+               (long long)a->id, a->name ? a->name : "",
+               (long long)a->size, (long long)a->download_count);
+        if (a->type)
+            printf("  type: %s\n", a->type);
+        if (a->uuid)
+            printf("  uuid: %s\n", a->uuid);
+        if (a->browser_download_url)
+            printf("  url: %s\n", a->browser_download_url);
+        if (a->created_at)
+            printf("  created: %s\n", a->created_at);
     }
 }
 
@@ -3791,6 +3922,35 @@ static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, CbGlo
     return CLI_OK;
 }
 
+static int cmd_release_asset_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb release [owner/]repo asset show <release-id> <asset-id>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 3) {
+        fprintf(stderr, "Error: asset show requires repo, release-id, and asset-id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
+        return CLI_ERR;
+    int64_t release_id = atol(argv[1]);
+    int64_t asset_id = atol(argv[2]);
+    Attachment a;
+    int rc = api_release_asset_get(api, owner, repo, release_id, asset_id, &a);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_attachment(&a, gf->json);
+    attachment_free(&a);
+    return CLI_OK;
+}
+
 /* ===== Release dispatch ===== */
 
 static int cmd_release(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
@@ -3837,6 +3997,8 @@ static int cmd_release(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
         }
         if (strcmp(asub, "list") == 0)
             return cmd_release_asset_list(a_argc, a_argv, api, gf);
+        if (strcmp(asub, "show") == 0)
+            return cmd_release_asset_show(a_argc, a_argv, api, gf);
         if (strcmp(asub, "edit") == 0)
             return cmd_release_asset_edit(a_argc, a_argv, api, gf);
         if (strcmp(asub, "delete") == 0)
@@ -4926,6 +5088,34 @@ static int cmd_label_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags
     return CLI_OK;
 }
 
+static int cmd_label_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb label [owner/]repo show <id>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: label show requires repo and id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    Label l;
+    int rc = api_label_get(api, owner, repo, id, &l);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_label(&l, gf->json);
+    label_free(&l);
+    return CLI_OK;
+}
+
 static int cmd_label(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
@@ -4941,6 +5131,8 @@ static int cmd_label(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     }
     if (strcmp(sub, "list") == 0)
         return cmd_label_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_label_show(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "create") == 0)
         return cmd_label_create(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "delete") == 0)
@@ -5083,6 +5275,34 @@ static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, CbGlobalF
     return CLI_OK;
 }
 
+static int cmd_milestone_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb milestone [owner/]repo show <id>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: milestone show requires repo and id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    Milestone m;
+    int rc = api_milestone_get(api, owner, repo, id, &m);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_milestone(&m, gf->json);
+    milestone_free(&m);
+    return CLI_OK;
+}
+
 static int cmd_milestone(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
@@ -5098,6 +5318,8 @@ static int cmd_milestone(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
     }
     if (strcmp(sub, "list") == 0)
         return cmd_milestone_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_milestone_show(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "create") == 0)
         return cmd_milestone_create(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "delete") == 0)
@@ -5668,6 +5890,34 @@ static int cmd_key_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *
     return CLI_OK;
 }
 
+static int cmd_key_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb key [owner/]repo show <id>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 2) {
+        fprintf(stderr, "Error: key show requires repo and id\n");
+        return CLI_USAGE;
+    }
+    char owner[128], repo[128];
+    if (require_owner_repo(argv[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0)
+        return CLI_ERR;
+    int64_t id = atol(argv[1]);
+    DeployKey k;
+    int rc = api_key_get(api, owner, repo, id, &k);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    print_deploykey(&k, gf->json);
+    deploykey_free(&k);
+    return CLI_OK;
+}
+
 static int cmd_key(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     if (argc < 1) {
@@ -5683,6 +5933,8 @@ static int cmd_key(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     }
     if (strcmp(sub, "list") == 0)
         return cmd_key_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_key_show(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "add") == 0)
         return cmd_key_add(rest_argc, rest_argv, api, gf);
     if (strcmp(sub, "delete") == 0)

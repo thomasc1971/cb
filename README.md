@@ -19,7 +19,7 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - Show latest release or release by tag
 - Delete release by tag
 - List, upload, edit, delete release assets
-- Show release asset details _(not yet implemented)_
+- Show release asset details
 
 ### Tags
 
@@ -39,12 +39,12 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 ### Labels
 
 - List, create, edit, delete repository labels
-- Show label details _(not yet implemented)_
+- Show label details
 
 ### Milestones
 
 - List, create, edit, delete milestones
-- Show milestone details _(not yet implemented)_
+- Show milestone details
 
 ### Pull requests
 
@@ -76,7 +76,7 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 ### Deploy keys
 
 - List, add, delete deploy keys
-- Show deploy key details _(not yet implemented)_
+- Show deploy key details
 
 ### Collaborators
 
@@ -404,8 +404,6 @@ cb release thomasc/myproj asset delete 42 7 --yes
 
 Subcommands: `list`, `create`, `show`, `latest`, `edit`, `delete`, `by-tag`, `delete-tag`, `asset`
 
-> **Note:** `release asset show` is not yet implemented.
-
 #### `cb tag [owner/]repo <subcommand>`
 
 Manage tags.
@@ -458,11 +456,10 @@ Manage repository labels.
 
 ```bash
 cb label thomasc/myproj list
+cb label thomasc/myproj show 5
 cb label thomasc/myproj create --name bug --color ff0000
 cb label thomasc/myproj delete 3 --yes
 ```
-
-> **Note:** `label show` is not yet implemented.
 
 #### `cb milestone [owner/]repo <subcommand>`
 
@@ -470,11 +467,10 @@ Manage milestones.
 
 ```bash
 cb milestone thomasc/myproj list
+cb milestone thomasc/myproj show 3
 cb milestone thomasc/myproj create --title "v2.0" --due 2025-12-31
 cb milestone thomasc/myproj delete 3 --yes
 ```
-
-> **Note:** `milestone show` is not yet implemented.
 
 #### `cb pr [owner/]repo <subcommand>`
 
@@ -525,11 +521,10 @@ Manage deploy keys.
 
 ```bash
 cb key thomasc/myproj list
+cb key thomasc/myproj show 7
 cb key thomasc/myproj add --title "CI key" --key "ssh-ed25519 AAAA..."
 cb key thomasc/myproj delete 3 --yes
 ```
-
-> **Note:** `key show` is not yet implemented.
 
 #### `cb collaborator [owner/]repo <subcommand>`
 

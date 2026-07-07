@@ -6,21 +6,16 @@ repos, which were used as test targets.
 
 ---
 
-## Critical — Subcommands advertised in help but not dispatched
+## ~~Critical~~ Fixed — Subcommands advertised in help but not dispatched
 
-These `show` subcommands appear in the help text but the CLI dispatch table
-rejects them as unknown. Users who read the help and try the command get a
-usage error instead of the promised output.
+**Fixed.** All four `show` subcommands are now dispatched and working:
 
-| Command                 | Help text         | Actual output                                         |
-| ----------------------- | ----------------- | ----------------------------------------------------- |
-| `cb release asset show` | Show asset        | `Error: unknown asset subcommand 'show'` (exit 2)     |
-| `cb label show`         | Show a label      | `Error: unknown label subcommand 'show'` (exit 2)     |
-| `cb milestone show`     | Show a milestone  | `Error: unknown milestone subcommand 'show'` (exit 2) |
-| `cb key show`           | Show a deploy key | `Error: unknown key subcommand 'show'` (exit 2)       |
-
-**Fix:** Either implement the handlers or remove `show` from the respective
-help text / command tree.
+| Command                 | Status       |
+| ----------------------- | ------------ |
+| `cb release asset show` | ✓ Dispatched |
+| `cb label show`         | ✓ Dispatched |
+| `cb milestone show`     | ✓ Dispatched |
+| `cb key show`           | ✓ Dispatched |
 
 ---
 
@@ -128,11 +123,11 @@ and nonexistent resources:
 
 ## Summary
 
-| Severity | Count | Description                                                  |
-| -------- | ----- | ------------------------------------------------------------ |
-| Critical | 4     | `show` subcommands advertised but not dispatched             |
-| Critical | 17    | Subcommands listed in help but not implemented               |
-| Major    | ~~1~~ | ~~`actions show` uses a different ID format~~ — **fixed**    |
-| Major    | 1     | `--quiet` flag does not suppress list output                 |
-| Minor    | 1     | `actions secret list --json` fails instead of returning `[]` |
-| Minor    | 1     | Inconsistent empty-list messaging across commands            |
+| Severity | Count | Description                                                      |
+| -------- | ----- | ---------------------------------------------------------------- |
+| Critical | ~~4~~ | ~~`show` subcommands advertised but not dispatched~~ — **fixed** |
+| Critical | 17    | Subcommands listed in help but not implemented                   |
+| Major    | ~~1~~ | ~~`actions show` uses a different ID format~~ — **fixed**        |
+| Major    | 1     | `--quiet` flag does not suppress list output                     |
+| Minor    | 1     | `actions secret list --json` fails instead of returning `[]`     |
+| Minor    | 1     | Inconsistent empty-list messaging across commands                |

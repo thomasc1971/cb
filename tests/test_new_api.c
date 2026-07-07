@@ -734,6 +734,31 @@ static void test_label_list_success(void)
     teardown_server();
 }
 
+static void test_label_get_success(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/repos/thomasc/myproj/labels/5",
+        .status = 200
+    };
+    set_body(&resp, LABEL_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Label l;
+    int rc = api_label_get(&a, "thomasc", "myproj", 5, &l);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((long long)l.id, 5LL);
+    ASSERT_STR_EQ(l.name, "bug");
+    ASSERT_STR_EQ(l.color, "ff0000");
+    ASSERT_STR_EQ(l.description, "Bug report");
+
+    label_free(&l);
+    api_client_free(&a);
+    teardown_server();
+}
+
 static void test_label_create_success(void)
 {
     MockResponse resp = {
@@ -811,6 +836,32 @@ static void test_milestone_list_success(void)
     ASSERT_EQ(ms[0].open_issues, 5);
 
     milestone_array_free(ms, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_milestone_get_success(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/repos/thomasc/myproj/milestones/3",
+        .status = 200
+    };
+    set_body(&resp, MILESTONE_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Milestone m;
+    int rc = api_milestone_get(&a, "thomasc", "myproj", 3, &m);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((long long)m.id, 3LL);
+    ASSERT_STR_EQ(m.title, "v1.0");
+    ASSERT_STR_EQ(m.state, "open");
+    ASSERT_EQ(m.open_issues, 5);
+    ASSERT_EQ(m.closed_issues, 2);
+
+    milestone_free(&m);
     api_client_free(&a);
     teardown_server();
 }
@@ -1085,6 +1136,31 @@ static void test_key_list_success(void)
     ASSERT_TRUE(keys[0].read_only);
 
     deploykey_array_free(keys, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_key_get_success(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/repos/thomasc/myproj/keys/7",
+        .status = 200
+    };
+    set_body(&resp, KEY_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    DeployKey k;
+    int rc = api_key_get(&a, "thomasc", "myproj", 7, &k);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((long long)k.id, 7LL);
+    ASSERT_STR_EQ(k.title, "CI key");
+    ASSERT_STR_EQ(k.fingerprint, "SHA256:abc");
+    ASSERT_TRUE(k.read_only);
+
+    deploykey_free(&k);
     api_client_free(&a);
     teardown_server();
 }
@@ -1436,10 +1512,12 @@ int main(void)
     RUN_TEST(test_issue_delete_success);
 
     RUN_TEST(test_label_list_success);
+    RUN_TEST(test_label_get_success);
     RUN_TEST(test_label_create_success);
     RUN_TEST(test_label_delete_success);
 
     RUN_TEST(test_milestone_list_success);
+    RUN_TEST(test_milestone_get_success);
     RUN_TEST(test_milestone_create_success);
     RUN_TEST(test_milestone_delete_success);
 
@@ -1453,6 +1531,7 @@ int main(void)
     RUN_TEST(test_content_get_file);
 
     RUN_TEST(test_key_list_success);
+    RUN_TEST(test_key_get_success);
     RUN_TEST(test_key_add_success);
 
     RUN_TEST(test_collaborator_list_success);
