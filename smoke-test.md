@@ -82,18 +82,12 @@ Verified against live instance:
 
 ---
 
-## Minor — `actions secret list --json` parse failure
+## ~~Minor~~ Fixed — `actions secret list --json` parse failure
 
-When a repo has no action secrets:
-
-| Mode  | Command                                    | Output                                |
-| ----- | ------------------------------------------ | ------------------------------------- |
-| Human | `cb actions secret list thomasc/cb`        | `No secrets found.`                   |
-| JSON  | `cb actions secret list thomasc/cb --json` | `Error: failed to parse API response` |
-
-All other empty `--json` list commands correctly return `[]`. The Forgejo
-secrets API likely returns a different structure (e.g. an object with a
-`secrets` key rather than a bare array) that the parser does not handle.
+**Fixed and verified.** The Forgejo secrets API returns a bare JSON array
+(per the swagger spec), but the parser only accepted `{"data":[...]}` (older
+Gitea format). Now both formats are handled. Empty list returns `[]` in JSON
+mode and "No secrets found." in human mode.
 
 ---
 
@@ -138,5 +132,5 @@ and nonexistent resources:
 | Critical | 17    | Subcommands listed in help but not implemented                   |
 | Major    | ~~1~~ | ~~`actions show` uses a different ID format~~ — **fixed**        |
 | Major    | ~~1~~ | ~~`--quiet` flag does not suppress list output~~ — **fixed**     |
-| Minor    | 1     | `actions secret list --json` fails instead of returning `[]`     |
+| Minor    | ~~1~~ | ~~`actions secret list --json` fails~~ — **fixed**               |
 | Minor    | 1     | Inconsistent empty-list messaging across commands                |

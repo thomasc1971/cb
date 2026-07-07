@@ -289,6 +289,44 @@ static void test_action_secret_list_success(void)
     teardown_server();
 }
 
+static void test_action_secret_list_empty_bare_array(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/secrets", .status = 200, .body = "[]"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    ActionSecret *secrets = NULL;
+    size_t count = 0;
+    int rc = api_action_secret_list(&a, "thomasc", "cb", &secrets, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((int)count, 0);
+    ASSERT_NULL(secrets);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_action_secret_list_empty_data(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/secrets", .status = 200, .body = "{\"data\":[]}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    ActionSecret *secrets = NULL;
+    size_t count = 0;
+    int rc = api_action_secret_list(&a, "thomasc", "cb", &secrets, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((int)count, 0);
+    ASSERT_NULL(secrets);
+    api_client_free(&a);
+    teardown_server();
+}
+
 /* ===== Secret set ===== */
 
 static void test_action_secret_set_success(void)
@@ -582,6 +620,8 @@ int main(int argc, char *argv[])
     RUN_TEST(test_action_dispatch_success);
     RUN_TEST(test_action_dispatch_null_ref);
     RUN_TEST(test_action_secret_list_success);
+    RUN_TEST(test_action_secret_list_empty_bare_array);
+    RUN_TEST(test_action_secret_list_empty_data);
     RUN_TEST(test_action_secret_set_success);
     RUN_TEST(test_action_secret_set_null_value);
     RUN_TEST(test_action_secret_delete_success);

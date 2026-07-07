@@ -971,13 +971,20 @@ int api_action_secret_list(ApiClient *a, const char *owner, const char *repo,
     JsonValue *parsed = json_parse(resp.body, &json_err);
     http_response_free(&resp);
 
-    if (!parsed || !json_is_object(parsed)) {
-        json_free(parsed);
+    if (!parsed) {
         set_error(a, "failed to parse API response");
         return API_ERR_UNKNOWN;
     }
 
-    JsonValue *secrets_arr = json_object_lookup(parsed, "data");
+    /* Forgejo/Gitea may return a bare array (per swagger) or an object
+     * with a "data" key (older Gitea format). Handle both. */
+    JsonValue *secrets_arr = NULL;
+    if (json_is_array(parsed)) {
+        secrets_arr = parsed;
+    } else if (json_is_object(parsed)) {
+        secrets_arr = json_object_lookup(parsed, "data");
+    }
+
     if (!secrets_arr || !json_is_array(secrets_arr)) {
         json_free(parsed);
         *out = NULL;
