@@ -58,12 +58,27 @@ to `int64_t` to prevent truncation of large run numbers.
 
 ## ~~Major~~ Fixed — `--quiet` flag does not suppress list output
 
-**Fixed.** `--quiet` now suppresses non-essential output on all commands:
+**Fixed and verified.** `--quiet` now suppresses non-essential output on all
+commands:
 
 - **List commands**: prints only the identifying field (name, tag, or `#ID`)
   per line, no table headers or metadata
 - **Show commands**: suppresses output entirely (like mutation confirmations)
 - **`--json --quiet`**: JSON output is unaffected — `--json` takes precedence
+
+Verified against live instance:
+
+| Command                                 | `--quiet` output        |
+| --------------------------------------- | ----------------------- |
+| `cb --quiet repo list`                  | `owner/repo` names only |
+| `cb --quiet repo show thomasc/cb`       | silent (0 bytes)        |
+| `cb --quiet --json repo list`           | full JSON array         |
+| `cb --quiet tag list thomasc/cb`        | tag names only          |
+| `cb --quiet branch list thomasc/cb`     | branch names only       |
+| `cb --quiet release list thomasc/cb`    | tag names only          |
+| `cb --quiet actions list thomasc/cb`    | `#N` run numbers only   |
+| `cb --quiet actions jobs thomasc/cb 71` | job names only          |
+| `cb --quiet actions log thomasc/cb 71`  | silent (0 bytes)        |
 
 ---
 
