@@ -572,6 +572,70 @@ static void test_cli_org_create_no_args(void)
     cb_unsetenv("CB_TOKEN");
 }
 
+/* ===== --quiet tests ===== */
+
+static void test_cli_quiet_list(void)
+{
+    const char *list_json =
+        "[{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
+        "\"description\":\"test\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
+        "\"private\":true,\"archived\":false,\"stars_count\":12,\"forks_count\":3}]";
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/repos", .status = 200
+    };
+    set_body(&resp, list_json);
+    setup_server(&resp, 1);
+
+    char buf[4096];
+    const char *args[] = { "--quiet", "repo", "list", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "thomasc/myproj") != NULL);
+    ASSERT_FALSE(strstr(buf, "private") != NULL);
+    ASSERT_FALSE(strstr(buf, "stars") != NULL);
+
+    teardown_server();
+}
+
+static void test_cli_quiet_show(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/repos/thomasc/myproj", .status = 200
+    };
+    set_body(&resp, REPO_JSON_STR);
+    setup_server(&resp, 1);
+
+    char buf[4096];
+    const char *args[] = { "--quiet", "repo", "show", "thomasc/myproj", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_EQ((int)strlen(buf), 0);
+
+    teardown_server();
+}
+
+static void test_cli_quiet_json_list(void)
+{
+    const char *list_json =
+        "[{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
+        "\"description\":\"test\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
+        "\"private\":true,\"archived\":false,\"stars_count\":12,\"forks_count\":3}]";
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/repos", .status = 200
+    };
+    set_body(&resp, list_json);
+    setup_server(&resp, 1);
+
+    char buf[4096];
+    const char *args[] = { "--quiet", "--json", "repo", "list", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "thomasc/myproj") != NULL);
+    ASSERT_TRUE(strstr(buf, "\"private\"") != NULL);
+
+    teardown_server();
+}
+
 int main(int argc, char *argv[])
 {
     test_parse_args(argc, argv);
@@ -611,6 +675,10 @@ int main(int argc, char *argv[])
     RUN_TEST(test_cli_org_create_visibility);
     RUN_TEST(test_help_org_create);
     RUN_TEST(test_cli_org_create_no_args);
+
+    RUN_TEST(test_cli_quiet_list);
+    RUN_TEST(test_cli_quiet_show);
+    RUN_TEST(test_cli_quiet_json_list);
 
     TEST_SUMMARY();
 }

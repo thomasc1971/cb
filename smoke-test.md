@@ -56,20 +56,14 @@ to `int64_t` to prevent truncation of large run numbers.
 
 ---
 
-## Major — `--quiet` flag does not suppress list output
+## ~~Major~~ Fixed — `--quiet` flag does not suppress list output
 
-`--quiet` is documented as "Suppress non-essential output" but has no visible
-effect on list commands:
+**Fixed.** `--quiet` now suppresses non-essential output on all commands:
 
-```
-$ cb --quiet repo list          # prints all repos
-$ cb repo list --quiet          # prints all repos
-$ cb --quiet repo show thomasc/cb   # prints repo details
-```
-
-For list commands the listing _is_ the output, so `--quiet` should either
-suppress it entirely or at minimum switch to a minimal format (e.g. repo
-names only).
+- **List commands**: prints only the identifying field (name, tag, or `#ID`)
+  per line, no table headers or metadata
+- **Show commands**: suppresses output entirely (like mutation confirmations)
+- **`--json --quiet`**: JSON output is unaffected — `--json` takes precedence
 
 ---
 
@@ -128,6 +122,6 @@ and nonexistent resources:
 | Critical | ~~4~~ | ~~`show` subcommands advertised but not dispatched~~ — **fixed** |
 | Critical | 17    | Subcommands listed in help but not implemented                   |
 | Major    | ~~1~~ | ~~`actions show` uses a different ID format~~ — **fixed**        |
-| Major    | 1     | `--quiet` flag does not suppress list output                     |
+| Major    | ~~1~~ | ~~`--quiet` flag does not suppress list output~~ — **fixed**     |
 | Minor    | 1     | `actions secret list --json` fails instead of returning `[]`     |
 | Minor    | 1     | Inconsistent empty-list messaging across commands                |

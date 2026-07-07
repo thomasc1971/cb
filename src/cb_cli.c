@@ -810,7 +810,8 @@ static int cmd_repo_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
         return CLI_ERR;
     }
 
-    print_repo(&r, gf->json);
+    if (!gf->quiet)
+        print_repo(&r, gf->json);
     repo_free(&r);
     return CLI_OK;
 }
@@ -855,7 +856,11 @@ static int cmd_repo_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
         return CLI_ERR;
     }
 
-    print_repo_list(repos, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", repos[i].full_name ? repos[i].full_name : repos[i].name);
+    } else
+        print_repo_list(repos, count, gf->json);
     repo_array_free(repos, count);
     return CLI_OK;
 }
@@ -977,7 +982,11 @@ static int cmd_topic_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_topics(topics, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", topics[i]);
+    } else
+        print_topics(topics, count, gf->json);
     topic_array_free(topics, count);
     return CLI_OK;
 }
@@ -1270,7 +1279,11 @@ static int cmd_actions_list(int argc, char **argv, ApiClient *api, CbGlobalFlags
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_action_run_list(runs, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("#%lld\n", (long long)runs[i].index_in_repo);
+    } else
+        print_action_run_list(runs, count, gf->json);
     action_run_array_free(runs, count);
     return CLI_OK;
 }
@@ -1303,7 +1316,8 @@ static int cmd_actions_show(int argc, char **argv, ApiClient *api, CbGlobalFlags
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_action_run(&run, gf->json);
+    if (!gf->quiet)
+        print_action_run(&run, gf->json);
     action_run_free(&run);
     return CLI_OK;
 }
@@ -1332,7 +1346,11 @@ static int cmd_actions_runners(int argc, char **argv, ApiClient *api, CbGlobalFl
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_action_runner_list(runners, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", runners[i].name ? runners[i].name : "?");
+    } else
+        print_action_runner_list(runners, count, gf->json);
     action_runner_array_free(runners, count);
     return CLI_OK;
 }
@@ -1400,7 +1418,11 @@ static int cmd_actions_secret_list(int argc, char **argv, ApiClient *api, CbGlob
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_action_secret_list(secrets, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", secrets[i].name ? secrets[i].name : "?");
+    } else
+        print_action_secret_list(secrets, count, gf->json);
     action_secret_array_free(secrets, count);
     return CLI_OK;
 }
@@ -1513,7 +1535,11 @@ static int cmd_actions_var_list(int argc, char **argv, ApiClient *api, CbGlobalF
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_action_variable_list(vars, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", vars[i].name ? vars[i].name : "?");
+    } else
+        print_action_variable_list(vars, count, gf->json);
     action_variable_array_free(vars, count);
     return CLI_OK;
 }
@@ -1545,7 +1571,8 @@ static int cmd_actions_var_show(int argc, char **argv, ApiClient *api, CbGlobalF
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_action_variable(&var, gf->json);
+    if (!gf->quiet)
+        print_action_variable(&var, gf->json);
     action_variable_free(&var);
     return CLI_OK;
 }
@@ -1667,7 +1694,10 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, CbGlobalFlags
         return CLI_ERR;
     }
 
-    if (gf->json) {
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", jobs[i].name ? jobs[i].name : "?");
+    } else if (gf->json) {
         JsonValue *arr = json_array_new();
         for (size_t i = 0; i < count; i++) {
             JsonValue *obj = json_object_new();
@@ -1704,7 +1734,6 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_actions_log(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-    (void)gf;
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
             printf("Usage: cb actions log [owner/]repo <run-id> [job-index] [step-index]\n\n");
@@ -1743,37 +1772,39 @@ static int cmd_actions_log(int argc, char **argv, ApiClient *api, CbGlobalFlags 
         return CLI_ERR;
     }
 
-    /* Print job header */
-    printf("Job %d: %s (%s, %s)\n\n", job_index,
-           detail.job.name ? detail.job.name : "?",
-           detail.job.status ? detail.job.status : "?",
-           detail.job.duration ? detail.job.duration : "?");
+    /* Print job header and logs (suppressed in quiet mode) */
+    if (!gf->quiet) {
+        printf("Job %d: %s (%s, %s)\n\n", job_index,
+               detail.job.name ? detail.job.name : "?",
+               detail.job.status ? detail.job.status : "?",
+               detail.job.duration ? detail.job.duration : "?");
 
-    /* For each step (or just the requested one), fetch and print logs */
-    for (size_t i = 0; i < detail.step_count; i++) {
-        if (step_filter >= 0 && (int)i != step_filter)
-            continue;
+        /* For each step (or just the requested one), fetch and print logs */
+        for (size_t i = 0; i < detail.step_count; i++) {
+            if (step_filter >= 0 && (int)i != step_filter)
+                continue;
 
-        printf("=== %s (%s, %s) ===\n",
-               detail.steps[i].summary ? detail.steps[i].summary : "?",
-               detail.steps[i].status ? detail.steps[i].status : "?",
-               detail.steps[i].duration ? detail.steps[i].duration : "?");
+            printf("=== %s (%s, %s) ===\n",
+                   detail.steps[i].summary ? detail.steps[i].summary : "?",
+                   detail.steps[i].status ? detail.steps[i].status : "?",
+                   detail.steps[i].duration ? detail.steps[i].duration : "?");
 
-        ActionLogLine *lines = NULL;
-        size_t line_count = 0;
-        rc = api_action_log_fetch(api, owner, repo, run_id, job_index, (int)i,
-                                  &lines, &line_count);
-        if (rc != API_OK) {
-            print_api_error(rc, api->last_error);
-            action_job_detail_free(&detail);
-            return CLI_ERR;
+            ActionLogLine *lines = NULL;
+            size_t line_count = 0;
+            rc = api_action_log_fetch(api, owner, repo, run_id, job_index, (int)i,
+                                      &lines, &line_count);
+            if (rc != API_OK) {
+                print_api_error(rc, api->last_error);
+                action_job_detail_free(&detail);
+                return CLI_ERR;
+            }
+            for (size_t j = 0; j < line_count; j++)
+                printf("%s\n", lines[j].message);
+
+            action_log_lines_free(lines, line_count);
+            if (i + 1 < detail.step_count)
+                printf("\n");
         }
-        for (size_t j = 0; j < line_count; j++)
-            printf("%s\n", lines[j].message);
-
-        action_log_lines_free(lines, line_count);
-        if (i + 1 < detail.step_count)
-            printf("\n");
     }
 
     action_job_detail_free(&detail);
@@ -3452,7 +3483,11 @@ static int cmd_release_list(int argc, char **argv, ApiClient *api, CbGlobalFlags
         free(fb);
         return CLI_ERR;
     }
-    print_release_list(releases, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", releases[i].tag_name ? releases[i].tag_name : "");
+    } else
+        print_release_list(releases, count, gf->json);
     release_array_free(releases, count);
     free(positional);
     free(fv);
@@ -3533,7 +3568,8 @@ static int cmd_release_create(int argc, char **argv, ApiClient *api, CbGlobalFla
         free(fb);
         return CLI_ERR;
     }
-    print_release(&r, gf->json);
+    if (!gf->quiet)
+        print_release(&r, gf->json);
     release_free(&r);
     free(positional);
     free(fv);
@@ -3564,7 +3600,8 @@ static int cmd_release_show(int argc, char **argv, ApiClient *api, CbGlobalFlags
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_release(&r, gf->json);
+    if (!gf->quiet)
+        print_release(&r, gf->json);
     release_free(&r);
     return CLI_OK;
 }
@@ -3591,7 +3628,8 @@ static int cmd_release_latest(int argc, char **argv, ApiClient *api, CbGlobalFla
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_release(&r, gf->json);
+    if (!gf->quiet)
+        print_release(&r, gf->json);
     release_free(&r);
     return CLI_OK;
 }
@@ -3749,7 +3787,8 @@ static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, CbGlobalFla
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_release(&r, gf->json);
+    if (!gf->quiet)
+        print_release(&r, gf->json);
     release_free(&r);
     return CLI_OK;
 }
@@ -3808,7 +3847,10 @@ static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, CbGloba
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    if (gf->json) {
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", assets[i].name ? assets[i].name : "");
+    } else if (gf->json) {
         JsonValue *jarr = json_array_new();
         for (size_t i = 0; i < count; i++) {
             JsonValue *obj = json_object_new();
@@ -3946,7 +3988,8 @@ static int cmd_release_asset_show(int argc, char **argv, ApiClient *api, CbGloba
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_attachment(&a, gf->json);
+    if (!gf->quiet)
+        print_attachment(&a, gf->json);
     attachment_free(&a);
     return CLI_OK;
 }
@@ -4037,7 +4080,11 @@ static int cmd_tag_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_tag_list(tags, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", tags[i].name ? tags[i].name : "");
+    } else
+        print_tag_list(tags, count, gf->json);
     tag_array_free(tags, count);
     return CLI_OK;
 }
@@ -4241,7 +4288,11 @@ static int cmd_branch_list(int argc, char **argv, ApiClient *api, CbGlobalFlags 
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_branch_list(branches, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", branches[i].name ? branches[i].name : "");
+    } else
+        print_branch_list(branches, count, gf->json);
     branch_array_free(branches, count);
     return CLI_OK;
 }
@@ -4528,7 +4579,11 @@ static int cmd_issue_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
         free(fb);
         return CLI_ERR;
     }
-    print_issue_list(issues, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("#%d\n", issues[i].number);
+    } else
+        print_issue_list(issues, count, gf->json);
     issue_array_free(issues, count);
     free(positional);
     free(fv);
@@ -4594,7 +4649,8 @@ static int cmd_issue_create(int argc, char **argv, ApiClient *api, CbGlobalFlags
         free(fb);
         return CLI_ERR;
     }
-    print_issue(&is, gf->json);
+    if (!gf->quiet)
+        print_issue(&is, gf->json);
     issue_free(&is);
     free(positional);
     free(fv);
@@ -4625,7 +4681,8 @@ static int cmd_issue_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_issue(&is, gf->json);
+    if (!gf->quiet)
+        print_issue(&is, gf->json);
     issue_free(&is);
     return CLI_OK;
 }
@@ -4980,7 +5037,11 @@ static int cmd_label_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_label_list(labels, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", labels[i].name ? labels[i].name : "");
+    } else
+        print_label_list(labels, count, gf->json);
     label_array_free(labels, count);
     return CLI_OK;
 }
@@ -5111,7 +5172,8 @@ static int cmd_label_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_label(&l, gf->json);
+    if (!gf->quiet)
+        print_label(&l, gf->json);
     label_free(&l);
     return CLI_OK;
 }
@@ -5172,7 +5234,11 @@ static int cmd_milestone_list(int argc, char **argv, ApiClient *api, CbGlobalFla
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_milestone_list(milestones, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", milestones[i].title ? milestones[i].title : "");
+    } else
+        print_milestone_list(milestones, count, gf->json);
     milestone_array_free(milestones, count);
     return CLI_OK;
 }
@@ -5298,7 +5364,8 @@ static int cmd_milestone_show(int argc, char **argv, ApiClient *api, CbGlobalFla
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_milestone(&m, gf->json);
+    if (!gf->quiet)
+        print_milestone(&m, gf->json);
     milestone_free(&m);
     return CLI_OK;
 }
@@ -5362,7 +5429,11 @@ static int cmd_pr_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_pr_list(prs, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("#%d\n", prs[i].number);
+    } else
+        print_pr_list(prs, count, gf->json);
     pullrequest_array_free(prs, count);
     return CLI_OK;
 }
@@ -5433,7 +5504,8 @@ static int cmd_pr_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
         free(fb);
         return CLI_ERR;
     }
-    print_pr(&p, gf->json);
+    if (!gf->quiet)
+        print_pr(&p, gf->json);
     pullrequest_free(&p);
     free(positional);
     free(fv);
@@ -5464,7 +5536,8 @@ static int cmd_pr_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_pr(&p, gf->json);
+    if (!gf->quiet)
+        print_pr(&p, gf->json);
     pullrequest_free(&p);
     return CLI_OK;
 }
@@ -5663,7 +5736,11 @@ static int cmd_commit_list(int argc, char **argv, ApiClient *api, CbGlobalFlags 
         free(fb);
         return CLI_ERR;
     }
-    print_commit_list(commits, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", commits[i].sha ? commits[i].sha : "");
+    } else
+        print_commit_list(commits, count, gf->json);
     commit_array_free(commits, count);
     free(positional);
     free(fv);
@@ -5727,7 +5804,11 @@ static int cmd_content_list(int argc, char **argv, ApiClient *api, CbGlobalFlags
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_content_entry_list(entries, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", entries[i].name ? entries[i].name : "");
+    } else
+        print_content_entry_list(entries, count, gf->json);
     content_entry_array_free(entries, count);
     return CLI_OK;
 }
@@ -5783,7 +5864,11 @@ static int cmd_key_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_deploykey_list(keys, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", keys[i].title ? keys[i].title : "");
+    } else
+        print_deploykey_list(keys, count, gf->json);
     deploykey_array_free(keys, count);
     return CLI_OK;
 }
@@ -5913,7 +5998,8 @@ static int cmd_key_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_deploykey(&k, gf->json);
+    if (!gf->quiet)
+        print_deploykey(&k, gf->json);
     deploykey_free(&k);
     return CLI_OK;
 }
@@ -6122,7 +6208,11 @@ static int cmd_fork_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_repo_list(forks, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", forks[i].full_name ? forks[i].full_name : forks[i].name);
+    } else
+        print_repo_list(forks, count, gf->json);
     repo_array_free(forks, count);
     return CLI_OK;
 }
@@ -6229,7 +6319,11 @@ static int cmd_hook_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_hook_list(hooks, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("#%lld\n", (long long)hooks[i].id);
+    } else
+        print_hook_list(hooks, count, gf->json);
     hook_array_free(hooks, count);
     return CLI_OK;
 }
@@ -6403,7 +6497,11 @@ static int cmd_wiki_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
         print_api_error(rc, api->last_error);
         return CLI_ERR;
     }
-    print_wikipage_list(pages, count, gf->json);
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", pages[i].title ? pages[i].title : "");
+    } else
+        print_wikipage_list(pages, count, gf->json);
     wikipage_array_free(pages, count);
     return CLI_OK;
 }
