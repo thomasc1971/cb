@@ -29,7 +29,7 @@ These subcommands appear in help output but print "not yet implemented":
 - [ ] **`content delete`** — call `api_content_delete` (needs SHA)
 - [ ] **`content raw`** — call `api_content_raw`, output raw bytes
 - [ ] **`content archive`** — download repository archive (tar/zip)
-- [ ] **`key show`** — call `api_key_get`, print deploy key details
+- [x] ~~**`key show`** — call `api_key_get`, print deploy key details~~
 - [ ] **`collaborator perms`** — call `api_collaborator_perms`, print permission level
 - [ ] **`hook show`** — call `api_hook_get`, print webhook config
 - [ ] **`hook edit`** — call `api_hook_edit`, update webhook config
@@ -41,9 +41,9 @@ These subcommands appear in help output but print "not yet implemented":
 - [ ] **`issue pin`** — pin an issue to the top
 - [ ] **`issue unpin`** — unpin an issue
 - [ ] **`issue deadline`** — set a due date on an issue
-- [ ] **`label show`** — call `api_label_get`, print label details
+- [x] ~~**`label show`** — call `api_label_get`, print label details~~
 - [ ] **`label edit`** — call `api_label_edit`, update name/color
-- [ ] **`milestone show`** — call `api_milestone_get`, print milestone details
+- [x] ~~**`milestone show`** — call `api_milestone_get`, print milestone details~~
 - [ ] **`milestone edit`** — call `api_milestone_edit`, update title/description/dates
 
 ## 2. Add missing API functions
