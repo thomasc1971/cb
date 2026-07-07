@@ -1129,10 +1129,8 @@ static void print_action_run_list(const ActionRun *arr, size_t count, int json)
         json_free(root);
         return;
     }
-    if (count == 0) {
-        printf("No workflow runs found.\n");
+    if (count == 0)
         return;
-    }
     printf("%-6s %-10s %-10s %-20s %-15s %s\n",
            "#", "Status", "Event", "Workflow", "Ref", "Created");
     for (size_t i = 0; i < count; i++) {
@@ -1169,10 +1167,8 @@ static void print_action_runner_list(const ActionRunner *arr, size_t count, int 
         json_free(runs);
         return;
     }
-    if (count == 0) {
-        printf("No runners found.\n");
+    if (count == 0)
         return;
-    }
     printf("%-20s %-10s %-15s %s\n", "Name", "Status", "Version", "UUID");
     for (size_t i = 0; i < count; i++) {
         printf("%-20s %-10s %-15s %s\n",
@@ -1201,10 +1197,8 @@ static void print_action_variable_list(const ActionVariable *arr, size_t count, 
         json_free(vars);
         return;
     }
-    if (count == 0) {
-        printf("No variables found.\n");
+    if (count == 0)
         return;
-    }
     printf("%-30s %s\n", "Name", "Value");
     for (size_t i = 0; i < count; i++)
         printf("%-30s %s\n", arr[i].name ? arr[i].name : "?", arr[i].data ? arr[i].data : "?");
@@ -1244,10 +1238,8 @@ static void print_action_secret_list(const ActionSecret *arr, size_t count, int 
         json_free(secrets);
         return;
     }
-    if (count == 0) {
-        printf("No secrets found.\n");
+    if (count == 0)
         return;
-    }
     printf("%s\n", "Name");
     for (size_t i = 0; i < count; i++)
         printf("%s\n", arr[i].name ? arr[i].name : "?");
@@ -1715,9 +1707,7 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, CbGlobalFlags
         free(s);
         json_free(arr);
     } else {
-        if (count == 0) {
-            printf("No jobs found.\n");
-        } else {
+        if (count > 0) {
             printf("%-6s %-20s %-10s %s\n", "Job", "Name", "Status", "Duration");
             for (size_t i = 0; i < count; i++) {
                 printf("%-6zu %-20s %-10s %s\n", i,

@@ -91,16 +91,13 @@ mode and "No secrets found." in human mode.
 
 ---
 
-## Minor — Inconsistent empty-list messaging
+## ~~Minor~~ Fixed — Inconsistent empty-list messaging
 
-When a resource list is empty, commands behave differently in human mode:
-
-| Style         | Commands                                                                                                                         |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| **No output** | `issue list`, `label list`, `pr list`, `key list`, `fork list`, `hook list`, `milestone list`, `collaborator list`               |
-| **Message**   | `actions secret list` → "No secrets found.", `actions var list` → "No variables found.", `actions runners` → "No runners found." |
-
-Pick one style and apply it consistently.
+**Fixed.** All list commands now produce no output when a resource list is
+empty, matching the behavior of `gh` in non-interactive mode. Previously
+`actions secret list`, `actions var list`, `actions runners`, `actions list`,
+and `actions jobs` printed "No X found." messages while other list commands
+were silent.
 
 ---
 
@@ -133,4 +130,4 @@ and nonexistent resources:
 | Major    | ~~1~~ | ~~`actions show` uses a different ID format~~ — **fixed**        |
 | Major    | ~~1~~ | ~~`--quiet` flag does not suppress list output~~ — **fixed**     |
 | Minor    | ~~1~~ | ~~`actions secret list --json` fails~~ — **fixed**               |
-| Minor    | 1     | Inconsistent empty-list messaging across commands                |
+| Minor    | ~~1~~ | ~~Inconsistent empty-list messaging~~ — **fixed**                |
