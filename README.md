@@ -18,7 +18,8 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - List, create, show, edit, delete releases
 - Show latest release or release by tag
 - Delete release by tag
-- Manage release assets (list, upload, show, edit, delete)
+- List, upload, edit, delete release assets
+- Show release asset details _(not yet implemented)_
 
 ### Tags
 
@@ -37,11 +38,13 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 
 ### Labels
 
-- List, create, show, edit, delete repository labels
+- List, create, edit, delete repository labels
+- Show label details _(not yet implemented)_
 
 ### Milestones
 
-- List, create, show, edit, delete milestones
+- List, create, edit, delete milestones
+- Show milestone details _(not yet implemented)_
 
 ### Pull requests
 
@@ -49,20 +52,22 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - Close and reopen PRs (shorthands)
 - Merge with style selection (merge, rebase, squash, rebase-merge)
 - Auto-merge when checks succeed
+- List changed files, commits, diff _(not yet implemented)_
+- Manage reviews _(not yet implemented)_
 
 ### Commits
 
 - List commits with ref/path filtering
-- Show commit details
-- View combined commit status
+- Show commit details, status, diff _(not yet implemented)_
+- Compare refs _(not yet implemented)_
+- Manage git notes _(not yet implemented)_
 
 ### File contents
 
 - List directory contents
-- Show file or directory details
 - Create, update, delete files
-- Get raw file content
-- Download archives
+- Show file details, raw content _(not yet implemented)_
+- Download archives _(not yet implemented)_
 
 ### Organizations
 
@@ -70,12 +75,13 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 
 ### Deploy keys
 
-- List, add, show, delete deploy keys
+- List, add, delete deploy keys
+- Show deploy key details _(not yet implemented)_
 
 ### Collaborators
 
 - List, add, remove collaborators
-- View collaborator permissions
+- View collaborator permissions _(not yet implemented)_
 
 ### Forks
 
@@ -83,13 +89,15 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 
 ### Webhooks
 
-- List, create, show, edit, delete webhooks
+- List, create, edit, delete webhooks
 - Test webhooks
+- Show webhook details _(not yet implemented)_
 
 ### Wiki
 
-- List, create, show, edit, delete wiki pages
-- View page revisions
+- List, create, edit, delete wiki pages
+- View page revisions _(not yet implemented)_
+- Show wiki page details _(not yet implemented)_
 
 ### CI/CD actions
 
@@ -396,6 +404,8 @@ cb release thomasc/myproj asset delete 42 7 --yes
 
 Subcommands: `list`, `create`, `show`, `latest`, `edit`, `delete`, `by-tag`, `delete-tag`, `asset`
 
+> **Note:** `release asset show` is not yet implemented.
+
 #### `cb tag [owner/]repo <subcommand>`
 
 Manage tags.
@@ -452,6 +462,8 @@ cb label thomasc/myproj create --name bug --color ff0000
 cb label thomasc/myproj delete 3 --yes
 ```
 
+> **Note:** `label show` is not yet implemented.
+
 #### `cb milestone [owner/]repo <subcommand>`
 
 Manage milestones.
@@ -461,6 +473,8 @@ cb milestone thomasc/myproj list
 cb milestone thomasc/myproj create --title "v2.0" --due 2025-12-31
 cb milestone thomasc/myproj delete 3 --yes
 ```
+
+> **Note:** `milestone show` is not yet implemented.
 
 #### `cb pr [owner/]repo <subcommand>`
 
@@ -480,6 +494,8 @@ cb pr thomasc/myproj merge 7 --style squash --delete-branch
 cb pr thomasc/myproj merge 7 --auto
 ```
 
+> **Note:** `pr files`, `pr commits`, `pr diff`, and `pr review` are not yet implemented.
+
 #### `cb commit [owner/]repo <subcommand>`
 
 View commits and statuses.
@@ -490,6 +506,8 @@ cb commit thomasc/myproj list --sha main --path src/
 cb commit thomasc/myproj list --limit 20
 ```
 
+> **Note:** `commit show`, `commit status`, `commit diff`, `commit compare`, and `commit note` are not yet implemented.
+
 #### `cb content [owner/]repo <subcommand>`
 
 View and manage repository file contents.
@@ -498,6 +516,8 @@ View and manage repository file contents.
 cb content thomasc/myproj list
 cb content thomasc/myproj list --ref main
 ```
+
+> **Note:** `content show`, `content raw`, and `content archive` are not yet implemented.
 
 #### `cb key [owner/]repo <subcommand>`
 
@@ -509,6 +529,8 @@ cb key thomasc/myproj add --title "CI key" --key "ssh-ed25519 AAAA..."
 cb key thomasc/myproj delete 3 --yes
 ```
 
+> **Note:** `key show` is not yet implemented.
+
 #### `cb collaborator [owner/]repo <subcommand>`
 
 Manage collaborators.
@@ -519,6 +541,8 @@ cb collaborator thomasc/myproj add bob --permission write
 cb collaborator thomasc/myproj rm bob --yes
 cb collaborator thomasc/myproj perms bob
 ```
+
+> **Note:** `collaborator perms` is not yet implemented.
 
 #### `cb fork [owner/]repo <subcommand>`
 
@@ -540,6 +564,8 @@ cb hook thomasc/myproj create --type gitea --url https://example.com/hook
 cb hook thomasc/myproj delete 5 --yes
 ```
 
+> **Note:** `hook show` is not yet implemented.
+
 #### `cb org create <name>`
 
 ```bash
@@ -558,6 +584,8 @@ cb wiki thomasc/myproj list
 cb wiki thomasc/myproj delete OldPage --yes
 ```
 
+> **Note:** `wiki show` and `wiki revisions` are not yet implemented.
+
 #### `cb actions list [owner/]repo`
 
 List recent workflow runs.
@@ -569,7 +597,14 @@ cb actions list thomasc/cb --json
 
 #### `cb actions show [owner/]repo <run-id>`
 
-Show details of a specific workflow run. `run-id` is the internal API ID (visible in `--json` output as `id`).
+Show details of a specific workflow run.
+
+`run-id` uses different ID formats depending on the command:
+
+- `actions show` requires the **internal API ID** (visible in `--json` output as `id`)
+- `actions jobs` and `actions log` use the **repo run number** (the `#N` shown in `actions list` output)
+
+This inconsistency will be resolved in a future release.
 
 ```bash
 cb actions show thomasc/cb 5218484
@@ -583,6 +618,8 @@ List jobs in a workflow run with status and duration.
 cb actions jobs thomasc/cb 3
 ```
 
+> **Note:** `run-id` here is the repo run number from `actions list` output (e.g. `#3`), not the internal API ID.
+
 Output:
 
 ```
@@ -595,7 +632,7 @@ Job    Name                 Status     Duration
 
 #### `cb actions log [owner/]repo <run-id> [job-index] [step-index]`
 
-Show build logs for a workflow run. `run-id` is the short `index_in_repo` number (e.g. `3`). If `job-index` is omitted, defaults to 0. If `step-index` is omitted, shows all steps.
+Show build logs for a workflow run. `run-id` is the repo run number from `actions list` output (e.g. `#3`). If `job-index` is omitted, defaults to 0. If `step-index` is omitted, shows all steps.
 
 ```bash
 cb actions log thomasc/cb 3              # all steps of job 0
