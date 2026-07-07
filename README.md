@@ -277,14 +277,14 @@ cb [global flags] <command> [subcommand] [args] [flags]
 
 ### Global flags
 
-| Flag              | Description                               |
-| ----------------- | ----------------------------------------- |
-| `--json`          | Output raw JSON instead of human-readable |
+| Flag              | Description                                                                 |
+| ----------------- | --------------------------------------------------------------------------- |
+| `--json`          | Output raw JSON instead of human-readable                                   |
 | `--quiet`, `-q`   | Suppress non-essential output (lists show names only, show commands silent) |
-| `--base-url URL`  | Override API base URL                     |
-| `--yes`           | Skip confirmation prompts                 |
-| `--version`, `-v` | Show version                              |
-| `--help`, `-h`    | Show help at any command level            |
+| `--base-url URL`  | Override API base URL                                                       |
+| `--yes`           | Skip confirmation prompts                                                   |
+| `--version`, `-v` | Show version                                                                |
+| `--help`, `-h`    | Show help at any command level                                              |
 
 ### Getting help
 
