@@ -1653,7 +1653,7 @@ static int cmd_actions_jobs(int argc, char **argv, ApiClient *api, CbGlobalFlags
     if (require_owner_repo(argv[0], owner, sizeof(owner),
                            repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    int run_id = atoi(argv[1]);
+    int64_t run_id = strtoll(argv[1], NULL, 10);
     if (run_id <= 0) {
         fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
         return CLI_ERR;
@@ -1723,7 +1723,7 @@ static int cmd_actions_log(int argc, char **argv, ApiClient *api, CbGlobalFlags 
     if (require_owner_repo(argv[0], owner, sizeof(owner),
                            repo, sizeof(repo), api) != 0)
         return CLI_ERR;
-    int run_id = atoi(argv[1]);
+    int64_t run_id = strtoll(argv[1], NULL, 10);
     if (run_id <= 0) {
         fprintf(stderr, "Error: invalid run ID '%s'\n", argv[1]);
         return CLI_ERR;
@@ -2118,7 +2118,9 @@ static const SubCmd ACTIONS_SUBS[] = {
       "List recent workflow runs.", NULL, NULL },
     { "show", "Show details of a run",
       "cb actions show [owner/]repo <run-id>",
-      "Show details of a specific workflow run.", NULL, NULL },
+      "Show details of a specific workflow run.\n"
+      "<run-id> is the run number shown as #N in 'actions list'.",
+      NULL, NULL },
     { "runners", "List available runners",
       "cb actions runners [owner/]repo",
       "List CI runners available to this repository.", NULL, NULL },

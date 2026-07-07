@@ -599,15 +599,11 @@ cb actions list thomasc/cb --json
 
 Show details of a specific workflow run.
 
-`run-id` uses different ID formats depending on the command:
-
-- `actions show` requires the **internal API ID** (visible in `--json` output as `id`)
-- `actions jobs` and `actions log` use the **repo run number** (the `#N` shown in `actions list` output)
-
-This inconsistency will be resolved in a future release.
+`run-id` is the run number shown as `#N` in `actions list` output. All
+`actions` detail commands (`show`, `jobs`, `log`) accept the same run number.
 
 ```bash
-cb actions show thomasc/cb 5218484
+cb actions show thomasc/cb 69
 ```
 
 #### `cb actions jobs [owner/]repo <run-id>`
@@ -618,7 +614,7 @@ List jobs in a workflow run with status and duration.
 cb actions jobs thomasc/cb 3
 ```
 
-> **Note:** `run-id` here is the repo run number from `actions list` output (e.g. `#3`), not the internal API ID.
+> **Note:** `run-id` is the run number from `actions list` output (e.g. `#3`).
 
 Output:
 
@@ -632,7 +628,7 @@ Job    Name                 Status     Duration
 
 #### `cb actions log [owner/]repo <run-id> [job-index] [step-index]`
 
-Show build logs for a workflow run. `run-id` is the repo run number from `actions list` output (e.g. `#3`). If `job-index` is omitted, defaults to 0. If `step-index` is omitted, shows all steps.
+Show build logs for a workflow run. `run-id` is the run number from `actions list` output (e.g. `#3`). If `job-index` is omitted, defaults to 0. If `step-index` is omitted, shows all steps.
 
 ```bash
 cb actions log thomasc/cb 3              # all steps of job 0

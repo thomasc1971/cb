@@ -51,25 +51,13 @@ ready.
 
 ---
 
-## Major — `actions show` vs `actions jobs`/`log` run-ID inconsistency
+## ~~Major~~ Fixed — `actions show` vs `actions jobs`/`log` run-ID inconsistency
 
-`actions list` displays runs with a repo-scoped index:
-
-```
-#69    success    push    build.yml    v0.7    2026-07-06T10:01:33+02:00
-```
-
-However, the three detail commands expect **different** ID formats:
-
-| Command        | Display ID (`69`) | Internal API ID (`5319668`) |
-| -------------- | ----------------- | --------------------------- |
-| `actions show` | ✗ Not found       | ✓ Works                     |
-| `actions jobs` | ✓ Works           | ✗ Not found (404)           |
-| `actions log`  | ✓ Works           | ✗ Not found (404)           |
-
-Users who copy `#69` from the list output will find it works for `jobs` and
-`log` but fails for `show`. All three commands should accept the same ID
-format — preferably the display index shown in `actions list`.
+**Fixed.** All three commands now accept the run number (the `#N` shown in
+`actions list` output). `actions show` was changed to query
+`GET /repos/{o}/{r}/actions/runs?run_number={N}` instead of the internal
+API ID path. The `int` run ID type in `actions jobs`/`log` was also upgraded
+to `int64_t` to prevent truncation of large run numbers.
 
 ---
 
@@ -128,7 +116,7 @@ and nonexistent resources:
 - `cb --help` / `cb -h`
 - `cb repo show`, `cb repo list` (with `--user`, `--org`, no flags)
 - `cb repo topic list`
-- `cb actions list`, `actions show` (with API ID), `actions jobs` (with display ID), `actions log` (with display ID), `actions runners`
+- `cb actions list`, `actions show` (with run number), `actions jobs` (with run number), `actions log` (with run number), `actions runners`
 - `cb actions var list`, `actions var show`
 - `cb release list`, `release show`, `release latest`, `release by-tag`, `release asset list`
 - `cb tag list`, `tag show`
@@ -140,11 +128,11 @@ and nonexistent resources:
 
 ## Summary
 
-| Severity | Count | Description                                                         |
-| -------- | ----- | ------------------------------------------------------------------- |
-| Critical | 4     | `show` subcommands advertised but not dispatched                    |
-| Critical | 17    | Subcommands listed in help but not implemented                      |
-| Major    | 1     | `actions show` uses a different ID format than `actions jobs`/`log` |
-| Major    | 1     | `--quiet` flag does not suppress list output                        |
-| Minor    | 1     | `actions secret list --json` fails instead of returning `[]`        |
-| Minor    | 1     | Inconsistent empty-list messaging across commands                   |
+| Severity | Count | Description                                                  |
+| -------- | ----- | ------------------------------------------------------------ |
+| Critical | 4     | `show` subcommands advertised but not dispatched             |
+| Critical | 17    | Subcommands listed in help but not implemented               |
+| Major    | ~~1~~ | ~~`actions show` uses a different ID format~~ — **fixed**    |
+| Major    | 1     | `--quiet` flag does not suppress list output                 |
+| Minor    | 1     | `actions secret list --json` fails instead of returning `[]` |
+| Minor    | 1     | Inconsistent empty-list messaging across commands            |

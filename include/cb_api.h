@@ -249,9 +249,10 @@ typedef struct
 int api_action_run_list(ApiClient *a, const char *owner, const char *repo,
                         ActionRun **out, size_t *count);
 
-/* Get a single action run by ID. Caller frees with action_run_free. */
+/* Get a single action run by its run number (index_in_repo, the #N shown in actions list).
+ * Caller frees with action_run_free. */
 int api_action_run_show(ApiClient *a, const char *owner, const char *repo,
-                        int64_t run_id, ActionRun *out);
+                        int64_t run_number, ActionRun *out);
 
 /* List runners available to a repository. Caller frees with action_runner_array_free. */
 int api_action_runner_list(ApiClient *a, const char *owner, const char *repo,
@@ -333,21 +334,21 @@ typedef struct
     size_t step_count;
 } ActionJobDetail;
 
-/* Fetch jobs for a run. run_id is index_in_repo (e.g. 3, not 5218484).
- * Caller frees with action_job_array_free. */
+/* Fetch jobs for a run. run_id is the run number (index_in_repo, the #N shown
+ * in actions list). Caller frees with action_job_array_free. */
 int api_action_job_list(ApiClient *a, const char *owner, const char *repo,
-                        int run_id, ActionJob **out, size_t *count);
+                        int64_t run_id, ActionJob **out, size_t *count);
 
 /* Fetch job details (steps) for a specific job in a run.
  * job_index is 0-based. Caller frees with action_job_detail_free. */
 int api_action_job_detail(ApiClient *a, const char *owner, const char *repo,
-                          int run_id, int job_index, ActionJobDetail *out);
+                          int64_t run_id, int job_index, ActionJobDetail *out);
 
 /* Fetch log lines for a specific step within a job.
  * Returns lines in *out and count. Caller frees with action_log_lines_free.
  * step_index is 0-based. Fetches all pages (handles cursor pagination). */
 int api_action_log_fetch(ApiClient *a, const char *owner, const char *repo,
-                         int run_id, int job_index, int step_index,
+                         int64_t run_id, int job_index, int step_index,
                          ActionLogLine **out, size_t *count);
 
 void action_job_free(ActionJob *j);

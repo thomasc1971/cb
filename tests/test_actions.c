@@ -53,13 +53,8 @@ static const char *RUN_LIST_JSON =
     "\"created\":\"2026-07-02T13:37:17+02:00\",\"started\":\"\",\"stopped\":\"\"}"
     "]}";
 
-static const char *RUN_SINGLE_JSON =
-    "{\"id\":5218403,\"index_in_repo\":2,\"title\":\"Add CI\","
-    "\"status\":\"success\",\"event\":\"push\",\"workflow_id\":\"build.yml\","
-    "\"prettyref\":\"master\",\"commit_sha\":\"86920ea\","
-    "\"html_url\":\"https://codeberg.org/thomasc/cb/actions/runs/2\","
-    "\"created\":\"2026-07-02T13:44:17+02:00\",\"started\":\"2026-07-02T13:46:21+02:00\","
-    "\"stopped\":\"2026-07-02T13:47:19+02:00\"}";
+static const char *RUN_EMPTY_JSON =
+    "{\"total_count\":0,\"workflow_runs\":[]}";
 
 static const char *RUNNER_LIST_JSON =
     "[{\"id\":1,\"name\":\"codeberg-small\",\"uuid\":\"abc-123\","
@@ -151,17 +146,18 @@ static void test_action_run_list_404(void)
 static void test_action_run_show_success(void)
 {
     MockResponse resp = {
-        .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403", .status = 200
+        .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs?run_number=2", .status = 200
     };
-    set_body(&resp, RUN_SINGLE_JSON);
+    set_body(&resp, RUN_LIST_JSON);
     setup_server(&resp, 1);
 
     ApiClient a;
     make_client(&a);
     ActionRun run;
-    int rc = api_action_run_show(&a, "thomasc", "cb", 5218403, &run);
+    int rc = api_action_run_show(&a, "thomasc", "cb", 2, &run);
     ASSERT_EQ(rc, API_OK);
     ASSERT_EQ((long long)run.id, 5218403LL);
+    ASSERT_EQ((long long)run.index_in_repo, 2LL);
     ASSERT_STR_EQ(run.title, "Add CI");
     ASSERT_STR_EQ(run.status, "success");
     ASSERT_STR_EQ(run.workflow_id, "build.yml");
@@ -170,10 +166,27 @@ static void test_action_run_show_success(void)
     teardown_server();
 }
 
+static void test_action_run_show_not_found(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs?run_number=42", .status = 200
+    };
+    set_body(&resp, RUN_EMPTY_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    ActionRun run;
+    int rc = api_action_run_show(&a, "thomasc", "cb", 42, &run);
+    ASSERT_EQ(rc, API_ERR_NOT_FOUND);
+    api_client_free(&a);
+    teardown_server();
+}
+
 static void test_action_run_show_404(void)
 {
     MockResponse resp = {
-        .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs/999", .status = 404, .body = "{\"message\":\"run not found\"}"
+        .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs?run_number=999", .status = 404, .body = "{\"message\":\"run not found\"}"
     };
     setup_server(&resp, 1);
 
@@ -564,6 +577,7 @@ int main(int argc, char *argv[])
     RUN_TEST(test_action_run_list_404);
     RUN_TEST(test_action_run_show_success);
     RUN_TEST(test_action_run_show_404);
+    RUN_TEST(test_action_run_show_not_found);
     RUN_TEST(test_action_runner_list_success);
     RUN_TEST(test_action_dispatch_success);
     RUN_TEST(test_action_dispatch_null_ref);

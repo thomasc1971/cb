@@ -843,13 +843,22 @@ int api_action_run_list(ApiClient *a, const char *owner, const char *repo,
 }
 
 int api_action_run_show(ApiClient *a, const char *owner, const char *repo,
-                        int64_t run_id, ActionRun *out)
+                        int64_t run_number, ActionRun *out)
 {
-    char *path = build_path(a, "/repos/%s/%s/actions/runs/%lld",
-                            owner, repo, (long long)run_id);
+    char path[512];
+    snprintf(path, sizeof(path), "/repos/%s/%s/actions/runs?run_number=%lld",
+             owner, repo, (long long)run_number);
+    size_t total = strlen(a->path_prefix) + strlen(path) + 1;
+    char *full = malloc(total);
+    if (!full) {
+        set_error(a, "out of memory");
+        return API_ERR_UNKNOWN;
+    }
+    snprintf(full, total, "%s%s", a->path_prefix, path);
+
     HttpResponse resp;
-    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
-    free(path);
+    ApiError err = do_request(a, HTTP_GET, full, NULL, &resp);
+    free(full);
 
     if (err != API_OK) {
         http_response_free(&resp);
@@ -866,7 +875,14 @@ int api_action_run_show(ApiClient *a, const char *owner, const char *repo,
         return API_ERR_UNKNOWN;
     }
 
-    parse_action_run(parsed, out);
+    JsonValue *runs_arr = json_object_lookup(parsed, "workflow_runs");
+    if (!runs_arr || !json_is_array(runs_arr) || json_array_count(runs_arr) == 0) {
+        json_free(parsed);
+        set_error(a, "run #%lld not found", (long long)run_number);
+        return API_ERR_NOT_FOUND;
+    }
+
+    parse_action_run(json_array_get(runs_arr, 0), out);
     json_free(parsed);
     return API_OK;
 }
@@ -1200,13 +1216,13 @@ void action_log_lines_free(ActionLogLine *lines, size_t count)
  * Returns the parsed JSON response (caller must json_free).
  * body is the JSON string to POST. */
 static ApiError post_log_endpoint(ApiClient *a, const char *owner, const char *repo,
-                                  int run_id, int job_index, int attempt,
+                                  int64_t run_id, int job_index, int attempt,
                                   const char *body, JsonValue **out)
 {
     /* Path is NOT under /api/v1 — construct directly */
     char path[512];
-    snprintf(path, sizeof(path), "/%s/%s/actions/runs/%d/jobs/%d/attempt/%d",
-             owner, repo, run_id, job_index, attempt);
+    snprintf(path, sizeof(path), "/%s/%s/actions/runs/%lld/jobs/%d/attempt/%d",
+             owner, repo, (long long)run_id, job_index, attempt);
 
     HttpResponse resp;
     ApiError err = do_request(a, HTTP_POST, path, body, &resp);
@@ -1248,7 +1264,7 @@ static char *build_log_cursors(int step_count, int expand_step)
 }
 
 int api_action_job_list(ApiClient *a, const char *owner, const char *repo,
-                        int run_id, ActionJob **out, size_t *count)
+                        int64_t run_id, ActionJob **out, size_t *count)
 {
     /* First fetch job 0 with empty cursors to get run state (includes job list) */
     char *body = build_log_cursors(1, -1);
@@ -1299,7 +1315,7 @@ int api_action_job_list(ApiClient *a, const char *owner, const char *repo,
 }
 
 int api_action_job_detail(ApiClient *a, const char *owner, const char *repo,
-                          int run_id, int job_index, ActionJobDetail *out)
+                          int64_t run_id, int job_index, ActionJobDetail *out)
 {
     memset(out, 0, sizeof(*out));
 
@@ -1351,7 +1367,7 @@ int api_action_job_detail(ApiClient *a, const char *owner, const char *repo,
 }
 
 int api_action_log_fetch(ApiClient *a, const char *owner, const char *repo,
-                         int run_id, int job_index, int step_index,
+                         int64_t run_id, int job_index, int step_index,
                          ActionLogLine **out, size_t *count)
 {
     *out = NULL;
