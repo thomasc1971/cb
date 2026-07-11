@@ -1477,6 +1477,175 @@ static void test_user_get_current(void)
     teardown_server();
 }
 
+/* ===== SSH key (user public key) tests ===== */
+
+static const char *SSHKEY_LIST_JSON =
+    "[{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+    "\"created_at\":\"2026-07-10T12:00:00Z\"},"
+    "{\"id\":2,\"title\":\"CI Runner\",\"key\":\"ssh-ed25519 AAAAC3... runner\","
+    "\"fingerprint\":\"SHA256:def456\",\"key_type\":\"ssh-ed25519\","
+    "\"read_only\":true,\"url\":\"https://codeberg.org/api/v1/user/keys/2\","
+    "\"created_at\":\"2026-07-11T09:00:00Z\"}]";
+
+static const char *SSHKEY_SINGLE_JSON =
+    "{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+    "\"created_at\":\"2026-07-10T12:00:00Z\"}";
+
+static void test_user_key_list_success(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys", .status = 200
+    };
+    set_body(&resp, SSHKEY_LIST_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PublicKey *keys;
+    size_t count;
+    int rc = api_user_key_list(&a, &keys, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((int)count, 2);
+    ASSERT_EQ(keys[0].id, 1);
+    ASSERT_STR_EQ(keys[0].title, "Laptop");
+    ASSERT_STR_EQ(keys[0].fingerprint, "SHA256:abc123");
+    ASSERT_FALSE(keys[0].read_only);
+    ASSERT_EQ(keys[1].id, 2);
+    ASSERT_STR_EQ(keys[1].title, "CI Runner");
+    ASSERT_TRUE(keys[1].read_only);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    public_key_array_free(keys, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_user_key_list_empty(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys", .status = 200, .body = "[]"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PublicKey *keys;
+    size_t count;
+    int rc = api_user_key_list(&a, &keys, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ((int)count, 0);
+    ASSERT_NULL(keys);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    public_key_array_free(keys, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_user_key_add_success(void)
+{
+    MockResponse resp = {
+        .method = "POST", .path = "/api/v1/user/keys", .status = 201
+    };
+    set_body(&resp, SSHKEY_SINGLE_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PublicKey key;
+    int rc = api_user_key_add(&a, "Laptop", "ssh-ed25519 AAAAC3... laptop", 0, &key);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(key.id, 1);
+    ASSERT_STR_EQ(key.title, "Laptop");
+    ASSERT_STR_EQ(key.fingerprint, "SHA256:abc123");
+    ASSERT_FALSE(key.read_only);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    public_key_free(&key);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_user_key_get_success(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys/1", .status = 200
+    };
+    set_body(&resp, SSHKEY_SINGLE_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PublicKey key;
+    int rc = api_user_key_get(&a, 1, &key);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(key.id, 1);
+    ASSERT_STR_EQ(key.title, "Laptop");
+    ASSERT_STR_EQ(key.key_type, "ssh-ed25519");
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    public_key_free(&key);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_user_key_delete_success(void)
+{
+    MockResponse resp = {
+        .method = "DELETE", .path = "/api/v1/user/keys/2", .status = 204
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    int rc = api_user_key_delete(&a, 2);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_user_key_list_401(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys", .status = 401, .body = "{\"message\":\"invalid token\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PublicKey *keys;
+    size_t count;
+    int rc = api_user_key_list(&a, &keys, &count);
+    ASSERT_EQ(rc, API_ERR_AUTH);
+    ASSERT_TRUE(strlen(a.last_error) > 0);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_user_key_get_404(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys/999", .status = 404, .body = "{\"message\":\"key not found\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PublicKey key;
+    int rc = api_user_key_get(&a, 999, &key);
+    ASSERT_EQ(rc, API_ERR_NOT_FOUND);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
 int main(void)
 {
     printf("Running new API tests:\n");
@@ -1549,6 +1718,14 @@ int main(void)
     RUN_TEST(test_repo_languages);
 
     RUN_TEST(test_user_get_current);
+
+    RUN_TEST(test_user_key_list_success);
+    RUN_TEST(test_user_key_list_empty);
+    RUN_TEST(test_user_key_add_success);
+    RUN_TEST(test_user_key_get_success);
+    RUN_TEST(test_user_key_delete_success);
+    RUN_TEST(test_user_key_list_401);
+    RUN_TEST(test_user_key_get_404);
 
     TEST_SUMMARY();
 }

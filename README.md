@@ -114,6 +114,7 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - JSON output mode for scripting (`--json`)
 - Client-side validation with clear error messages
 - Token scope error detection with actionable guidance
+- Manage your account's SSH public keys (`sshkey list/add/show/rm`)
 - Cross-platform: Linux, macOS, and Windows (MSYS2 UCRT64)
 
 ## Download

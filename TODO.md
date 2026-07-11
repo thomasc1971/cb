@@ -103,6 +103,7 @@ API functions exist but have no CLI dispatch:
 ## 7. Code cleanup
 
 - [x] ~~Fill in `owner` default with current user in `require_owner_repo()` — added `api_user_get_current()`, auto-fill owner when omitted~~
+- [x] ~~Add `cb sshkey` command for user SSH public key management (list/add/show/rm) — uses `/user/keys` API endpoints~~
 
 ## 8. CI release notes
 

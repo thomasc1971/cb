@@ -992,4 +992,27 @@ int api_repo_languages(ApiClient *a, const char *owner, const char *repo,
                        char ***langs, int64_t **bytes, size_t *count);
 int api_repo_mirror_sync(ApiClient *a, const char *owner, const char *repo);
 
+/* ===== User SSH public keys ===== */
+
+typedef struct
+{
+    int64_t id;
+    char *title;
+    char *key;
+    char *fingerprint;
+    char *key_type;
+    int read_only;
+    char *url;
+    char *created_at;
+} PublicKey;
+
+int api_user_key_list(ApiClient *a, PublicKey **out, size_t *count);
+int api_user_key_add(ApiClient *a, const char *title, const char *key,
+                     int read_only, PublicKey *out);
+int api_user_key_get(ApiClient *a, int64_t id, PublicKey *out);
+int api_user_key_delete(ApiClient *a, int64_t id);
+
+void public_key_free(PublicKey *k);
+void public_key_array_free(PublicKey *arr, size_t count);
+
 #endif /* CB_API_H */

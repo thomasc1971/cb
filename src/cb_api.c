@@ -4561,3 +4561,163 @@ int api_user_get_current(ApiClient *a, User *out)
     json_free(parsed);
     return API_OK;
 }
+
+/* ===== User SSH public keys ===== */
+
+static void parse_public_key(const JsonValue *obj, PublicKey *k)
+{
+    memset(k, 0, sizeof(*k));
+    k->id = json_get_int64(obj, "id", 0);
+    k->title = json_dup_string(obj, "title");
+    k->key = json_dup_string(obj, "key");
+    k->fingerprint = json_dup_string(obj, "fingerprint");
+    k->key_type = json_dup_string(obj, "key_type");
+    k->read_only = json_get_bool(obj, "read_only", 0);
+    k->url = json_dup_string(obj, "url");
+    k->created_at = json_dup_string(obj, "created_at");
+}
+
+void public_key_free(PublicKey *k)
+{
+    if (!k)
+        return;
+    free(k->title);
+    free(k->key);
+    free(k->fingerprint);
+    free(k->key_type);
+    free(k->url);
+    free(k->created_at);
+    memset(k, 0, sizeof(*k));
+}
+
+void public_key_array_free(PublicKey *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        public_key_free(&arr[i]);
+    free(arr);
+}
+
+int api_user_key_list(ApiClient *a, PublicKey **out, size_t *count)
+{
+    *out = NULL;
+    *count = 0;
+
+    char *path = build_path(a, "/user/keys");
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_array(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse SSH key list response");
+        return API_ERR_UNKNOWN;
+    }
+
+    size_t n = json_array_count(parsed);
+    if (n == 0) {
+        json_free(parsed);
+        return API_OK;
+    }
+
+    PublicKey *keys = calloc(n, sizeof(PublicKey));
+    if (!keys) {
+        json_free(parsed);
+        set_error(a, "out of memory");
+        return API_ERR_UNKNOWN;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        JsonValue *item = json_array_get(parsed, i);
+        if (item && json_is_object(item))
+            parse_public_key(item, &keys[i]);
+    }
+
+    json_free(parsed);
+    *out = keys;
+    *count = n;
+    return API_OK;
+}
+
+int api_user_key_add(ApiClient *a, const char *title, const char *key,
+                     int read_only, PublicKey *out)
+{
+    JsonValue *body = json_object_new();
+    json_object_set_string(body, "title", title);
+    json_object_set_string(body, "key", key);
+    json_object_set_bool(body, "read_only", read_only ? true : false);
+    char *body_str = json_serialize(body, true);
+    json_free(body);
+
+    char *path = build_path(a, "/user/keys");
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, body_str, &resp);
+    free(path);
+    free(body_str);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse SSH key response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_public_key(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_user_key_get(ApiClient *a, int64_t id, PublicKey *out)
+{
+    char *path = build_path(a, "/user/keys/%lld", (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse SSH key response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_public_key(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_user_key_delete(ApiClient *a, int64_t id)
+{
+    char *path = build_path(a, "/user/keys/%lld", (long long)id);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}

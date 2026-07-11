@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 /* Forward declarations */
 static int require_owner_repo(const char *arg, char *owner, size_t owner_sz,
@@ -75,6 +76,7 @@ static void help_collaborator(void);
 static void help_fork(void);
 static void help_hook(void);
 static void help_wiki(void);
+static void help_sshkey(void);
 
 /* ===== Flag parsing ===== */
 
@@ -2012,6 +2014,15 @@ static const FlagDef COLLAB_ADD_FLAGS[] = {
     { NULL, NULL, 0 }
 };
 
+static const FlagDef SSHKEY_ADD_FLAGS[] = {
+    { "--title", NULL, 1 },
+    { "--key", NULL, 1 },
+    { "--file", NULL, 1 },
+    { "--read-only", NULL, 0 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
 static const FlagDef FORK_CREATE_FLAGS[] = {
     { "--name", NULL, 1 },
     { "--org", NULL, 1 },
@@ -2525,6 +2536,24 @@ static const SubCmd WIKI_SUBS[] = {
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
+static const SubCmd SSHKEY_SUBS[] = {
+    { "list", "List your SSH public keys",
+      "cb sshkey list",
+      "List your account's SSH public keys.", NULL, NULL },
+    { "add", "Add an SSH public key",
+      "cb sshkey add --title <title> --key <key> [--read-only]",
+      "Add an SSH public key to your account.\n"
+      "Use --file <path> to read the key from a file instead of --key.",
+      SSHKEY_ADD_FLAGS, NULL },
+    { "show", "Show an SSH public key",
+      "cb sshkey show <id>",
+      "Show details of a specific SSH public key.", NULL, NULL },
+    { "rm", "Delete an SSH public key",
+      "cb sshkey rm <id> [--yes]",
+      "Delete an SSH public key from your account.", NULL, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
 static const Cmd COMMANDS[] = {
     { "repo", "Repository management (create, delete, rename, edit, show, list, transfer, topic)",
       "cb repo <subcommand> [args] [flags]",
@@ -2580,6 +2609,9 @@ static const Cmd COMMANDS[] = {
     { "wiki", "Manage wiki pages (list, create, show, edit, delete, revisions)",
       "cb wiki [owner/]repo <subcommand> [args] [flags]",
       "Manage wiki pages.", WIKI_SUBS },
+    { "sshkey", "Manage SSH public keys (list, add, show, rm)",
+      "cb sshkey <subcommand> [args] [flags]",
+      "Manage your account's SSH public keys.", SSHKEY_SUBS },
     { NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -2746,6 +2778,7 @@ HELP_WRAPPER_1(help_collaborator, "collaborator")
 HELP_WRAPPER_1(help_fork, "fork")
 HELP_WRAPPER_1(help_hook, "hook")
 HELP_WRAPPER_1(help_wiki, "wiki")
+HELP_WRAPPER_1(help_sshkey, "sshkey")
 
 HELP_WRAPPER_2(help_repo_create, "repo", "create")
 HELP_WRAPPER_2(help_repo_delete, "repo", "delete")
@@ -6553,6 +6586,283 @@ static int cmd_wiki(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     return CLI_USAGE;
 }
 
+/* ===== SSH key (user public key) commands ===== */
+
+static int cmd_sshkey_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb sshkey list\n");
+            return CLI_OK;
+        }
+    }
+    PublicKey *keys;
+    size_t count;
+    int rc = api_user_key_list(api, &keys, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", keys[i].id);
+            if (keys[i].title)
+                json_object_set_string(obj, "title", keys[i].title);
+            if (keys[i].fingerprint)
+                json_object_set_string(obj, "fingerprint", keys[i].fingerprint);
+            if (keys[i].key_type)
+                json_object_set_string(obj, "key_type", keys[i].key_type);
+            json_object_set_bool(obj, "read_only", keys[i].read_only ? true : false);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        if (count == 0) {
+            if (!gf->quiet)
+                printf("No SSH keys found.\n");
+        } else {
+            for (size_t i = 0; i < count; i++)
+                printf("%-4lld  %-20s  %s  %s\n", (long long)keys[i].id,
+                       keys[i].title ? keys[i].title : "",
+                       keys[i].fingerprint ? keys[i].fingerprint : "",
+                       keys[i].read_only ? "read-only" : "read-write");
+        }
+    }
+    public_key_array_free(keys, count);
+    return CLI_OK;
+}
+
+static int cmd_sshkey_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb sshkey add --title <title> --key <key> [--read-only]\n");
+            printf("       cb sshkey add --title <title> --file <path> [--read-only]\n");
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, SSHKEY_ADD_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+
+    int idx;
+    idx = find_flag_idx(SSHKEY_ADD_FLAGS, "--title");
+    if (!fv[idx]) {
+        fprintf(stderr, "Error: --title is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    const char *title = fv[idx];
+
+    idx = find_flag_idx(SSHKEY_ADD_FLAGS, "--key");
+    const char *key_str = fv[idx];
+
+    idx = find_flag_idx(SSHKEY_ADD_FLAGS, "--file");
+    const char *file_path = fv[idx];
+
+    if (!key_str && !file_path) {
+        fprintf(stderr, "Error: --key or --file is required\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    if (key_str && file_path) {
+        fprintf(stderr, "Error: --key and --file are mutually exclusive\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+
+    char *file_buf = NULL;
+    const char *key_val;
+    if (file_path) {
+        FILE *f = fopen(file_path, "r");
+        if (!f) {
+            fprintf(stderr, "Error: cannot open %s: %s\n", file_path, strerror(errno));
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        fseek(f, 0, SEEK_END);
+        long fsize = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (fsize < 0) {
+            fprintf(stderr, "Error: cannot read %s\n", file_path);
+            fclose(f);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        file_buf = malloc(fsize + 1);
+        if (!file_buf) {
+            fclose(f);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        size_t nread = fread(file_buf, 1, (size_t)fsize, f);
+        file_buf[nread] = '\0';
+        fclose(f);
+        while (nread > 0 && (file_buf[nread - 1] == '\n' || file_buf[nread - 1] == '\r')) {
+            file_buf[--nread] = '\0';
+        }
+        key_val = file_buf;
+    } else {
+        key_val = key_str;
+    }
+
+    idx = find_flag_idx(SSHKEY_ADD_FLAGS, "--read-only");
+    int read_only = fb[idx];
+
+    PublicKey key;
+    int rc = api_user_key_add(api, title, key_val, read_only, &key);
+    free(file_buf);
+    free(positional);
+    free(fv);
+    free(fb);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Added SSH key #%lld %s\n", (long long)key.id, key.title ? key.title : "");
+    public_key_free(&key);
+    return CLI_OK;
+}
+
+static int cmd_sshkey_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb sshkey show <id>\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: sshkey show requires <id>\n");
+        return CLI_USAGE;
+    }
+    char *end;
+    long long id = strtoll(argv[0], &end, 10);
+    if (*end != '\0' || id <= 0) {
+        fprintf(stderr, "Error: invalid key id '%s'\n", argv[0]);
+        return CLI_USAGE;
+    }
+    PublicKey key;
+    int rc = api_user_key_get(api, (int64_t)id, &key);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", key.id);
+        if (key.title)
+            json_object_set_string(obj, "title", key.title);
+        if (key.key)
+            json_object_set_string(obj, "key", key.key);
+        if (key.fingerprint)
+            json_object_set_string(obj, "fingerprint", key.fingerprint);
+        if (key.key_type)
+            json_object_set_string(obj, "key_type", key.key_type);
+        json_object_set_bool(obj, "read_only", key.read_only ? true : false);
+        if (key.url)
+            json_object_set_string(obj, "url", key.url);
+        if (key.created_at)
+            json_object_set_string(obj, "created_at", key.created_at);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%lld  %s\n", (long long)key.id, key.title ? key.title : "");
+        if (key.fingerprint)
+            printf("  Fingerprint: %s\n", key.fingerprint);
+        if (key.key_type)
+            printf("  Type:        %s\n", key.key_type);
+        printf("  Access:      %s\n", key.read_only ? "read-only" : "read-write");
+        if (key.created_at)
+            printf("  Created:     %s\n", key.created_at);
+        if (key.key)
+            printf("  Key:         %s\n", key.key);
+    }
+    public_key_free(&key);
+    return CLI_OK;
+}
+
+static int cmd_sshkey_rm(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            printf("Usage: cb sshkey rm <id> [--yes]\n");
+            return CLI_OK;
+        }
+    }
+    if (argc < 1) {
+        fprintf(stderr, "Error: sshkey rm requires <id>\n");
+        return CLI_USAGE;
+    }
+    char *end;
+    long long id = strtoll(argv[0], &end, 10);
+    if (*end != '\0' || id <= 0) {
+        fprintf(stderr, "Error: invalid key id '%s'\n", argv[0]);
+        return CLI_USAGE;
+    }
+    if (!gf->yes && !confirm("Delete this SSH key?")) {
+        printf("Cancelled.\n");
+        return CLI_OK;
+    }
+    int rc = api_user_key_delete(api, (int64_t)id);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted SSH key #%lld\n", (long long)id);
+    return CLI_OK;
+}
+
+static int cmd_sshkey(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_sshkey();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_sshkey();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_sshkey_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "add") == 0)
+        return cmd_sshkey_add(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_sshkey_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "rm") == 0)
+        return cmd_sshkey_rm(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown sshkey subcommand '%s'\n", sub);
+    help_sshkey();
+    return CLI_USAGE;
+}
+
 /* ===== Org commands ===== */
 
 static int cmd_org_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
@@ -6859,6 +7169,8 @@ int cli_run(int argc, char **argv)
         rc = cmd_org(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else if (strcmp(cmd, "wiki") == 0)
         rc = cmd_wiki(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "sshkey") == 0)
+        rc = cmd_sshkey(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else
         rc = cmd_repo(filtered_argc - 2, filtered_argv + 2, &api, &gf);
 

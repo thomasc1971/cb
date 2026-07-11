@@ -636,6 +636,174 @@ static void test_cli_quiet_json_list(void)
     teardown_server();
 }
 
+/* ===== SSH key CLI tests ===== */
+
+static const char *SSHKEY_LIST_JSON_CLI =
+    "[{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+    "\"created_at\":\"2026-07-10T12:00:00Z\"}]";
+
+static const char *SSHKEY_SINGLE_JSON_CLI =
+    "{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+    "\"created_at\":\"2026-07-10T12:00:00Z\"}";
+
+static void test_cli_sshkey_list(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys", .status = 200
+    };
+    set_body(&resp, SSHKEY_LIST_JSON_CLI);
+    setup_server(&resp, 1);
+
+    const char *args[] = { "sshkey", "list", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    teardown_server();
+}
+
+static void test_cli_sshkey_list_json(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys", .status = 200
+    };
+    set_body(&resp, SSHKEY_LIST_JSON_CLI);
+    setup_server(&resp, 1);
+
+    char buf[4096];
+    const char *args[] = { "--json", "sshkey", "list", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+    ASSERT_TRUE(strstr(buf, "\"id\":1") != NULL);
+    ASSERT_TRUE(strstr(buf, "\"title\":\"Laptop\"") != NULL);
+
+    teardown_server();
+}
+
+static void test_cli_sshkey_add(void)
+{
+    MockResponse resp = {
+        .method = "POST", .path = "/api/v1/user/keys", .status = 201
+    };
+    set_body(&resp, SSHKEY_SINGLE_JSON_CLI);
+    setup_server(&resp, 1);
+
+    const char *args[] = {
+        "sshkey", "add", "--title", "Laptop",
+        "--key", "ssh-ed25519 AAAAC3... laptop", NULL
+    };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    teardown_server();
+}
+
+static void test_cli_sshkey_add_missing_title(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    const char *args[] = {
+        "sshkey", "add", "--key", "ssh-ed25519 AAAAC3... laptop", NULL
+    };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_USAGE);
+    cb_unsetenv("CB_TOKEN");
+}
+
+static void test_cli_sshkey_add_missing_key(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    const char *args[] = { "sshkey", "add", "--title", "Laptop", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_USAGE);
+    cb_unsetenv("CB_TOKEN");
+}
+
+static void test_cli_sshkey_show(void)
+{
+    MockResponse resp = {
+        .method = "GET", .path = "/api/v1/user/keys/1", .status = 200
+    };
+    set_body(&resp, SSHKEY_SINGLE_JSON_CLI);
+    setup_server(&resp, 1);
+
+    const char *args[] = { "sshkey", "show", "1", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    teardown_server();
+}
+
+static void test_cli_sshkey_rm_yes(void)
+{
+    MockResponse resp = {
+        .method = "DELETE", .path = "/api/v1/user/keys/2", .status = 204
+    };
+    setup_server(&resp, 1);
+
+    const char *args[] = { "--yes", "sshkey", "rm", "2", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    teardown_server();
+}
+
+static void test_cli_sshkey_rm_no_id(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    const char *args[] = { "sshkey", "rm", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_USAGE);
+    cb_unsetenv("CB_TOKEN");
+}
+
+static void test_cli_sshkey_unknown_sub(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    const char *args[] = { "sshkey", "bogus", NULL };
+    int rc = run_cli(args);
+    ASSERT_EQ(rc, CLI_USAGE);
+    cb_unsetenv("CB_TOKEN");
+}
+
+static void test_help_sshkey(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    char buf[4096];
+    const char *args[] = { "sshkey", "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "list") != NULL);
+    ASSERT_TRUE(strstr(buf, "add") != NULL);
+    ASSERT_TRUE(strstr(buf, "show") != NULL);
+    ASSERT_TRUE(strstr(buf, "rm") != NULL);
+    cb_unsetenv("CB_TOKEN");
+}
+
+static void test_help_top_level_sshkey(void)
+{
+    cb_setenv("CB_TOKEN", "tok", 1);
+    cb_unsetenv("CB_BASE_URL");
+    char buf[4096];
+    const char *args[] = { "--help", NULL };
+    int rc = run_cli_captured(args, buf, sizeof(buf));
+    ASSERT_EQ(rc, CLI_OK);
+    ASSERT_TRUE(strstr(buf, "sshkey") != NULL);
+    cb_unsetenv("CB_TOKEN");
+}
+
 int main(int argc, char *argv[])
 {
     test_parse_args(argc, argv);
@@ -679,6 +847,18 @@ int main(int argc, char *argv[])
     RUN_TEST(test_cli_quiet_list);
     RUN_TEST(test_cli_quiet_show);
     RUN_TEST(test_cli_quiet_json_list);
+
+    RUN_TEST(test_cli_sshkey_list);
+    RUN_TEST(test_cli_sshkey_list_json);
+    RUN_TEST(test_cli_sshkey_add);
+    RUN_TEST(test_cli_sshkey_add_missing_title);
+    RUN_TEST(test_cli_sshkey_add_missing_key);
+    RUN_TEST(test_cli_sshkey_show);
+    RUN_TEST(test_cli_sshkey_rm_yes);
+    RUN_TEST(test_cli_sshkey_rm_no_id);
+    RUN_TEST(test_cli_sshkey_unknown_sub);
+    RUN_TEST(test_help_sshkey);
+    RUN_TEST(test_help_top_level_sshkey);
 
     TEST_SUMMARY();
 }
