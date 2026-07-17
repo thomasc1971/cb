@@ -100,9 +100,9 @@ jobs:
             wget ca-certificates xz-utils curl make
       - name: Install zig
         run: |
-          curl -L https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz -o zig.tar.xz
+          curl -L https://ziglang.org/download/0.16.0/zig-linux-x86_64-0.16.0.tar.xz -o zig.tar.xz
           tar xJf zig.tar.xz
-          echo "$PWD/zig-linux-x86_64-0.13.0" >> $GITHUB_PATH
+          echo "$PWD/zig-linux-x86_64-0.16.0" >> $GITHUB_PATH
       - name: Download pre-built LibreSSL for macOS
         run: |
           wget -q https://codeberg.org/api/packages/thomasc/generic/libressl-macos/4.3.2/libressl-4.3.2-macos-x86_64.tar.gz
