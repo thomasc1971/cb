@@ -371,7 +371,7 @@ cb repo transfer thomasc/myproj codeberg-org --yes
 
 Requires `--yes` or interactive confirmation.
 
-#### `cb repo topic <add|rm|list|set>`
+#### `cb repo topic <add|rm|list|set> [owner/]repo`
 
 ```bash
 cb repo topic add thomasc/myproj go
