@@ -219,6 +219,12 @@ static void print_repo(const Repo *r, int json)
         json_object_set_bool(obj, "archived", r->archived);
         json_object_set_number(obj, "stars_count", r->stars);
         json_object_set_number(obj, "forks_count", r->forks);
+        if (r->topic_count > 0) {
+            JsonValue *arr = json_array_new();
+            for (size_t i = 0; i < r->topic_count; i++)
+                json_array_push(arr, json_string_new(r->topics[i]));
+            json_object_set(obj, "topics", arr);
+        }
         char *s = json_serialize(obj, true);
         printf("%s\n", s);
         free(s);
@@ -233,6 +239,12 @@ static void print_repo(const Repo *r, int json)
             printf("  %s\n", r->description);
         if (r->html_url)
             printf("  %s\n", r->html_url);
+        if (r->topic_count > 0) {
+            printf("  topics:");
+            for (size_t i = 0; i < r->topic_count; i++)
+                printf(" %s", r->topics[i]);
+            printf("\n");
+        }
     }
 }
 
@@ -254,6 +266,12 @@ static void print_repo_list(const Repo *repos, size_t count, int json)
             json_object_set_bool(obj, "archived", repos[i].archived);
             json_object_set_number(obj, "stars_count", repos[i].stars);
             json_object_set_number(obj, "forks_count", repos[i].forks);
+            if (repos[i].topic_count > 0) {
+                JsonValue *topics = json_array_new();
+                for (size_t j = 0; j < repos[i].topic_count; j++)
+                    json_array_push(topics, json_string_new(repos[i].topics[j]));
+                json_object_set(obj, "topics", topics);
+            }
             json_array_push(arr, obj);
         }
         char *s = json_serialize(arr, true);

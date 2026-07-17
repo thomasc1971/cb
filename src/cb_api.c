@@ -106,6 +106,19 @@ static void parse_repo(const JsonValue *obj, Repo *r)
     r->has_issues = json_get_bool(obj, "has_issues", 0);
     r->has_wiki = json_get_bool(obj, "has_wiki", 0);
     r->has_pull_requests = json_get_bool(obj, "has_pull_requests", 0);
+
+    JsonValue *topics_arr = json_object_lookup(obj, "topics");
+    if (topics_arr && json_is_array(topics_arr)) {
+        size_t n = json_array_count(topics_arr);
+        r->topics = calloc(n, sizeof(char *));
+        if (r->topics) {
+            r->topic_count = n;
+            for (size_t i = 0; i < n; i++) {
+                JsonValue *t = json_array_get(topics_arr, i);
+                r->topics[i] = strdup(json_is_string(t) ? json_string(t) : "");
+            }
+        }
+    }
 }
 
 void repo_free(Repo *r)
@@ -118,6 +131,9 @@ void repo_free(Repo *r)
     free(r->html_url);
     free(r->default_branch);
     free(r->language);
+    for (size_t i = 0; i < r->topic_count; i++)
+        free(r->topics[i]);
+    free(r->topics);
     memset(r, 0, sizeof(*r));
 }
 

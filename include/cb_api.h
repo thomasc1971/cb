@@ -56,6 +56,8 @@ typedef struct
     int has_issues;
     int has_wiki;
     int has_pull_requests;
+    char **topics;
+    size_t topic_count;
 } Repo;
 
 /* Create repo options */
