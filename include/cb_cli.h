@@ -32,9 +32,9 @@
  * argc/argv: the full program arguments (argv[0] is program name)
  * Returns exit code (0=success, 1=error, 2=usage error).
  */
-int cli_run(int argc, char **argv);
+int cli_run (int argc, char** argv);
 
 /* Print usage/help for a command (or general help if cmd is NULL). */
-void cli_print_help(const char *cmd);
+void cli_print_help (const char* cmd);
 
 #endif /* CB_CLI_H */
