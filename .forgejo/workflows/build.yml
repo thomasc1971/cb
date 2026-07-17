@@ -30,10 +30,15 @@ jobs:
           cp COPYING cb-linux-amd64/COPYING
           cp README.md cb-linux-amd64/README.md
           tar czf cb-linux-amd64.tar.gz cb-linux-amd64
+          make dist
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
           name: cb-linux-amd64
           path: cb-linux-amd64.tar.gz
+      - uses: https://code.forgejo.org/actions/upload-artifact@v3
+        with:
+          name: cb-source-dist
+          path: cb-*.tar.gz
 
   build-windows:
     runs-on: codeberg-small
@@ -147,6 +152,10 @@ jobs:
         with:
           name: cb-darwin-amd64
           path: release
+      - uses: https://code.forgejo.org/actions/download-artifact@v3
+        with:
+          name: cb-source-dist
+          path: release
       - name: Rename artifacts and generate checksums
         run: |
           cd release
@@ -154,9 +163,11 @@ jobs:
           mv cb-linux-amd64.tar.gz cb-${V}-linux-amd64.tar.gz
           mv cb-windows-amd64.zip cb-${V}-windows-amd64.zip
           mv cb-darwin-amd64.tar.gz cb-${V}-darwin-amd64.tar.gz
+          mv cb-*.tar.gz cb-${V}-source.tar.gz || true
           sha256sum cb-${V}-linux-amd64.tar.gz > cb-${V}-linux-amd64.tar.gz.sha256
           sha256sum cb-${V}-windows-amd64.zip > cb-${V}-windows-amd64.zip.sha256
           sha256sum cb-${V}-darwin-amd64.tar.gz > cb-${V}-darwin-amd64.tar.gz.sha256
+          sha256sum cb-${V}-source.tar.gz > cb-${V}-source.tar.gz.sha256
       - uses: https://code.forgejo.org/actions/forgejo-release@v2.13.1
         with:
           direction: upload
