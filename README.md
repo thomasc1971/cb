@@ -380,167 +380,167 @@ cb repo topic list thomasc/myproj
 cb repo topic set thomasc/myproj go,cli,codeberg
 ```
 
-#### `cb release [owner/]repo <subcommand>`
+#### `cb release <subcommand> [owner/]repo`
 
 Manage releases.
 
 ```bash
-cb release thomasc/myproj list
+cb release list thomasc/myproj
 
-cb release thomasc/myproj create --tag v1.0.0 --name "First Release"
-cb release thomasc/myproj create --tag v2.0.0 --draft --prerelease
+cb release create thomasc/myproj --tag v1.0.0 --name "First Release"
+cb release create thomasc/myproj --tag v2.0.0 --draft --prerelease
 
-cb release thomasc/myproj show 42
-cb release thomasc/myproj latest
-cb release thomasc/myproj by-tag v1.0.0
+cb release show thomasc/myproj 42
+cb release latest thomasc/myproj
+cb release by-tag thomasc/myproj v1.0.0
 
-cb release thomasc/myproj edit 42 --name "New Name" --no-draft
-cb release thomasc/myproj delete 42 --yes
-cb release thomasc/myproj delete-tag v1.0.0 --yes
+cb release edit thomasc/myproj 42 --name "New Name" --no-draft
+cb release delete thomasc/myproj 42 --yes
+cb release delete-tag thomasc/myproj v1.0.0 --yes
 
-cb release thomasc/myproj asset list 42
-cb release thomasc/myproj asset edit 42 7 --name new-filename.zip
-cb release thomasc/myproj asset delete 42 7 --yes
+cb release asset list thomasc/myproj 42
+cb release asset edit thomasc/myproj 42 7 --name new-filename.zip
+cb release asset delete thomasc/myproj 42 7 --yes
 ```
 
 Subcommands: `list`, `create`, `show`, `latest`, `edit`, `delete`, `by-tag`, `delete-tag`, `asset`
 
-#### `cb tag [owner/]repo <subcommand>`
+#### `cb tag <subcommand> [owner/]repo`
 
 Manage tags.
 
 ```bash
-cb tag thomasc/myproj list
-cb tag thomasc/myproj create --tag v1.0.0 --message "Release 1.0"
-cb tag thomasc/myproj show v1.0.0
-cb tag thomasc/myproj delete v1.0.0 --yes
+cb tag list thomasc/myproj
+cb tag create thomasc/myproj --tag v1.0.0 --message "Release 1.0"
+cb tag show thomasc/myproj v1.0.0
+cb tag delete thomasc/myproj v1.0.0 --yes
 ```
 
-#### `cb branch [owner/]repo <subcommand>`
+#### `cb branch <subcommand> [owner/]repo`
 
 Manage branches.
 
 ```bash
-cb branch thomasc/myproj list
-cb branch thomasc/myproj create --name feature-x --from main
-cb branch thomasc/myproj show main
-cb branch thomasc/myproj rename old-name --name new-name
-cb branch thomasc/myproj delete old-branch --yes
+cb branch list thomasc/myproj
+cb branch create thomasc/myproj --name feature-x --from main
+cb branch show thomasc/myproj main
+cb branch rename thomasc/myproj old-name --name new-name
+cb branch delete thomasc/myproj old-branch --yes
 ```
 
-#### `cb issue [owner/]repo <subcommand>`
+#### `cb issue <subcommand> [owner/]repo`
 
 Manage issues.
 
 ```bash
-cb issue thomasc/myproj list
+cb issue list thomasc/myproj
 
-cb issue thomasc/myproj list --state closed --limit 20
-cb issue thomasc/myproj list --labels bug,feature
+cb issue list thomasc/myproj --state closed --limit 20
+cb issue list thomasc/myproj --labels bug,feature
 
-cb issue thomasc/myproj create --title "Fix crash" --body "Steps to reproduce..."
-cb issue thomasc/myproj show 5
-cb issue thomasc/myproj edit 5 --title "New title" --state closed
-cb issue thomasc/myproj close 5
-cb issue thomasc/myproj reopen 5
-cb issue thomasc/myproj delete 5 --yes
+cb issue create thomasc/myproj --title "Fix crash" --body "Steps to reproduce..."
+cb issue show thomasc/myproj 5
+cb issue edit thomasc/myproj 5 --title "New title" --state closed
+cb issue close thomasc/myproj 5
+cb issue reopen thomasc/myproj 5
+cb issue delete thomasc/myproj 5 --yes
 
-cb issue thomasc/myproj comment 5 --body "This is fixed now"
+cb issue comment thomasc/myproj 5 --body "This is fixed now"
 
-cb issue thomasc/myproj label add 5 3
-cb issue thomasc/myproj label clear 5
+cb issue label add thomasc/myproj 5 3
+cb issue label clear thomasc/myproj 5
 ```
 
-#### `cb label [owner/]repo <subcommand>`
+#### `cb label <subcommand> [owner/]repo`
 
 Manage repository labels.
 
 ```bash
-cb label thomasc/myproj list
-cb label thomasc/myproj show 5
-cb label thomasc/myproj create --name bug --color ff0000
-cb label thomasc/myproj delete 3 --yes
+cb label list thomasc/myproj
+cb label show thomasc/myproj 5
+cb label create thomasc/myproj --name bug --color ff0000
+cb label delete thomasc/myproj 3 --yes
 ```
 
-#### `cb milestone [owner/]repo <subcommand>`
+#### `cb milestone <subcommand> [owner/]repo`
 
 Manage milestones.
 
 ```bash
-cb milestone thomasc/myproj list
-cb milestone thomasc/myproj show 3
-cb milestone thomasc/myproj create --title "v2.0" --due 2025-12-31
-cb milestone thomasc/myproj delete 3 --yes
+cb milestone list thomasc/myproj
+cb milestone show thomasc/myproj 3
+cb milestone create thomasc/myproj --title "v2.0" --due 2025-12-31
+cb milestone delete thomasc/myproj 3 --yes
 ```
 
-#### `cb pr [owner/]repo <subcommand>`
+#### `cb pr <subcommand> [owner/]repo`
 
 Manage pull requests.
 
 ```bash
-cb pr thomasc/myproj list
-cb pr thomasc/myproj list --state closed
+cb pr list thomasc/myproj
+cb pr list thomasc/myproj --state closed
 
-cb pr thomasc/myproj create --title "Add feature" --head feature-x
-cb pr thomasc/myproj show 7
+cb pr create thomasc/myproj --title "Add feature" --head feature-x
+cb pr show thomasc/myproj 7
 cb pr thomasc/myproj edit 7 --title "Updated title"
-cb pr thomasc/myproj close 7
-cb pr thomasc/myproj reopen 7
+cb pr close thomasc/myproj 7
+cb pr reopen thomasc/myproj 7
 
-cb pr thomasc/myproj merge 7 --style squash --delete-branch
-cb pr thomasc/myproj merge 7 --auto
+cb pr merge thomasc/myproj 7 --style squash --delete-branch
+cb pr merge thomasc/myproj 7 --auto
 ```
 
 > **Note:** `pr files`, `pr commits`, `pr diff`, and `pr review` are not yet implemented.
 
-#### `cb commit [owner/]repo <subcommand>`
+#### `cb commit <subcommand> [owner/]repo`
 
 View commits and statuses.
 
 ```bash
-cb commit thomasc/myproj list
-cb commit thomasc/myproj list --sha main --path src/
-cb commit thomasc/myproj list --limit 20
+cb commit list thomasc/myproj
+cb commit list thomasc/myproj --sha main --path src/
+cb commit list thomasc/myproj --limit 20
 ```
 
 > **Note:** `commit show`, `commit status`, `commit diff`, `commit compare`, and `commit note` are not yet implemented.
 
-#### `cb content [owner/]repo <subcommand>`
+#### `cb content <subcommand> [owner/]repo`
 
 View and manage repository file contents.
 
 ```bash
-cb content thomasc/myproj list
-cb content thomasc/myproj list --ref main
+cb content list thomasc/myproj
+cb content list thomasc/myproj --ref main
 ```
 
 > **Note:** `content show`, `content raw`, and `content archive` are not yet implemented.
 
-#### `cb key [owner/]repo <subcommand>`
+#### `cb key <subcommand> [owner/]repo`
 
 Manage deploy keys.
 
 ```bash
-cb key thomasc/myproj list
-cb key thomasc/myproj show 7
-cb key thomasc/myproj add --title "CI key" --key "ssh-ed25519 AAAA..."
-cb key thomasc/myproj delete 3 --yes
+cb key list thomasc/myproj
+cb key show thomasc/myproj 7
+cb key add thomasc/myproj --title "CI key" --key "ssh-ed25519 AAAA..."
+cb key delete thomasc/myproj 3 --yes
 ```
 
-#### `cb collaborator [owner/]repo <subcommand>`
+#### `cb collaborator <subcommand> [owner/]repo`
 
 Manage collaborators.
 
 ```bash
-cb collaborator thomasc/myproj list
-cb collaborator thomasc/myproj add bob --permission write
-cb collaborator thomasc/myproj rm bob --yes
+cb collaborator list thomasc/myproj
+cb collaborator add thomasc/myproj bob --permission write
+cb collaborator rm thomasc/myproj bob --yes
 cb collaborator thomasc/myproj perms bob
 ```
 
 > **Note:** `collaborator perms` is not yet implemented.
 
-#### `cb fork [owner/]repo <subcommand>`
+#### `cb fork <subcommand> [owner/]repo`
 
 Manage forks.
 
@@ -550,14 +550,14 @@ cb fork thomasc/someproj create
 cb fork thomasc/someproj create --org myorg
 ```
 
-#### `cb hook [owner/]repo <subcommand>`
+#### `cb hook <subcommand> [owner/]repo`
 
 Manage webhooks.
 
 ```bash
-cb hook thomasc/myproj list
-cb hook thomasc/myproj create --type gitea --url https://example.com/hook
-cb hook thomasc/myproj delete 5 --yes
+cb hook list thomasc/myproj
+cb hook create thomasc/myproj --type gitea --url https://example.com/hook
+cb hook delete thomasc/myproj 5 --yes
 ```
 
 > **Note:** `hook show` is not yet implemented.
@@ -571,13 +571,13 @@ cb org create myorg --visibility private
 
 Flags: `--description`/`-d`, `--full-name`, `--email`, `--location`, `--website`, `--visibility` (public/limited/private), `--repo-admin-change-team-access`
 
-#### `cb wiki [owner/]repo <subcommand>`
+#### `cb wiki <subcommand> [owner/]repo`
 
 Manage wiki pages.
 
 ```bash
-cb wiki thomasc/myproj list
-cb wiki thomasc/myproj delete OldPage --yes
+cb wiki list thomasc/myproj
+cb wiki delete thomasc/myproj OldPage --yes
 ```
 
 > **Note:** `wiki show` and `wiki revisions` are not yet implemented.

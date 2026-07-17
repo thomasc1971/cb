@@ -2197,330 +2197,330 @@ static const SubCmd ACTIONS_SUBS[] = {
 
 static const SubCmd RELEASE_ASSET_SUBS[] = {
     { "list", "List assets",
-      "cb release [owner/]repo asset list <release-id>",
+      "cb release asset list [owner/]repo <release-id>",
       "List assets for a release.", NULL, NULL },
     { "upload", "Upload a file",
-      "cb release [owner/]repo asset upload <release-id> --file <path>",
+      "cb release asset upload [owner/]repo <release-id> --file <path>",
       "Upload a file as a release asset.", NULL, NULL },
     { "show", "Show asset",
-      "cb release [owner/]repo asset show <release-id> <asset-id>",
+      "cb release asset show [owner/]repo <release-id> <asset-id>",
       "Show details of a release asset.", NULL, NULL },
     { "edit", "Edit asset",
-      "cb release [owner/]repo asset edit <release-id> <asset-id> --name <name>",
+      "cb release asset edit [owner/]repo <release-id> <asset-id> --name <name>",
       "Edit a release asset (rename).", NULL, NULL },
     { "delete", "Delete asset",
-      "cb release [owner/]repo asset delete <release-id> <asset-id> [--yes]",
+      "cb release asset delete [owner/]repo <release-id> <asset-id> [--yes]",
       "Delete a release asset.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd RELEASE_SUBS[] = {
     { "list", "List releases",
-      "cb release [owner/]repo list [flags]",
+      "cb release list [owner/]repo [flags]",
       "List releases.", RELEASE_LIST_FLAGS, NULL },
     { "create", "Create a release",
-      "cb release [owner/]repo create --tag <tag> [flags]",
+      "cb release create [owner/]repo --tag <tag> [flags]",
       "Create a release.", RELEASE_CREATE_FLAGS, NULL },
     { "show", "Show a release by ID",
-      "cb release [owner/]repo show <id>",
+      "cb release show [owner/]repo <id>",
       "Show a release by ID.", NULL, NULL },
     { "latest", "Show latest release",
-      "cb release [owner/]repo latest",
+      "cb release latest [owner/]repo",
       "Show the latest release.", NULL, NULL },
     { "edit", "Edit a release",
-      "cb release [owner/]repo edit <id> [flags]",
+      "cb release edit [owner/]repo <id> [flags]",
       "Edit a release. Only provided flags are sent.", RELEASE_EDIT_FLAGS, NULL },
     { "delete", "Delete a release",
-      "cb release [owner/]repo delete <id> [--yes]",
+      "cb release delete [owner/]repo <id> [--yes]",
       "Delete a release.", NULL, NULL },
     { "by-tag", "Show release by tag name",
-      "cb release [owner/]repo by-tag <tag>",
+      "cb release by-tag [owner/]repo <tag>",
       "Show a release by tag name.", NULL, NULL },
     { "delete-tag", "Delete release by tag name",
-      "cb release [owner/]repo delete-tag <tag> [--yes]",
+      "cb release delete-tag [owner/]repo <tag> [--yes]",
       "Delete a release by tag name.", NULL, NULL },
     { "asset", "Manage release assets (list, upload, show, edit, delete)",
-      "cb release [owner/]repo asset <subcommand> ...",
+      "cb release asset <subcommand> [owner/]repo ...",
       "Manage release assets.", NULL, RELEASE_ASSET_SUBS },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd TAG_SUBS[] = {
     { "list", "List tags",
-      "cb tag [owner/]repo list [--limit N]",
+      "cb tag list [owner/]repo [--limit N]",
       "List tags.", NULL, NULL },
     { "create", "Create a tag",
-      "cb tag [owner/]repo create --tag <tag> [--message <msg>] [--target <ref>]",
+      "cb tag create [owner/]repo --tag <tag> [--message <msg>] [--target <ref>]",
       "Create a tag.", TAG_CREATE_FLAGS, NULL },
     { "show", "Show a tag",
-      "cb tag [owner/]repo show <tag>",
+      "cb tag show [owner/]repo <tag>",
       "Show a tag.", NULL, NULL },
     { "delete", "Delete a tag",
-      "cb tag [owner/]repo delete <tag> [--yes]",
+      "cb tag delete [owner/]repo <tag> [--yes]",
       "Delete a tag.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd BRANCH_SUBS[] = {
     { "list", "List branches",
-      "cb branch [owner/]repo list",
+      "cb branch list [owner/]repo",
       "List branches.", NULL, NULL },
     { "create", "Create a branch",
-      "cb branch [owner/]repo create --name <name> [--from <ref>]",
+      "cb branch create [owner/]repo --name <name> [--from <ref>]",
       "Create a branch.", BRANCH_CREATE_FLAGS, NULL },
     { "show", "Show a branch",
-      "cb branch [owner/]repo show <branch>",
+      "cb branch show [owner/]repo <branch>",
       "Show a branch.", NULL, NULL },
     { "rename", "Rename a branch",
-      "cb branch [owner/]repo rename <branch> --name <new-name>",
+      "cb branch rename [owner/]repo <branch> --name <new-name>",
       "Rename a branch.", NULL, NULL },
     { "delete", "Delete a branch",
-      "cb branch [owner/]repo delete <branch> [--yes]",
+      "cb branch delete [owner/]repo <branch> [--yes]",
       "Delete a branch.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd ISSUE_LABEL_SUBS[] = {
     { "add", "Add labels to an issue",
-      "cb issue [owner/]repo label add <number> <label_id> [<label_id>...]",
+      "cb issue label add [owner/]repo <number> <label_id> [<label_id>...]",
       "Add labels to an issue.", NULL, NULL },
     { "set", "Replace labels on an issue",
-      "cb issue [owner/]repo label set <number> <label_id> [<label_id>...]",
+      "cb issue label set [owner/]repo <number> <label_id> [<label_id>...]",
       "Replace all labels on an issue.", NULL, NULL },
     { "rm", "Remove labels from an issue",
-      "cb issue [owner/]repo label rm <number> <label_id> [<label_id>...]",
+      "cb issue label rm [owner/]repo <number> <label_id> [<label_id>...]",
       "Remove labels from an issue.", NULL, NULL },
     { "clear", "Clear all labels",
-      "cb issue [owner/]repo label clear <number>",
+      "cb issue label clear [owner/]repo <number>",
       "Clear all labels on an issue.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd ISSUE_SUBS[] = {
     { "list", "List issues",
-      "cb issue [owner/]repo list [--state open|closed|all] [--labels l1,l2] [--limit N]",
+      "cb issue list [owner/]repo [--state open|closed|all] [--labels l1,l2] [--limit N]",
       "List issues.", ISSUE_LIST_FLAGS, NULL },
     { "create", "Create an issue",
-      "cb issue [owner/]repo create --title <title> [--body <body>] [--label <id>]",
+      "cb issue create [owner/]repo --title <title> [--body <body>] [--label <id>]",
       "Create an issue.", ISSUE_CREATE_FLAGS, NULL },
     { "show", "Show an issue",
-      "cb issue [owner/]repo show <number>",
+      "cb issue show [owner/]repo <number>",
       "Show an issue.", NULL, NULL },
     { "edit", "Edit an issue",
-      "cb issue [owner/]repo edit <number> [--title <title>] [--body <body>] [--state open|closed]",
+      "cb issue edit [owner/]repo <number> [--title <title>] [--body <body>] [--state open|closed]",
       "Edit an issue.", ISSUE_EDIT_FLAGS, NULL },
     { "delete", "Delete an issue",
-      "cb issue [owner/]repo delete <number> [--yes]",
+      "cb issue delete [owner/]repo <number> [--yes]",
       "Delete an issue.", NULL, NULL },
     { "close", "Close an issue (shorthand)",
-      "cb issue [owner/]repo close <number>",
+      "cb issue close [owner/]repo <number>",
       "Close an issue (shorthand for edit --state closed).", NULL, NULL },
     { "reopen", "Reopen an issue (shorthand)",
-      "cb issue [owner/]repo reopen <number>",
+      "cb issue reopen [owner/]repo <number>",
       "Reopen an issue (shorthand for edit --state open).", NULL, NULL },
     { "comment", "Add a comment",
-      "cb issue [owner/]repo comment <number> --body <text>",
+      "cb issue comment [owner/]repo <number> --body <text>",
       "Add a comment to an issue.", NULL, NULL },
     { "label", "Manage issue labels (add, set, rm, clear)",
-      "cb issue [owner/]repo label <add|set|rm|clear> ...",
+      "cb issue label <add|set|rm|clear> [owner/]repo ...",
       "Manage labels on an issue.", NULL, ISSUE_LABEL_SUBS },
     { "pin", "Pin an issue",
-      "cb issue [owner/]repo pin <number>",
+      "cb issue pin [owner/]repo <number>",
       "Pin an issue.", NULL, NULL },
     { "unpin", "Unpin an issue",
-      "cb issue [owner/]repo unpin <number>",
+      "cb issue unpin [owner/]repo <number>",
       "Unpin an issue.", NULL, NULL },
     { "deadline", "Set a due date",
-      "cb issue [owner/]repo deadline <number> <date>",
+      "cb issue deadline [owner/]repo <number> <date>",
       "Set a due date on an issue.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd LABEL_SUBS[] = {
     { "list", "List labels",
-      "cb label [owner/]repo list",
+      "cb label list [owner/]repo",
       "List labels.", NULL, NULL },
     { "create", "Create a label",
-      "cb label [owner/]repo create --name <name> --color <hex> [--description <desc>]",
+      "cb label create [owner/]repo --name <name> --color <hex> [--description <desc>]",
       "Create a label.", LABEL_CREATE_FLAGS, NULL },
     { "show", "Show a label",
-      "cb label [owner/]repo show <id>",
+      "cb label show [owner/]repo <id>",
       "Show a label.", NULL, NULL },
     { "edit", "Edit a label",
-      "cb label [owner/]repo edit <id> [flags]",
+      "cb label edit [owner/]repo <id> [flags]",
       "Edit a label.", NULL, NULL },
     { "delete", "Delete a label",
-      "cb label [owner/]repo delete <id> [--yes]",
+      "cb label delete [owner/]repo <id> [--yes]",
       "Delete a label.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd MILESTONE_SUBS[] = {
     { "list", "List milestones",
-      "cb milestone [owner/]repo list [--state open|closed|all]",
+      "cb milestone list [owner/]repo [--state open|closed|all]",
       "List milestones.", NULL, NULL },
     { "create", "Create a milestone",
-      "cb milestone [owner/]repo create --title <title> [--description <desc>] [--due <date>]",
+      "cb milestone create [owner/]repo --title <title> [--description <desc>] [--due <date>]",
       "Create a milestone.", MILESTONE_CREATE_FLAGS, NULL },
     { "show", "Show a milestone",
-      "cb milestone [owner/]repo show <id>",
+      "cb milestone show [owner/]repo <id>",
       "Show a milestone.", NULL, NULL },
     { "edit", "Edit a milestone",
-      "cb milestone [owner/]repo edit <id> [flags]",
+      "cb milestone edit [owner/]repo <id> [flags]",
       "Edit a milestone.", NULL, NULL },
     { "delete", "Delete a milestone",
-      "cb milestone [owner/]repo delete <id> [--yes]",
+      "cb milestone delete [owner/]repo <id> [--yes]",
       "Delete a milestone.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd PR_SUBS[] = {
     { "list", "List pull requests",
-      "cb pr [owner/]repo list [--state open|closed|all] [--limit N]",
+      "cb pr list [owner/]repo [--state open|closed|all] [--limit N]",
       "List pull requests.", NULL, NULL },
     { "create", "Create a pull request",
-      "cb pr [owner/]repo create --title <title> --head <branch> [--base <branch>] [--body <body>]",
+      "cb pr create [owner/]repo --title <title> --head <branch> [--base <branch>] [--body <body>]",
       "Create a pull request.", PR_CREATE_FLAGS, NULL },
     { "show", "Show a pull request",
-      "cb pr [owner/]repo show <number>",
+      "cb pr show [owner/]repo <number>",
       "Show a pull request.", NULL, NULL },
     { "edit", "Edit a pull request",
-      "cb pr [owner/]repo edit <number> [flags]",
+      "cb pr edit [owner/]repo <number> [flags]",
       "Edit a pull request.", NULL, NULL },
     { "merge", "Merge a pull request",
-      "cb pr [owner/]repo merge <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]",
+      "cb pr merge [owner/]repo <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]",
       "Merge a pull request.", NULL, NULL },
     { "unmerge", "Cancel scheduled auto-merge",
-      "cb pr [owner/]repo unmerge <number>",
+      "cb pr unmerge [owner/]repo <number>",
       "Cancel a scheduled auto-merge.", NULL, NULL },
     { "close", "Close a pull request (shorthand)",
-      "cb pr [owner/]repo close <number>",
+      "cb pr close [owner/]repo <number>",
       "Close a pull request (shorthand).", NULL, NULL },
     { "reopen", "Reopen a pull request (shorthand)",
-      "cb pr [owner/]repo reopen <number>",
+      "cb pr reopen [owner/]repo <number>",
       "Reopen a pull request (shorthand).", NULL, NULL },
     { "files", "List changed files",
-      "cb pr [owner/]repo files <number>",
+      "cb pr files [owner/]repo <number>",
       "List changed files in a pull request.", NULL, NULL },
     { "commits", "List commits",
-      "cb pr [owner/]repo commits <number>",
+      "cb pr commits [owner/]repo <number>",
       "List commits in a pull request.", NULL, NULL },
     { "diff", "Show diff (or patch)",
-      "cb pr [owner/]repo diff <number>",
+      "cb pr diff [owner/]repo <number>",
       "Show the diff for a pull request.", NULL, NULL },
     { "review", "Manage reviews (list, create, request, unrequest)",
-      "cb pr [owner/]repo review <subcommand> ...",
+      "cb pr review [owner/]repo <subcommand> ...",
       "Manage reviews on a pull request.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd COMMIT_SUBS[] = {
     { "list", "List commits",
-      "cb commit [owner/]repo list [--sha <ref>] [--path <path>] [--limit N]",
+      "cb commit list [owner/]repo [--sha <ref>] [--path <path>] [--limit N]",
       "List commits.", COMMIT_LIST_FLAGS, NULL },
     { "show", "Show a commit",
-      "cb commit [owner/]repo show <sha>",
+      "cb commit show [owner/]repo <sha>",
       "Show a commit.", NULL, NULL },
     { "status", "Show combined status for a ref",
-      "cb commit [owner/]repo status <ref>",
+      "cb commit status [owner/]repo <ref>",
       "Show combined status for a ref.", NULL, NULL },
     { "diff", "Show diff (or patch)",
-      "cb commit [owner/]repo diff <sha>",
+      "cb commit diff [owner/]repo <sha>",
       "Show diff for a commit.", NULL, NULL },
     { "compare", "Compare two refs",
-      "cb commit [owner/]repo compare <base> <head>",
+      "cb commit compare [owner/]repo <base> <head>",
       "Compare two refs.", NULL, NULL },
     { "note", "Manage git notes (show, set, rm)",
-      "cb commit [owner/]repo note <show|set|rm> ...",
+      "cb commit note [owner/]repo <show|set|rm> ...",
       "Manage git notes.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd CONTENT_SUBS[] = {
     { "list", "List directory contents",
-      "cb content [owner/]repo list [--ref <ref>]",
+      "cb content list [owner/]repo [--ref <ref>]",
       "List directory contents.", NULL, NULL },
     { "show", "Show file or directory contents",
-      "cb content [owner/]repo show <path> [--ref <ref>]",
+      "cb content show [owner/]repo <path> [--ref <ref>]",
       "Show file or directory contents.", NULL, NULL },
     { "create", "Create a file",
-      "cb content [owner/]repo create <path> --message <msg> --content <text>",
+      "cb content create [owner/]repo <path> --message <msg> --content <text>",
       "Create a file.", NULL, NULL },
     { "update", "Update a file",
-      "cb content [owner/]repo update <path> --message <msg> --content <text>",
+      "cb content update [owner/]repo <path> --message <msg> --content <text>",
       "Update a file.", NULL, NULL },
     { "delete", "Delete a file",
-      "cb content [owner/]repo delete <path> --message <msg>",
+      "cb content delete [owner/]repo <path> --message <msg>",
       "Delete a file.", NULL, NULL },
     { "raw", "Get raw file content",
-      "cb content [owner/]repo raw <path> [--ref <ref>]",
+      "cb content raw [owner/]repo <path> [--ref <ref>]",
       "Get raw file content.", NULL, NULL },
     { "archive", "Download an archive",
-      "cb content [owner/]repo archive [--ref <ref>] [--format <fmt>]",
+      "cb content archive [owner/]repo [--ref <ref>] [--format <fmt>]",
       "Download an archive of the repository.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd KEY_SUBS[] = {
     { "list", "List deploy keys",
-      "cb key [owner/]repo list",
+      "cb key list [owner/]repo",
       "List deploy keys.", NULL, NULL },
     { "add", "Add a deploy key",
-      "cb key [owner/]repo add --title <title> --key <key> [--read-only]",
+      "cb key add [owner/]repo --title <title> --key <key> [--read-only]",
       "Add a deploy key.", KEY_ADD_FLAGS, NULL },
     { "show", "Show a deploy key",
-      "cb key [owner/]repo show <id>",
+      "cb key show [owner/]repo <id>",
       "Show a deploy key.", NULL, NULL },
     { "delete", "Delete a deploy key",
-      "cb key [owner/]repo delete <id> [--yes]",
+      "cb key delete [owner/]repo <id> [--yes]",
       "Delete a deploy key.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd COLLAB_SUBS[] = {
     { "list", "List collaborators",
-      "cb collaborator [owner/]repo list",
+      "cb collaborator list [owner/]repo",
       "List collaborators.", NULL, NULL },
     { "add", "Add a collaborator",
-      "cb collaborator [owner/]repo add <username> [--permission read|write|admin]",
+      "cb collaborator add [owner/]repo <username> [--permission read|write|admin]",
       "Add a collaborator.", COLLAB_ADD_FLAGS, NULL },
     { "rm", "Remove a collaborator",
-      "cb collaborator [owner/]repo rm <username> [--yes]",
+      "cb collaborator rm [owner/]repo <username> [--yes]",
       "Remove a collaborator.", NULL, NULL },
     { "perms", "Show collaborator permissions",
-      "cb collaborator [owner/]repo perms <username>",
+      "cb collaborator perms [owner/]repo <username>",
       "Show collaborator permissions.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd FORK_SUBS[] = {
     { "list", "List forks",
-      "cb fork [owner/]repo list",
+      "cb fork list [owner/]repo",
       "List forks.", NULL, NULL },
     { "create", "Fork a repository",
-      "cb fork [owner/]repo create [--name <repo-name>] [--org <organization>]",
+      "cb fork create [owner/]repo [--name <repo-name>] [--org <organization>]",
       "Fork a repository.", FORK_CREATE_FLAGS, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
 static const SubCmd HOOK_SUBS[] = {
     { "list", "List webhooks",
-      "cb hook [owner/]repo list",
+      "cb hook list [owner/]repo",
       "List webhooks.", NULL, NULL },
     { "create", "Create a webhook",
-      "cb hook [owner/]repo create --type <type> --url <url> [--event <event>] [--active]",
+      "cb hook create [owner/]repo --type <type> --url <url> [--event <event>] [--active]",
       "Create a webhook.", HOOK_CREATE_FLAGS, NULL },
     { "show", "Show a webhook",
-      "cb hook [owner/]repo show <id>",
+      "cb hook show [owner/]repo <id>",
       "Show a webhook.", NULL, NULL },
     { "edit", "Edit a webhook",
-      "cb hook [owner/]repo edit <id> [flags]",
+      "cb hook edit [owner/]repo <id> [flags]",
       "Edit a webhook.", NULL, NULL },
     { "delete", "Delete a webhook",
-      "cb hook [owner/]repo delete <id> [--yes]",
+      "cb hook delete [owner/]repo <id> [--yes]",
       "Delete a webhook.", NULL, NULL },
     { "test", "Test a webhook",
-      "cb hook [owner/]repo test <id>",
+      "cb hook test [owner/]repo <id>",
       "Test a webhook.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
@@ -2534,22 +2534,22 @@ static const SubCmd ORG_SUBS[] = {
 
 static const SubCmd WIKI_SUBS[] = {
     { "list", "List wiki pages",
-      "cb wiki [owner/]repo list",
+      "cb wiki list [owner/]repo",
       "List wiki pages.", NULL, NULL },
     { "create", "Create a wiki page",
-      "cb wiki [owner/]repo create --title <title> --content <text>",
+      "cb wiki create [owner/]repo --title <title> --content <text>",
       "Create a wiki page.", NULL, NULL },
     { "show", "Show a wiki page",
-      "cb wiki [owner/]repo show <pageName>",
+      "cb wiki show [owner/]repo <pageName>",
       "Show a wiki page.", NULL, NULL },
     { "edit", "Edit a wiki page",
-      "cb wiki [owner/]repo edit <pageName> --content <text>",
+      "cb wiki edit [owner/]repo <pageName> --content <text>",
       "Edit a wiki page.", NULL, NULL },
     { "delete", "Delete a wiki page",
-      "cb wiki [owner/]repo delete <pageName> [--yes]",
+      "cb wiki delete [owner/]repo <pageName> [--yes]",
       "Delete a wiki page.", NULL, NULL },
     { "revisions", "Show page revisions",
-      "cb wiki [owner/]repo revisions <pageName>",
+      "cb wiki revisions [owner/]repo <pageName>",
       "Show revisions for a wiki page.", NULL, NULL },
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
@@ -2580,52 +2580,52 @@ static const Cmd COMMANDS[] = {
       "and defaults to the authenticated user.",
       REPO_SUBS },
     { "actions", "CI/CD actions (list runs, show run, runners, dispatch, secrets, variables)",
-      "cb actions [owner/]repo <subcommand> [args] [flags]",
+      "cb actions <subcommand> [owner/]repo [args] [flags]",
       "Manage CI/CD actions for a repository.", ACTIONS_SUBS },
     { "release", "Manage releases (list, create, show, edit, delete, assets)",
-      "cb release [owner/]repo <subcommand> [args] [flags]",
+      "cb release <subcommand> [owner/]repo [args] [flags]",
       "Manage releases.", RELEASE_SUBS },
     { "tag", "Manage tags (list, create, show, delete)",
-      "cb tag [owner/]repo <subcommand> [args] [flags]",
+      "cb tag <subcommand> [owner/]repo [args] [flags]",
       "Manage tags.", TAG_SUBS },
     { "branch", "Manage branches (list, create, show, rename, delete)",
-      "cb branch [owner/]repo <subcommand> [args] [flags]",
+      "cb branch <subcommand> [owner/]repo [args] [flags]",
       "Manage branches.", BRANCH_SUBS },
     { "issue", "Manage issues (list, create, show, edit, delete, comment, labels)",
-      "cb issue [owner/]repo <subcommand> [args] [flags]",
+      "cb issue <subcommand> [owner/]repo [args] [flags]",
       "Manage issues.", ISSUE_SUBS },
     { "label", "Manage repository labels (list, create, show, edit, delete)",
-      "cb label [owner/]repo <subcommand> [args] [flags]",
+      "cb label <subcommand> [owner/]repo [args] [flags]",
       "Manage repository labels.", LABEL_SUBS },
     { "milestone", "Manage milestones (list, create, show, edit, delete)",
-      "cb milestone [owner/]repo <subcommand> [args] [flags]",
+      "cb milestone <subcommand> [owner/]repo [args] [flags]",
       "Manage milestones.", MILESTONE_SUBS },
     { "pr", "Manage pull requests (list, create, show, merge, close)",
-      "cb pr [owner/]repo <subcommand> [args] [flags]",
+      "cb pr <subcommand> [owner/]repo [args] [flags]",
       "Manage pull requests.", PR_SUBS },
     { "commit", "View commits and statuses (list, show, status, compare)",
-      "cb commit [owner/]repo <subcommand> [args] [flags]",
+      "cb commit <subcommand> [owner/]repo [args] [flags]",
       "View commits and commit statuses.", COMMIT_SUBS },
     { "content", "View and manage file contents (list, show, create, update, delete, raw)",
-      "cb content [owner/]repo <subcommand> [args] [flags]",
+      "cb content <subcommand> [owner/]repo [args] [flags]",
       "View and manage repository file contents.", CONTENT_SUBS },
     { "key", "Manage deploy keys (list, add, show, delete)",
-      "cb key [owner/]repo <subcommand> [args] [flags]",
+      "cb key <subcommand> [owner/]repo [args] [flags]",
       "Manage deploy keys.", KEY_SUBS },
     { "collaborator", "Manage collaborators (list, add, rm, perms)",
-      "cb collaborator [owner/]repo <subcommand> [args] [flags]",
+      "cb collaborator <subcommand> [owner/]repo [args] [flags]",
       "Manage collaborators.", COLLAB_SUBS },
     { "fork", "Manage forks (list, create)",
-      "cb fork [owner/]repo <subcommand> [args] [flags]",
+      "cb fork <subcommand> [owner/]repo [args] [flags]",
       "Manage forks.", FORK_SUBS },
     { "hook", "Manage webhooks (list, create, show, edit, delete, test)",
-      "cb hook [owner/]repo <subcommand> [args] [flags]",
+      "cb hook <subcommand> [owner/]repo [args] [flags]",
       "Manage webhooks.", HOOK_SUBS },
     { "org", "Organization management (create)",
       "cb org <subcommand> [args] [flags]",
       "Organization management.", ORG_SUBS },
     { "wiki", "Manage wiki pages (list, create, show, edit, delete, revisions)",
-      "cb wiki [owner/]repo <subcommand> [args] [flags]",
+      "cb wiki <subcommand> [owner/]repo [args] [flags]",
       "Manage wiki pages.", WIKI_SUBS },
     { "sshkey", "Manage SSH public keys (list, add, show, rm)",
       "cb sshkey <subcommand> [args] [flags]",
@@ -3622,7 +3622,7 @@ static int cmd_release_show(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo show <id>\n");
+            printf("Usage: cb release show [owner/]repo <id>\n");
             return CLI_OK;
         }
     }
@@ -3651,7 +3651,7 @@ static int cmd_release_latest(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo latest\n");
+            printf("Usage: cb release latest [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -3779,7 +3779,7 @@ static int cmd_release_delete(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo delete <id> [--yes]\n");
+            printf("Usage: cb release delete [owner/]repo <id> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -3810,7 +3810,7 @@ static int cmd_release_by_tag(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo by-tag <tag>\n");
+            printf("Usage: cb release by-tag [owner/]repo <tag>\n");
             return CLI_OK;
         }
     }
@@ -3838,7 +3838,7 @@ static int cmd_release_delete_by_tag(int argc, char **argv, ApiClient *api, CbGl
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo delete-tag <tag> [--yes]\n");
+            printf("Usage: cb release delete-tag [owner/]repo <tag> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -3868,7 +3868,7 @@ static int cmd_release_asset_list(int argc, char **argv, ApiClient *api, CbGloba
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo asset list <release-id>\n");
+            printf("Usage: cb release asset list [owner/]repo <release-id>\n");
             return CLI_OK;
         }
     }
@@ -3922,7 +3922,7 @@ static int cmd_release_asset_edit(int argc, char **argv, ApiClient *api, CbGloba
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo asset edit <release-id> <asset-id> --name <name>\n");
+            printf("Usage: cb release asset edit [owner/]repo <release-id> <asset-id> --name <name>\n");
             return CLI_OK;
         }
     }
@@ -3977,7 +3977,7 @@ static int cmd_release_asset_delete(int argc, char **argv, ApiClient *api, CbGlo
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo asset delete <release-id> <asset-id> [--yes]\n");
+            printf("Usage: cb release asset delete [owner/]repo <release-id> <asset-id> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -4009,7 +4009,7 @@ static int cmd_release_asset_show(int argc, char **argv, ApiClient *api, CbGloba
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb release [owner/]repo asset show <release-id> <asset-id>\n");
+            printf("Usage: cb release asset show [owner/]repo <release-id> <asset-id>\n");
             return CLI_OK;
         }
     }
@@ -4102,7 +4102,7 @@ static int cmd_tag_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag [owner/]repo list [--limit N]\n");
+            printf("Usage: cb tag list [owner/]repo [--limit N]\n");
             return CLI_OK;
         }
     }
@@ -4134,7 +4134,7 @@ static int cmd_tag_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag [owner/]repo create --tag <tag> [--message <msg>] [--target <ref>]\n");
+            printf("Usage: cb tag create [owner/]repo --tag <tag> [--message <msg>] [--target <ref>]\n");
             return CLI_OK;
         }
     }
@@ -4209,7 +4209,7 @@ static int cmd_tag_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag [owner/]repo show <tag>\n");
+            printf("Usage: cb tag show [owner/]repo <tag>\n");
             return CLI_OK;
         }
     }
@@ -4252,7 +4252,7 @@ static int cmd_tag_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb tag [owner/]repo delete <tag> [--yes]\n");
+            printf("Usage: cb tag delete [owner/]repo <tag> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -4310,7 +4310,7 @@ static int cmd_branch_list(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch [owner/]repo list\n");
+            printf("Usage: cb branch list [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -4342,7 +4342,7 @@ static int cmd_branch_create(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch [owner/]repo create --name <name> [--from <ref>]\n");
+            printf("Usage: cb branch create [owner/]repo --name <name> [--from <ref>]\n");
             return CLI_OK;
         }
     }
@@ -4412,7 +4412,7 @@ static int cmd_branch_show(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch [owner/]repo show <branch>\n");
+            printf("Usage: cb branch show [owner/]repo <branch>\n");
             return CLI_OK;
         }
     }
@@ -4454,7 +4454,7 @@ static int cmd_branch_rename(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch [owner/]repo rename <branch> --name <new-name>\n");
+            printf("Usage: cb branch rename [owner/]repo <branch> --name <new-name>\n");
             return CLI_OK;
         }
     }
@@ -4509,7 +4509,7 @@ static int cmd_branch_delete(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb branch [owner/]repo delete <branch> [--yes]\n");
+            printf("Usage: cb branch delete [owner/]repo <branch> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -4569,7 +4569,7 @@ static int cmd_issue_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo list [--state open|closed|all] [--labels l1,l2] [--limit N]\n");
+            printf("Usage: cb issue list [owner/]repo [--state open|closed|all] [--labels l1,l2] [--limit N]\n");
             return CLI_OK;
         }
     }
@@ -4636,7 +4636,7 @@ static int cmd_issue_create(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo create --title <title> [--body <body>] [--label <id>]\n");
+            printf("Usage: cb issue create [owner/]repo --title <title> [--body <body>] [--label <id>]\n");
             return CLI_OK;
         }
     }
@@ -4703,7 +4703,7 @@ static int cmd_issue_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo show <number>\n");
+            printf("Usage: cb issue show [owner/]repo <number>\n");
             return CLI_OK;
         }
     }
@@ -4732,7 +4732,7 @@ static int cmd_issue_edit(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo edit <number> [--title <title>] [--body <body>] [--state open|closed]\n");
+            printf("Usage: cb issue edit [owner/]repo <number> [--title <title>] [--body <body>] [--state open|closed]\n");
             return CLI_OK;
         }
     }
@@ -4802,7 +4802,7 @@ static int cmd_issue_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo delete <number> [--yes]\n");
+            printf("Usage: cb issue delete [owner/]repo <number> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -4833,7 +4833,7 @@ static int cmd_issue_close(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo close <number>\n");
+            printf("Usage: cb issue close [owner/]repo <number>\n");
             return CLI_OK;
         }
     }
@@ -4865,7 +4865,7 @@ static int cmd_issue_reopen(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo reopen <number>\n");
+            printf("Usage: cb issue reopen [owner/]repo <number>\n");
             return CLI_OK;
         }
     }
@@ -4897,7 +4897,7 @@ static int cmd_issue_comment(int argc, char **argv, ApiClient *api, CbGlobalFlag
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo comment <number> --body <text>\n");
+            printf("Usage: cb issue comment [owner/]repo <number> --body <text>\n");
             return CLI_OK;
         }
     }
@@ -4933,7 +4933,7 @@ static int cmd_issue_label_add(int argc, char **argv, ApiClient *api, CbGlobalFl
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo label add <number> <label_id> [<label_id>...]\n");
+            printf("Usage: cb issue label add [owner/]repo <number> <label_id> [<label_id>...]\n");
             return CLI_OK;
         }
     }
@@ -4965,7 +4965,7 @@ static int cmd_issue_label_clear(int argc, char **argv, ApiClient *api, CbGlobal
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb issue [owner/]repo label clear <number>\n");
+            printf("Usage: cb issue label clear [owner/]repo <number>\n");
             return CLI_OK;
         }
     }
@@ -5031,14 +5031,14 @@ static int cmd_issue(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     }
     if (strcmp(sub, "label") == 0) {
         if (rest_argc < 1) {
-            printf("Usage: cb issue [owner/]repo label <add|set|rm|clear> ...\n");
+            printf("Usage: cb issue label [owner/]repo <add|set|rm|clear> ...\n");
             return CLI_USAGE;
         }
         const char *lsub = rest_argv[0];
         int l_argc = rest_argc - 1;
         char **l_argv = rest_argv + 1;
         if (is_help_arg(lsub)) {
-            printf("Usage: cb issue [owner/]repo label <add|set|rm|clear> ...\n");
+            printf("Usage: cb issue label [owner/]repo <add|set|rm|clear> ...\n");
             return CLI_OK;
         }
         if (strcmp(lsub, "add") == 0)
@@ -5059,7 +5059,7 @@ static int cmd_label_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb label [owner/]repo list\n");
+            printf("Usage: cb label list [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -5091,7 +5091,7 @@ static int cmd_label_create(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb label [owner/]repo create --name <name> --color <hex> [--description <desc>]\n");
+            printf("Usage: cb label create [owner/]repo --name <name> --color <hex> [--description <desc>]\n");
             return CLI_OK;
         }
     }
@@ -5163,7 +5163,7 @@ static int cmd_label_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb label [owner/]repo delete <id> [--yes]\n");
+            printf("Usage: cb label delete [owner/]repo <id> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -5194,7 +5194,7 @@ static int cmd_label_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb label [owner/]repo show <id>\n");
+            printf("Usage: cb label show [owner/]repo <id>\n");
             return CLI_OK;
         }
     }
@@ -5251,7 +5251,7 @@ static int cmd_milestone_list(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb milestone [owner/]repo list [--state open|closed|all]\n");
+            printf("Usage: cb milestone list [owner/]repo [--state open|closed|all]\n");
             return CLI_OK;
         }
     }
@@ -5288,7 +5288,7 @@ static int cmd_milestone_create(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb milestone [owner/]repo create --title <title> [--description <desc>] [--due <date>]\n");
+            printf("Usage: cb milestone create [owner/]repo --title <title> [--description <desc>] [--due <date>]\n");
             return CLI_OK;
         }
     }
@@ -5355,7 +5355,7 @@ static int cmd_milestone_delete(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb milestone [owner/]repo delete <id> [--yes]\n");
+            printf("Usage: cb milestone delete [owner/]repo <id> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -5386,7 +5386,7 @@ static int cmd_milestone_show(int argc, char **argv, ApiClient *api, CbGlobalFla
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb milestone [owner/]repo show <id>\n");
+            printf("Usage: cb milestone show [owner/]repo <id>\n");
             return CLI_OK;
         }
     }
@@ -5443,7 +5443,7 @@ static int cmd_pr_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr [owner/]repo list [--state open|closed|all] [--limit N]\n");
+            printf("Usage: cb pr list [owner/]repo [--state open|closed|all] [--limit N]\n");
             return CLI_OK;
         }
     }
@@ -5483,7 +5483,7 @@ static int cmd_pr_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr [owner/]repo create --title <title> --head <branch> [--base <branch>] [--body <body>]\n");
+            printf("Usage: cb pr create [owner/]repo --title <title> --head <branch> [--base <branch>] [--body <body>]\n");
             return CLI_OK;
         }
     }
@@ -5558,7 +5558,7 @@ static int cmd_pr_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr [owner/]repo show <number>\n");
+            printf("Usage: cb pr show [owner/]repo <number>\n");
             return CLI_OK;
         }
     }
@@ -5587,7 +5587,7 @@ static int cmd_pr_close(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr [owner/]repo close <number>\n");
+            printf("Usage: cb pr close [owner/]repo <number>\n");
             return CLI_OK;
         }
     }
@@ -5619,7 +5619,7 @@ static int cmd_pr_reopen(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr [owner/]repo reopen <number>\n");
+            printf("Usage: cb pr reopen [owner/]repo <number>\n");
             return CLI_OK;
         }
     }
@@ -5651,7 +5651,7 @@ static int cmd_pr_merge(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb pr [owner/]repo merge <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]\n");
+            printf("Usage: cb pr merge [owner/]repo <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]\n");
             return CLI_OK;
         }
     }
@@ -5730,7 +5730,7 @@ static int cmd_commit_list(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb commit [owner/]repo list [--sha <ref>] [--path <path>] [--limit N]\n");
+            printf("Usage: cb commit list [owner/]repo [--sha <ref>] [--path <path>] [--limit N]\n");
             return CLI_OK;
         }
     }
@@ -5821,7 +5821,7 @@ static int cmd_content_list(int argc, char **argv, ApiClient *api, CbGlobalFlags
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb content [owner/]repo list [--ref <ref>]\n");
+            printf("Usage: cb content list [owner/]repo [--ref <ref>]\n");
             return CLI_OK;
         }
     }
@@ -5886,7 +5886,7 @@ static int cmd_key_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb key [owner/]repo list\n");
+            printf("Usage: cb key list [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -5918,7 +5918,7 @@ static int cmd_key_add(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb key [owner/]repo add --title <title> --key <key> [--read-only]\n");
+            printf("Usage: cb key add [owner/]repo --title <title> --key <key> [--read-only]\n");
             return CLI_OK;
         }
     }
@@ -5989,7 +5989,7 @@ static int cmd_key_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb key [owner/]repo delete <id> [--yes]\n");
+            printf("Usage: cb key delete [owner/]repo <id> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -6020,7 +6020,7 @@ static int cmd_key_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb key [owner/]repo show <id>\n");
+            printf("Usage: cb key show [owner/]repo <id>\n");
             return CLI_OK;
         }
     }
@@ -6077,7 +6077,7 @@ static int cmd_collaborator_list(int argc, char **argv, ApiClient *api, CbGlobal
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb collaborator [owner/]repo list\n");
+            printf("Usage: cb collaborator list [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -6121,7 +6121,7 @@ static int cmd_collaborator_add(int argc, char **argv, ApiClient *api, CbGlobalF
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb collaborator [owner/]repo add <username> [--permission read|write|admin]\n");
+            printf("Usage: cb collaborator add [owner/]repo <username> [--permission read|write|admin]\n");
             return CLI_OK;
         }
     }
@@ -6170,7 +6170,7 @@ static int cmd_collaborator_rm(int argc, char **argv, ApiClient *api, CbGlobalFl
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb collaborator [owner/]repo rm <username> [--yes]\n");
+            printf("Usage: cb collaborator rm [owner/]repo <username> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -6230,7 +6230,7 @@ static int cmd_fork_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb fork [owner/]repo list\n");
+            printf("Usage: cb fork list [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -6262,7 +6262,7 @@ static int cmd_fork_create(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb fork [owner/]repo create [--name <repo-name>] [--org <organization>]\n");
+            printf("Usage: cb fork create [owner/]repo [--name <repo-name>] [--org <organization>]\n");
             return CLI_OK;
         }
     }
@@ -6341,7 +6341,7 @@ static int cmd_hook_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb hook [owner/]repo list\n");
+            printf("Usage: cb hook list [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -6373,7 +6373,7 @@ static int cmd_hook_create(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb hook [owner/]repo create --type <type> --url <url> [--event <event>] [--active]\n");
+            printf("Usage: cb hook create [owner/]repo --type <type> --url <url> [--event <event>] [--active]\n");
             return CLI_OK;
         }
     }
@@ -6457,7 +6457,7 @@ static int cmd_hook_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb hook [owner/]repo delete <id> [--yes]\n");
+            printf("Usage: cb hook delete [owner/]repo <id> [--yes]\n");
             return CLI_OK;
         }
     }
@@ -6519,7 +6519,7 @@ static int cmd_wiki_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb wiki [owner/]repo list\n");
+            printf("Usage: cb wiki list [owner/]repo\n");
             return CLI_OK;
         }
     }
@@ -6551,7 +6551,7 @@ static int cmd_wiki_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags 
 {
     for (int i = 0; i < argc; i++) {
         if (is_help_arg(argv[i])) {
-            printf("Usage: cb wiki [owner/]repo delete <pageName> [--yes]\n");
+            printf("Usage: cb wiki delete [owner/]repo <pageName> [--yes]\n");
             return CLI_OK;
         }
     }
