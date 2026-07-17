@@ -7,6 +7,25 @@ EXTRA_DIST = \
     build-aux/gen-completions.sh \
     version
 
+# Regenerate the version file on every `make` so it tracks the current git
+# HEAD.  The recipe always runs, but the file is only rewritten when the
+# content changes.  This ensures that re-running ./configure (without
+# re-running autoreconf) picks up the latest version.
+.PHONY: version_force
+version: version_force
+	@v=`"$(top_srcdir)/build-aux/git-version.sh" "$(top_srcdir)" 2>/dev/null`; \
+	test -n "$$v" || v="$(CB_VERSION)"; \
+	printf '%s\n' "$$v" > $@.tmp; \
+	if cmp -s $@.tmp $@ 2>/dev/null; then \
+	  rm -f $@.tmp; \
+	else \
+	  mv $@.tmp $@; \
+	  echo "  GEN      $@ ($$v)"; \
+	fi
+version_force:
+
+all: version
+
 # Stamp the version file into the dist tarball so tarball builds can read it
 # even without .git. The file is gitignored so it won't be included automatically.
 dist-hook:

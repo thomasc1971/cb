@@ -18,6 +18,11 @@ dnl for tarball builds where build-aux/git-version.sh has nothing to read.
 CB_VERSION=`"$srcdir/build-aux/git-version.sh" "$srcdir" 2>/dev/null`
 AS_IF([test -z "$CB_VERSION"],
       [CB_VERSION="$PACKAGE_VERSION"])
+dnl Override PACKAGE_VERSION so the testsuite summary and other automake
+dnl machinery show the live git version rather than the stale autoreconf-time
+dnl value.  This is safe: PACKAGE_VERSION is only used for display/reporting.
+PACKAGE_VERSION="$CB_VERSION"
+PACKAGE_STRING="cb $CB_VERSION"
 AC_SUBST([CB_VERSION])
 AC_MSG_NOTICE([cb version: $CB_VERSION])
 
