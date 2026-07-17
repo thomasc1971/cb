@@ -15,7 +15,7 @@
 
 static MockServer server;
 
-static void setup_server (MockResponse* responses, size_t count)
+static void setup_server (MockResponse *responses, size_t count)
 {
   memset (&server, 0, sizeof (server));
   if (mock_server_start (&server, responses, count) != 0) {
@@ -36,22 +36,21 @@ static void teardown_server (void)
   cb_unsetenv ("CB_TOKEN");
 }
 
-static const char* REPO_JSON_STR =
-    "{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
-    "\"description\":\"test repo\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
-    "\"default_branch\":\"main\",\"language\":\"Go\","
-    "\"private\":true,\"archived\":false,\"template\":false,"
-    "\"stars_count\":12,\"forks_count\":3,"
-    "\"has_issues\":true,\"has_wiki\":true,\"has_pull_requests\":true}";
+static const char *REPO_JSON_STR = "{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
+                                   "\"description\":\"test repo\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
+                                   "\"default_branch\":\"main\",\"language\":\"Go\","
+                                   "\"private\":true,\"archived\":false,\"template\":false,"
+                                   "\"stars_count\":12,\"forks_count\":3,"
+                                   "\"has_issues\":true,\"has_wiki\":true,\"has_pull_requests\":true}";
 
-static void set_body (MockResponse* r, const char* s)
+static void set_body (MockResponse *r, const char *s)
 {
   strncpy (r->body, s, sizeof (r->body) - 1);
   r->body[sizeof (r->body) - 1] = '\0';
 }
 
 /* Helper to run cli_run with given args. Returns exit code. */
-static int run_cli (const char* args[])
+static int run_cli (const char *args[])
 {
   /* Count args */
   int argc = 0;
@@ -59,10 +58,10 @@ static int run_cli (const char* args[])
     argc++;
 
   /* Build argv: ["cb", args...] */
-  char** argv = malloc ((argc + 2) * sizeof (char*));
-  argv[0] = (char*)"cb";
+  char **argv = malloc ((argc + 2) * sizeof (char *));
+  argv[0] = (char *)"cb";
   for (int i = 0; i < argc; i++)
-    argv[i + 1] = (char*)args[i];
+    argv[i + 1] = (char *)args[i];
   argv[argc + 1] = NULL;
 
   int rc = cli_run (argc + 1, argv);
@@ -80,7 +79,7 @@ static void test_cli_repo_show (void)
   set_body (&resp, REPO_JSON_STR);
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "show", "thomasc/myproj", NULL };
+  const char *args[] = { "repo", "show", "thomasc/myproj", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -96,7 +95,7 @@ static void test_cli_repo_create (void)
   set_body (&resp, REPO_JSON_STR);
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "create", "myproj", "--private", "-d", "test repo", NULL };
+  const char *args[] = { "repo", "create", "myproj", "--private", "-d", "test repo", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -111,7 +110,7 @@ static void test_cli_repo_delete_yes (void)
   };
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "delete", "thomasc/myproj", "--yes", NULL };
+  const char *args[] = { "repo", "delete", "thomasc/myproj", "--yes", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -127,7 +126,7 @@ static void test_cli_repo_rename (void)
   set_body (&resp, REPO_JSON_STR);
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "rename", "thomasc/old-name", "new-name", NULL };
+  const char *args[] = { "repo", "rename", "thomasc/old-name", "new-name", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   /* Verify the PATCH body contains the new name */
@@ -144,7 +143,7 @@ static void test_cli_repo_edit (void)
   set_body (&resp, REPO_JSON_STR);
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "edit", "thomasc/myproj", "-d", "new desc", "--public", NULL };
+  const char *args[] = { "repo", "edit", "thomasc/myproj", "-d", "new desc", "--public", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   /* Verify only provided fields are in body */
@@ -157,14 +156,14 @@ static void test_cli_repo_edit (void)
 
 static void test_cli_repo_list (void)
 {
-  const char* list_json = "[]";
+  const char *list_json = "[]";
   MockResponse resp = {
     .method = "GET", .path = "/api/v1/user/repos", .status = 200
   };
   set_body (&resp, list_json);
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "list", NULL };
+  const char *args[] = { "repo", "list", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -179,7 +178,7 @@ static void test_cli_repo_list_org (void)
   };
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "list", "--org", "myorg", NULL };
+  const char *args[] = { "repo", "list", "--org", "myorg", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -194,7 +193,7 @@ static void test_cli_repo_transfer_yes (void)
   };
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "transfer", "thomasc/myproj", "new-owner", "--yes", NULL };
+  const char *args[] = { "repo", "transfer", "thomasc/myproj", "new-owner", "--yes", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (server.last_body, "\"new_owner\":\"new-owner\"") != NULL);
@@ -209,7 +208,7 @@ static void test_cli_topic_add (void)
   };
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "topic", "add", "thomasc/myproj", "go", NULL };
+  const char *args[] = { "repo", "topic", "add", "thomasc/myproj", "go", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -224,7 +223,7 @@ static void test_cli_topic_set (void)
   };
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "topic", "set", "thomasc/myproj", "go,cli,codeberg", NULL };
+  const char *args[] = { "repo", "topic", "set", "thomasc/myproj", "go,cli,codeberg", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (server.last_body, "\"topics\":[\"go\",\"cli\",\"codeberg\"]") != NULL);
@@ -239,7 +238,7 @@ static void test_cli_topic_list (void)
   };
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "topic", "list", "thomasc/myproj", NULL };
+  const char *args[] = { "repo", "topic", "list", "thomasc/myproj", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -252,7 +251,7 @@ static void test_cli_unknown_command (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
 
-  const char* args[] = { "bogus", NULL };
+  const char *args[] = { "bogus", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_USAGE);
 
@@ -264,7 +263,7 @@ static void test_cli_missing_args (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
 
-  const char* args[] = { "repo", "show", NULL };
+  const char *args[] = { "repo", "show", NULL };
   int rc = run_cli (args);
   /* Missing args should be a usage error, but since it goes through cli_run
    * which loads config first, it might be CLI_USAGE or CLI_ERR.
@@ -282,7 +281,7 @@ static void test_cli_json_flag (void)
   set_body (&resp, REPO_JSON_STR);
   setup_server (&resp, 1);
 
-  const char* args[] = { "repo", "show", "thomasc/myproj", "--json", NULL };
+  const char *args[] = { "repo", "show", "thomasc/myproj", "--json", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
 
@@ -292,7 +291,7 @@ static void test_cli_json_flag (void)
 /* ===== Help tests ===== */
 
 /* Run cli_run with stdout captured into a buffer. Returns exit code. */
-static int run_cli_captured (const char* args[], char* buf, size_t bufsize)
+static int run_cli_captured (const char *args[], char *buf, size_t bufsize)
 {
   memset (buf, 0, bufsize);
   fflush (stdout);
@@ -302,7 +301,7 @@ static int run_cli_captured (const char* args[], char* buf, size_t bufsize)
   if (saved_fd < 0)
     return -1;
 
-  FILE* tmpf = tmpfile ();
+  FILE *tmpf = tmpfile ();
   if (!tmpf) {
     cb_close (saved_fd);
     return -1;
@@ -317,10 +316,10 @@ static int run_cli_captured (const char* args[], char* buf, size_t bufsize)
   int argc = 0;
   while (args[argc])
     argc++;
-  char** argv = malloc ((argc + 2) * sizeof (char*));
-  argv[0] = (char*)"cb";
+  char **argv = malloc ((argc + 2) * sizeof (char *));
+  argv[0] = (char *)"cb";
   for (int i = 0; i < argc; i++)
-    argv[i + 1] = (char*)args[i];
+    argv[i + 1] = (char *)args[i];
   argv[argc + 1] = NULL;
 
   int rc = cli_run (argc + 1, argv);
@@ -343,7 +342,7 @@ static int run_cli_captured (const char* args[], char* buf, size_t bufsize)
 static void test_help_top_level (void)
 {
   char buf[4096];
-  const char* args[] = { "--help", NULL };
+  const char *args[] = { "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb — Codeberg") != NULL);
@@ -353,7 +352,7 @@ static void test_help_top_level (void)
 static void test_help_top_level_short (void)
 {
   char buf[4096];
-  const char* args[] = { "-h", NULL };
+  const char *args[] = { "-h", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb — Codeberg") != NULL);
@@ -364,7 +363,7 @@ static void test_help_repo (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "--help", NULL };
+  const char *args[] = { "repo", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "Repository management.") != NULL);
@@ -378,7 +377,7 @@ static void test_help_repo_short (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "-h", NULL };
+  const char *args[] = { "repo", "-h", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "Repository management.") != NULL);
@@ -390,7 +389,7 @@ static void test_help_repo_create (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "create", "--help", NULL };
+  const char *args[] = { "repo", "create", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo create <name>") != NULL);
@@ -404,7 +403,7 @@ static void test_help_repo_edit (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "edit", "-h", NULL };
+  const char *args[] = { "repo", "edit", "-h", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo edit [owner/]repo") != NULL);
@@ -418,7 +417,7 @@ static void test_help_repo_delete (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "delete", "--help", NULL };
+  const char *args[] = { "repo", "delete", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo delete") != NULL);
@@ -431,7 +430,7 @@ static void test_help_repo_rename (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "rename", "--help", NULL };
+  const char *args[] = { "repo", "rename", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo rename") != NULL);
@@ -443,7 +442,7 @@ static void test_help_repo_show (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "show", "--help", NULL };
+  const char *args[] = { "repo", "show", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo show") != NULL);
@@ -455,7 +454,7 @@ static void test_help_repo_list (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "list", "--help", NULL };
+  const char *args[] = { "repo", "list", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo list") != NULL);
@@ -468,7 +467,7 @@ static void test_help_repo_transfer (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "transfer", "--help", NULL };
+  const char *args[] = { "repo", "transfer", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo transfer") != NULL);
@@ -480,7 +479,7 @@ static void test_help_repo_topic (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "topic", "--help", NULL };
+  const char *args[] = { "repo", "topic", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "Manage repository topics.") != NULL);
@@ -494,7 +493,7 @@ static void test_help_topic_add (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "topic", "add", "--help", NULL };
+  const char *args[] = { "repo", "topic", "add", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo topic add") != NULL);
@@ -506,7 +505,7 @@ static void test_help_topic_set (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "repo", "topic", "set", "-h", NULL };
+  const char *args[] = { "repo", "topic", "set", "-h", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo topic set") != NULL);
@@ -523,7 +522,7 @@ static void test_cli_org_create (void)
                    "\"avatar_url\":\"https://codeberg.org/avatars/42\"}");
   setup_server (&resp, 1);
 
-  const char* args[] = { "org", "create", "myorg", "-d", "test org", NULL };
+  const char *args[] = { "org", "create", "myorg", "-d", "test org", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -541,7 +540,7 @@ static void test_cli_org_create_visibility (void)
                    "\"avatar_url\":\"https://codeberg.org/avatars/43\"}");
   setup_server (&resp, 1);
 
-  const char* args[] = { "org", "create", "privorg", "--visibility", "private", NULL };
+  const char *args[] = { "org", "create", "privorg", "--visibility", "private", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -554,7 +553,7 @@ static void test_help_org_create (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "org", "create", "--help", NULL };
+  const char *args[] = { "org", "create", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb org create <name>") != NULL);
@@ -566,7 +565,7 @@ static void test_cli_org_create_no_args (void)
 {
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
-  const char* args[] = { "org", "create", NULL };
+  const char *args[] = { "org", "create", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_USAGE);
   cb_unsetenv ("CB_TOKEN");
@@ -576,10 +575,9 @@ static void test_cli_org_create_no_args (void)
 
 static void test_cli_quiet_list (void)
 {
-  const char* list_json =
-      "[{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
-      "\"description\":\"test\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
-      "\"private\":true,\"archived\":false,\"stars_count\":12,\"forks_count\":3}]";
+  const char *list_json = "[{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
+                          "\"description\":\"test\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
+                          "\"private\":true,\"archived\":false,\"stars_count\":12,\"forks_count\":3}]";
   MockResponse resp = {
     .method = "GET", .path = "/api/v1/user/repos", .status = 200
   };
@@ -587,7 +585,7 @@ static void test_cli_quiet_list (void)
   setup_server (&resp, 1);
 
   char buf[4096];
-  const char* args[] = { "--quiet", "repo", "list", NULL };
+  const char *args[] = { "--quiet", "repo", "list", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "thomasc/myproj") != NULL);
@@ -606,7 +604,7 @@ static void test_cli_quiet_show (void)
   setup_server (&resp, 1);
 
   char buf[4096];
-  const char* args[] = { "--quiet", "repo", "show", "thomasc/myproj", NULL };
+  const char *args[] = { "--quiet", "repo", "show", "thomasc/myproj", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_EQ ((int)strlen (buf), 0);
@@ -616,10 +614,9 @@ static void test_cli_quiet_show (void)
 
 static void test_cli_quiet_json_list (void)
 {
-  const char* list_json =
-      "[{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
-      "\"description\":\"test\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
-      "\"private\":true,\"archived\":false,\"stars_count\":12,\"forks_count\":3}]";
+  const char *list_json = "[{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
+                          "\"description\":\"test\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
+                          "\"private\":true,\"archived\":false,\"stars_count\":12,\"forks_count\":3}]";
   MockResponse resp = {
     .method = "GET", .path = "/api/v1/user/repos", .status = 200
   };
@@ -627,7 +624,7 @@ static void test_cli_quiet_json_list (void)
   setup_server (&resp, 1);
 
   char buf[4096];
-  const char* args[] = { "--quiet", "--json", "repo", "list", NULL };
+  const char *args[] = { "--quiet", "--json", "repo", "list", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "thomasc/myproj") != NULL);
@@ -638,17 +635,15 @@ static void test_cli_quiet_json_list (void)
 
 /* ===== SSH key CLI tests ===== */
 
-static const char* SSHKEY_LIST_JSON_CLI =
-    "[{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
-    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
-    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
-    "\"created_at\":\"2026-07-10T12:00:00Z\"}]";
+static const char *SSHKEY_LIST_JSON_CLI = "[{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+                                          "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+                                          "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+                                          "\"created_at\":\"2026-07-10T12:00:00Z\"}]";
 
-static const char* SSHKEY_SINGLE_JSON_CLI =
-    "{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
-    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
-    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
-    "\"created_at\":\"2026-07-10T12:00:00Z\"}";
+static const char *SSHKEY_SINGLE_JSON_CLI = "{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+                                            "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+                                            "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+                                            "\"created_at\":\"2026-07-10T12:00:00Z\"}";
 
 static void test_cli_sshkey_list (void)
 {
@@ -658,7 +653,7 @@ static void test_cli_sshkey_list (void)
   set_body (&resp, SSHKEY_LIST_JSON_CLI);
   setup_server (&resp, 1);
 
-  const char* args[] = { "sshkey", "list", NULL };
+  const char *args[] = { "sshkey", "list", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -675,7 +670,7 @@ static void test_cli_sshkey_list_json (void)
   setup_server (&resp, 1);
 
   char buf[4096];
-  const char* args[] = { "--json", "sshkey", "list", NULL };
+  const char *args[] = { "--json", "sshkey", "list", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -693,7 +688,7 @@ static void test_cli_sshkey_add (void)
   set_body (&resp, SSHKEY_SINGLE_JSON_CLI);
   setup_server (&resp, 1);
 
-  const char* args[] = {
+  const char *args[] = {
     "sshkey", "add", "--title", "Laptop",
     "--key", "ssh-ed25519 AAAAC3... laptop", NULL
   };
@@ -708,7 +703,7 @@ static void test_cli_sshkey_add_missing_title (void)
 {
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
-  const char* args[] = {
+  const char *args[] = {
     "sshkey", "add", "--key", "ssh-ed25519 AAAAC3... laptop", NULL
   };
   int rc = run_cli (args);
@@ -720,7 +715,7 @@ static void test_cli_sshkey_add_missing_key (void)
 {
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
-  const char* args[] = { "sshkey", "add", "--title", "Laptop", NULL };
+  const char *args[] = { "sshkey", "add", "--title", "Laptop", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_USAGE);
   cb_unsetenv ("CB_TOKEN");
@@ -734,7 +729,7 @@ static void test_cli_sshkey_show (void)
   set_body (&resp, SSHKEY_SINGLE_JSON_CLI);
   setup_server (&resp, 1);
 
-  const char* args[] = { "sshkey", "show", "1", NULL };
+  const char *args[] = { "sshkey", "show", "1", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -749,7 +744,7 @@ static void test_cli_sshkey_rm_yes (void)
   };
   setup_server (&resp, 1);
 
-  const char* args[] = { "--yes", "sshkey", "rm", "2", NULL };
+  const char *args[] = { "--yes", "sshkey", "rm", "2", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
@@ -761,7 +756,7 @@ static void test_cli_sshkey_rm_no_id (void)
 {
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
-  const char* args[] = { "sshkey", "rm", NULL };
+  const char *args[] = { "sshkey", "rm", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_USAGE);
   cb_unsetenv ("CB_TOKEN");
@@ -771,7 +766,7 @@ static void test_cli_sshkey_unknown_sub (void)
 {
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
-  const char* args[] = { "sshkey", "bogus", NULL };
+  const char *args[] = { "sshkey", "bogus", NULL };
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_USAGE);
   cb_unsetenv ("CB_TOKEN");
@@ -782,7 +777,7 @@ static void test_help_sshkey (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "sshkey", "--help", NULL };
+  const char *args[] = { "sshkey", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "list") != NULL);
@@ -797,14 +792,14 @@ static void test_help_top_level_sshkey (void)
   cb_setenv ("CB_TOKEN", "tok", 1);
   cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
-  const char* args[] = { "--help", NULL };
+  const char *args[] = { "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "sshkey") != NULL);
   cb_unsetenv ("CB_TOKEN");
 }
 
-int main (int argc, char* argv[])
+int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
   printf ("Running CLI tests:\n");

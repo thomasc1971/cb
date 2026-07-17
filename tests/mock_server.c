@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void handle_client (MockServer* s, cb_socket_t clientfd)
+static void handle_client (MockServer *s, cb_socket_t clientfd)
 {
   char buf[8192];
   ssize_t n = recv (clientfd, buf, sizeof (buf) - 1, 0);
@@ -26,29 +26,29 @@ static void handle_client (MockServer* s, cb_socket_t clientfd)
   snprintf (s->last_path, sizeof (s->last_path), "%s", path);
 
   /* Extract headers */
-  char* auth = NULL;
-  char* content_type = NULL;
-  char* body = NULL;
+  char *auth = NULL;
+  char *content_type = NULL;
+  char *body = NULL;
 
   /* Find end of headers */
-  char* header_end = strstr (buf, "\r\n\r\n");
+  char *header_end = strstr (buf, "\r\n\r\n");
   if (header_end) {
     body = header_end + 4;
     /* Search for Authorization header */
-    char* line = buf;
+    char *line = buf;
     while (line < header_end) {
-      char* eol = strstr (line, "\r\n");
+      char *eol = strstr (line, "\r\n");
       if (!eol)
         break;
       if (strncasecmp (line, "Authorization:", 14) == 0) {
-        char* v = line + 14;
+        char *v = line + 14;
         while (*v == ' ')
           v++;
         strncpy (s->last_auth, v, (size_t)(eol - v) < sizeof (s->last_auth) ? (size_t)(eol - v) : sizeof (s->last_auth) - 1);
         auth = s->last_auth;
       }
       if (strncasecmp (line, "Content-Type:", 13) == 0) {
-        char* v = line + 13;
+        char *v = line + 13;
         while (*v == ' ')
           v++;
         strncpy (s->last_content_type, v, (size_t)(eol - v) < sizeof (s->last_content_type) ? (size_t)(eol - v) : sizeof (s->last_content_type) - 1);
@@ -60,20 +60,20 @@ static void handle_client (MockServer* s, cb_socket_t clientfd)
     header_end = strstr (buf, "\n\n");
     if (header_end) {
       body = header_end + 2;
-      char* line = buf;
+      char *line = buf;
       while (line < header_end) {
-        char* eol = strchr (line, '\n');
+        char *eol = strchr (line, '\n');
         if (!eol)
           break;
         if (strncasecmp (line, "Authorization:", 14) == 0) {
-          char* v = line + 14;
+          char *v = line + 14;
           while (*v == ' ')
             v++;
           strncpy (s->last_auth, v, (size_t)(eol - v) < sizeof (s->last_auth) ? (size_t)(eol - v) : sizeof (s->last_auth) - 1);
           auth = s->last_auth;
         }
         if (strncasecmp (line, "Content-Type:", 13) == 0) {
-          char* v = line + 13;
+          char *v = line + 13;
           while (*v == ' ')
             v++;
           strncpy (s->last_content_type, v, (size_t)(eol - v) < sizeof (s->last_content_type) ? (size_t)(eol - v) : sizeof (s->last_content_type) - 1);
@@ -92,11 +92,9 @@ static void handle_client (MockServer* s, cb_socket_t clientfd)
   (void)content_type;
 
   /* Find matching response */
-  MockResponse* match = NULL;
+  MockResponse *match = NULL;
   for (size_t i = 0; i < s->response_count; i++) {
-    if (!s->responses[i].matched &&
-        strcmp (s->responses[i].method, method) == 0 &&
-        strcmp (s->responses[i].path, path) == 0) {
+    if (!s->responses[i].matched && strcmp (s->responses[i].method, method) == 0 && strcmp (s->responses[i].path, path) == 0) {
       match = &s->responses[i];
       break;
     }
@@ -143,13 +141,13 @@ static void handle_client (MockServer* s, cb_socket_t clientfd)
   cb_close_socket (clientfd);
 }
 
-static void* server_thread (void* arg)
+static void *server_thread (void *arg)
 {
-  MockServer* s = (MockServer*)arg;
+  MockServer *s = (MockServer *)arg;
   while (s->running) {
     struct sockaddr_in client;
     socklen_t client_len = sizeof (client);
-    cb_socket_t clientfd = accept (s->sockfd, (struct sockaddr*)&client, &client_len);
+    cb_socket_t clientfd = accept (s->sockfd, (struct sockaddr *)&client, &client_len);
     if (clientfd == CB_INVALID_SOCKET) {
       if (s->running)
         continue;
@@ -160,7 +158,7 @@ static void* server_thread (void* arg)
   return NULL;
 }
 
-int mock_server_start (MockServer* s, MockResponse* responses, size_t count)
+int mock_server_start (MockServer *s, MockResponse *responses, size_t count)
 {
   memset (s, 0, sizeof (*s));
   s->responses = responses;
@@ -176,7 +174,7 @@ int mock_server_start (MockServer* s, MockResponse* responses, size_t count)
     return -1;
 
   int opt = 1;
-  setsockopt (s->sockfd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof (opt));
+  setsockopt (s->sockfd, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof (opt));
 
   struct sockaddr_in addr;
   memset (&addr, 0, sizeof (addr));
@@ -184,13 +182,13 @@ int mock_server_start (MockServer* s, MockResponse* responses, size_t count)
   addr.sin_addr.s_addr = inet_addr ("127.0.0.1");
   addr.sin_port = 0; /* ephemeral port */
 
-  if (bind (s->sockfd, (struct sockaddr*)&addr, sizeof (addr)) == CB_SOCKET_ERROR) {
+  if (bind (s->sockfd, (struct sockaddr *)&addr, sizeof (addr)) == CB_SOCKET_ERROR) {
     cb_close_socket (s->sockfd);
     return -1;
   }
 
   socklen_t addr_len = sizeof (addr);
-  getsockname (s->sockfd, (struct sockaddr*)&addr, &addr_len);
+  getsockname (s->sockfd, (struct sockaddr *)&addr, &addr_len);
   s->port = ntohs (addr.sin_port);
 
   if (listen (s->sockfd, 5) == CB_SOCKET_ERROR) {
@@ -208,7 +206,7 @@ int mock_server_start (MockServer* s, MockResponse* responses, size_t count)
   return 0;
 }
 
-void mock_server_stop (MockServer* s)
+void mock_server_stop (MockServer *s)
 {
   if (!s->started)
     return;
@@ -219,7 +217,7 @@ void mock_server_stop (MockServer* s)
   s->started = false;
 }
 
-bool mock_server_all_matched (MockServer* s)
+bool mock_server_all_matched (MockServer *s)
 {
   for (size_t i = 0; i < s->response_count; i++) {
     if (!s->responses[i].matched)

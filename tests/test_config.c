@@ -8,11 +8,11 @@
 
 static char tmpdir[256];
 
-static void write_config_file (const char* content)
+static void write_config_file (const char *content)
 {
   char path[512];
   snprintf (path, sizeof (path), "%s/config", tmpdir);
-  FILE* f = fopen (path, "w");
+  FILE *f = fopen (path, "w");
   ASSERT_NOT_NULL (f);
   fputs (content, f);
   fclose (f);
@@ -226,12 +226,12 @@ static void test_parse_url_invalid (void)
   ASSERT_EQ (rc, -1);
 }
 
-int main (int argc, char* argv[])
+int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
 
   /* Create temp dir for config files */
-  const char* tmp = getenv ("TMPDIR");
+  const char *tmp = getenv ("TMPDIR");
   if (!tmp)
     tmp = getenv ("TEMP");
   if (!tmp)

@@ -172,7 +172,7 @@ static void test_parse_owner_repo_null (void)
 static void test_valid_merge_styles (void)
 {
   char err[256];
-  const char* valid[] = { "merge", "rebase", "rebase-merge", "squash",
+  const char *valid[] = { "merge", "rebase", "rebase-merge", "squash",
                           "fast-forward-only", "manually-merged", "rebase-update-only" };
   for (size_t i = 0; i < sizeof (valid) / sizeof (valid[0]); i++) {
     ASSERT_EQ (validate_merge_style (valid[i], err, sizeof (err)), VALIDATE_OK);
@@ -289,7 +289,7 @@ static void test_org_name_exactly_100 (void)
   ASSERT_EQ (validate_org_name (name, err, sizeof (err)), VALIDATE_OK);
 }
 
-int main (int argc, char* argv[])
+int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
   printf ("Running validation tests:\n");

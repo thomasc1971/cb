@@ -32,8 +32,8 @@
 #include <errno.h>
 
 /* Forward declarations */
-static int require_owner_repo (const char* arg, char* owner, size_t owner_sz,
-                               char* repo, size_t repo_sz, ApiClient* api);
+static int require_owner_repo (const char *arg, char *owner, size_t owner_sz,
+                               char *repo, size_t repo_sz, ApiClient *api);
 
 /* Forward declarations for help wrappers (defined after command tree) */
 static void help_repo (void);
@@ -84,8 +84,8 @@ static void help_package (void);
 
 typedef struct
 {
-  const char* name;  /* e.g. "--description" or "-d" */
-  const char* alias; /* short alias, may be NULL */
+  const char *name;  /* e.g. "--description" or "-d" */
+  const char *alias; /* short alias, may be NULL */
   int takes_value;   /* 1 if flag takes a value, 0 if boolean */
 } FlagDef;
 
@@ -166,13 +166,13 @@ static const FlagDef ORG_CREATE_FLAGS[] = {
 };
 
 /* Help flag sentinel — checked before parse_flags in every handler. */
-static int is_help_arg (const char* arg)
+static int is_help_arg (const char *arg)
 {
   return strcmp (arg, "--help") == 0 || strcmp (arg, "-h") == 0;
 }
 
 /* Check if a string matches a flag definition (by name or alias). */
-static int matches_flag (const char* arg, const FlagDef* def)
+static int matches_flag (const char *arg, const FlagDef *def)
 {
   if (strcmp (arg, def->name) == 0)
     return 1;
@@ -182,7 +182,7 @@ static int matches_flag (const char* arg, const FlagDef* def)
 }
 
 /* Find a flag definition in a table. Returns index or -1. */
-static int find_flag (const char* arg, const FlagDef* table)
+static int find_flag (const char *arg, const FlagDef *table)
 {
   for (int i = 0; table[i].name; i++) {
     if (matches_flag (arg, &table[i]))
@@ -192,19 +192,19 @@ static int find_flag (const char* arg, const FlagDef* table)
 }
 
 /* Check if arg is a global flag. Returns 1 if yes. */
-static int is_global_flag (const char* arg)
+static int is_global_flag (const char *arg)
 {
   return find_flag (arg, GLOBAL_FLAGS) >= 0;
 }
 
 /* ===== Output helpers ===== */
 
-static void print_repo (const Repo* r, int json)
+static void print_repo (const Repo *r, int json)
 {
   if (json) {
     /* For JSON mode, we'd print the raw API response.
      * But since we already parsed it, we'll re-serialize what we have. */
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     if (r->name)
       json_object_set_string (obj, "name", r->name);
     if (r->full_name)
@@ -222,12 +222,12 @@ static void print_repo (const Repo* r, int json)
     json_object_set_number (obj, "stars_count", r->stars);
     json_object_set_number (obj, "forks_count", r->forks);
     if (r->topic_count > 0) {
-      JsonValue* arr = json_array_new ();
+      JsonValue *arr = json_array_new ();
       for (size_t i = 0; i < r->topic_count; i++)
         json_array_push (arr, json_string_new (r->topics[i]));
       json_object_set (obj, "topics", arr);
     }
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -250,12 +250,12 @@ static void print_repo (const Repo* r, int json)
   }
 }
 
-static void print_repo_list (const Repo* repos, size_t count, int json)
+static void print_repo_list (const Repo *repos, size_t count, int json)
 {
   if (json) {
-    JsonValue* arr = json_array_new ();
+    JsonValue *arr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (repos[i].name)
         json_object_set_string (obj, "name", repos[i].name);
       if (repos[i].full_name)
@@ -269,14 +269,14 @@ static void print_repo_list (const Repo* repos, size_t count, int json)
       json_object_set_number (obj, "stars_count", repos[i].stars);
       json_object_set_number (obj, "forks_count", repos[i].forks);
       if (repos[i].topic_count > 0) {
-        JsonValue* topics = json_array_new ();
+        JsonValue *topics = json_array_new ();
         for (size_t j = 0; j < repos[i].topic_count; j++)
           json_array_push (topics, json_string_new (repos[i].topics[j]));
         json_object_set (obj, "topics", topics);
       }
       json_array_push (arr, obj);
     }
-    char* s = json_serialize (arr, true);
+    char *s = json_serialize (arr, true);
     printf ("%s\n", s);
     free (s);
     json_free (arr);
@@ -291,15 +291,15 @@ static void print_repo_list (const Repo* repos, size_t count, int json)
   }
 }
 
-static void print_topics (char** topics, size_t count, int json)
+static void print_topics (char **topics, size_t count, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
-    JsonValue* arr = json_array_new ();
+    JsonValue *obj = json_object_new ();
+    JsonValue *arr = json_array_new ();
     for (size_t i = 0; i < count; i++)
       json_array_push (arr, json_string_new (topics[i]));
     json_object_set (obj, "topics", arr);
-    char* s = json_serialize (obj, false);
+    char *s = json_serialize (obj, false);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -311,7 +311,7 @@ static void print_topics (char** topics, size_t count, int json)
 
 /* ===== Error printing ===== */
 
-static void print_api_error (int code, const char* msg)
+static void print_api_error (int code, const char *msg)
 {
   switch (code) {
   case API_ERR_AUTH:
@@ -347,7 +347,7 @@ static void print_api_error (int code, const char* msg)
 
 /* ===== Confirmation prompt ===== */
 
-static int confirm (const char* prompt)
+static int confirm (const char *prompt)
 {
   printf ("%s [y/N] ", prompt);
   fflush (stdout);
@@ -365,17 +365,17 @@ typedef struct
   int quiet;
   int yes;
   int version;
-  const char* base_url;
+  const char *base_url;
 } CbGlobalFlags;
 
 /* Extract global flags from argv. Returns new argc/argv with global flags removed.
  * Caller must free *out_argv. */
-static int extract_global_flags (int argc, char** argv, CbGlobalFlags* gf,
-                                 char*** out_argv)
+static int extract_global_flags (int argc, char **argv, CbGlobalFlags *gf,
+                                 char ***out_argv)
 {
   memset (gf, 0, sizeof (*gf));
 
-  char** new_argv = malloc ((argc + 1) * sizeof (char*));
+  char **new_argv = malloc ((argc + 1) * sizeof (char *));
   if (!new_argv)
     return -1;
   int new_argc = 0;
@@ -412,18 +412,18 @@ static int extract_global_flags (int argc, char** argv, CbGlobalFlags* gf,
  * flag_values: array of strings, one per flag in the table (NULL if not set).
  * flag_bools: array of ints, one per flag (0 if not set).
  */
-static int parse_flags (int argc, char** argv, const FlagDef* table,
-                        const char*** positional_out,
-                        const char*** flag_values_out,
-                        int** flag_bools_out)
+static int parse_flags (int argc, char **argv, const FlagDef *table,
+                        const char ***positional_out,
+                        const char ***flag_values_out,
+                        int **flag_bools_out)
 {
   int nflags = 0;
   while (table[nflags].name)
     nflags++;
 
-  const char** flag_values = calloc (nflags, sizeof (char*));
-  int* flag_bools = calloc (nflags, sizeof (int));
-  const char** positional = malloc (argc * sizeof (char*));
+  const char **flag_values = calloc (nflags, sizeof (char *));
+  int *flag_bools = calloc (nflags, sizeof (int));
+  const char **positional = malloc (argc * sizeof (char *));
   int npos = 0;
 
   for (int i = 0; i < argc; i++) {
@@ -460,7 +460,7 @@ static int parse_flags (int argc, char** argv, const FlagDef* table,
   return npos;
 }
 
-static int find_flag_idx (const FlagDef* table, const char* name)
+static int find_flag_idx (const FlagDef *table, const char *name)
 {
   for (int i = 0; table[i].name; i++) {
     if (strcmp (table[i].name, name) == 0)
@@ -471,7 +471,7 @@ static int find_flag_idx (const FlagDef* table, const char* name)
 
 /* ===== Command handlers ===== */
 
-static int cmd_repo_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -479,9 +479,9 @@ static int cmd_repo_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -493,7 +493,7 @@ static int cmd_repo_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
     return CLI_USAGE;
   }
 
-  const char* name = positional[0];
+  const char *name = positional[0];
   char verr[256];
   if (validate_repo_name (name, verr, sizeof (verr)) != VALIDATE_OK) {
     fprintf (stderr, "Error: %s\n", verr);
@@ -573,7 +573,7 @@ static int cmd_repo_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_repo_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -581,9 +581,9 @@ static int cmd_repo_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, GLOBAL_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -597,7 +597,8 @@ static int cmd_repo_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags
 
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -633,7 +634,7 @@ static int cmd_repo_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_repo_rename (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo_rename (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -648,10 +649,11 @@ static int cmd_repo_rename (int argc, char** argv, ApiClient* api, CbGlobalFlags
 
   char owner[128], repo[128], verr[256];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
-  const char* new_name = argv[1];
+  const char *new_name = argv[1];
   if (validate_repo_name (new_name, verr, sizeof (verr)) != VALIDATE_OK) {
     fprintf (stderr, "Error: %s\n", verr);
     return CLI_ERR;
@@ -674,7 +676,7 @@ static int cmd_repo_rename (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_repo_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -682,9 +684,9 @@ static int cmd_repo_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, EDIT_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -698,7 +700,8 @@ static int cmd_repo_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
 
   char owner[128], repo[128], verr[256];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -807,7 +810,7 @@ static int cmd_repo_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_repo_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -822,7 +825,8 @@ static int cmd_repo_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
 
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
   Repo r;
@@ -838,9 +842,9 @@ static int cmd_repo_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_repo_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  const char* owner = NULL;
+  const char *owner = NULL;
   int is_org = 0;
 
   for (int i = 0; i < argc; i++) {
@@ -870,7 +874,7 @@ static int cmd_repo_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
     }
   }
 
-  Repo* repos;
+  Repo *repos;
   size_t count;
   int rc = api_repo_list (api, owner, is_org, &repos, &count);
   if (rc != API_OK) {
@@ -887,7 +891,7 @@ static int cmd_repo_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_repo_transfer (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo_transfer (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -902,10 +906,11 @@ static int cmd_repo_transfer (int argc, char** argv, ApiClient* api, CbGlobalFla
 
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
-  const char* new_owner = argv[1];
+  const char *new_owner = argv[1];
 
   if (!gf->yes) {
     char prompt[512];
@@ -929,7 +934,7 @@ static int cmd_repo_transfer (int argc, char** argv, ApiClient* api, CbGlobalFla
 
 /* ===== Topic commands ===== */
 
-static int cmd_topic_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_topic_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -943,7 +948,8 @@ static int cmd_topic_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int rc = api_topic_add (api, owner, repo, argv[1]);
   if (rc != API_OK) {
@@ -955,7 +961,7 @@ static int cmd_topic_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_topic_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_topic_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -969,7 +975,8 @@ static int cmd_topic_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int rc = api_topic_remove (api, owner, repo, argv[1]);
   if (rc != API_OK) {
@@ -981,7 +988,7 @@ static int cmd_topic_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   return CLI_OK;
 }
 
-static int cmd_topic_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_topic_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -995,9 +1002,10 @@ static int cmd_topic_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  char** topics;
+  char **topics;
   size_t count;
   int rc = api_topic_list (api, owner, repo, &topics, &count);
   if (rc != API_OK) {
@@ -1013,7 +1021,7 @@ static int cmd_topic_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_topic_set (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_topic_set (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1027,19 +1035,20 @@ static int cmd_topic_set (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
   /* Parse comma-separated topics */
-  char* topics_str = strdup (argv[1]);
+  char *topics_str = strdup (argv[1]);
   size_t count = 1;
-  for (char* p = topics_str; *p; p++)
+  for (char *p = topics_str; *p; p++)
     if (*p == ',')
       count++;
 
-  const char** topics = malloc (count * sizeof (char*));
+  const char **topics = malloc (count * sizeof (char *));
   size_t idx = 0;
-  char* tok = strtok (topics_str, ",");
+  char *tok = strtok (topics_str, ",");
   while (tok) {
     /* trim leading spaces */
     while (*tok == ' ')
@@ -1074,10 +1083,10 @@ static int cmd_topic_set (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
 
 /* ===== Actions output helpers ===== */
 
-static void print_action_run (const ActionRun* r, int json)
+static void print_action_run (const ActionRun *r, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     if (r->title)
       json_object_set_string (obj, "title", r->title);
     if (r->status)
@@ -1100,7 +1109,7 @@ static void print_action_run (const ActionRun* r, int json)
       json_object_set_string (obj, "stopped", r->stopped);
     json_object_set (obj, "id", json_number_new ((double)r->id));
     json_object_set (obj, "index_in_repo", json_number_new ((double)r->index_in_repo));
-    char* s = json_serialize (obj, false);
+    char *s = json_serialize (obj, false);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -1116,13 +1125,13 @@ static void print_action_run (const ActionRun* r, int json)
   printf ("  URL:       %s\n", r->html_url ? r->html_url : "?");
 }
 
-static void print_action_run_list (const ActionRun* arr, size_t count, int json)
+static void print_action_run_list (const ActionRun *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* root = json_object_new ();
-    JsonValue* runs = json_array_new ();
+    JsonValue *root = json_object_new ();
+    JsonValue *runs = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set (obj, "id", json_number_new ((double)arr[i].id));
       json_object_set (obj, "index_in_repo", json_number_new ((double)arr[i].index_in_repo));
       if (arr[i].title)
@@ -1145,7 +1154,7 @@ static void print_action_run_list (const ActionRun* arr, size_t count, int json)
     }
     json_object_set (root, "workflow_runs", runs);
     json_object_set (root, "total_count", json_number_new ((double)count));
-    char* s = json_serialize (root, false);
+    char *s = json_serialize (root, false);
     printf ("%s\n", s);
     free (s);
     json_free (root);
@@ -1166,12 +1175,12 @@ static void print_action_run_list (const ActionRun* arr, size_t count, int json)
   }
 }
 
-static void print_action_runner_list (const ActionRunner* arr, size_t count, int json)
+static void print_action_runner_list (const ActionRunner *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* runs = json_array_new ();
+    JsonValue *runs = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set (obj, "id", json_number_new ((double)arr[i].id));
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
@@ -1183,7 +1192,7 @@ static void print_action_runner_list (const ActionRunner* arr, size_t count, int
         json_object_set_string (obj, "version", arr[i].version);
       json_array_push (runs, obj);
     }
-    char* s = json_serialize (runs, false);
+    char *s = json_serialize (runs, false);
     printf ("%s\n", s);
     free (s);
     json_free (runs);
@@ -1201,19 +1210,19 @@ static void print_action_runner_list (const ActionRunner* arr, size_t count, int
   }
 }
 
-static void print_action_variable_list (const ActionVariable* arr, size_t count, int json)
+static void print_action_variable_list (const ActionVariable *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* vars = json_array_new ();
+    JsonValue *vars = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
       if (arr[i].data)
         json_object_set_string (obj, "data", arr[i].data);
       json_array_push (vars, obj);
     }
-    char* s = json_serialize (vars, false);
+    char *s = json_serialize (vars, false);
     printf ("%s\n", s);
     free (s);
     json_free (vars);
@@ -1226,15 +1235,15 @@ static void print_action_variable_list (const ActionVariable* arr, size_t count,
     printf ("%-30s %s\n", arr[i].name ? arr[i].name : "?", arr[i].data ? arr[i].data : "?");
 }
 
-static void print_action_variable (const ActionVariable* v, int json)
+static void print_action_variable (const ActionVariable *v, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     if (v->name)
       json_object_set_string (obj, "name", v->name);
     if (v->data)
       json_object_set_string (obj, "data", v->data);
-    char* s = json_serialize (obj, false);
+    char *s = json_serialize (obj, false);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -1244,17 +1253,17 @@ static void print_action_variable (const ActionVariable* v, int json)
   printf ("Value: %s\n", v->data ? v->data : "?");
 }
 
-static void print_action_secret_list (const ActionSecret* arr, size_t count, int json)
+static void print_action_secret_list (const ActionSecret *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* secrets = json_array_new ();
+    JsonValue *secrets = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
       json_array_push (secrets, obj);
     }
-    char* s = json_serialize (secrets, false);
+    char *s = json_serialize (secrets, false);
     printf ("%s\n", s);
     free (s);
     json_free (secrets);
@@ -1269,7 +1278,7 @@ static void print_action_secret_list (const ActionSecret* arr, size_t count, int
 
 /* ===== Actions handlers ===== */
 
-static int cmd_actions_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1283,10 +1292,11 @@ static int cmd_actions_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
-  ActionRun* runs = NULL;
+  ActionRun *runs = NULL;
   size_t count = 0;
   int rc = api_action_run_list (api, owner, repo, &runs, &count);
   if (rc != API_OK) {
@@ -1302,7 +1312,7 @@ static int cmd_actions_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_actions_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1316,7 +1326,8 @@ static int cmd_actions_show (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t run_id = strtoll (argv[1], NULL, 10);
   if (run_id <= 0) {
@@ -1336,7 +1347,7 @@ static int cmd_actions_show (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_actions_runners (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_runners (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1350,10 +1361,11 @@ static int cmd_actions_runners (int argc, char** argv, ApiClient* api, CbGlobalF
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
-  ActionRunner* runners = NULL;
+  ActionRunner *runners = NULL;
   size_t count = 0;
   int rc = api_action_runner_list (api, owner, repo, &runners, &count);
   if (rc != API_OK) {
@@ -1369,7 +1381,7 @@ static int cmd_actions_runners (int argc, char** argv, ApiClient* api, CbGlobalF
   return CLI_OK;
 }
 
-static int cmd_actions_dispatch (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_dispatch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1383,11 +1395,12 @@ static int cmd_actions_dispatch (int argc, char** argv, ApiClient* api, CbGlobal
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* workflowfile = argv[1];
+  const char *workflowfile = argv[1];
 
-  const char* ref = NULL;
+  const char *ref = NULL;
   for (int i = 2; i < argc; i++) {
     if (strcmp (argv[i], "--ref") == 0 && i + 1 < argc) {
       ref = argv[++i];
@@ -1405,7 +1418,7 @@ static int cmd_actions_dispatch (int argc, char** argv, ApiClient* api, CbGlobal
   return CLI_OK;
 }
 
-static int cmd_actions_secret_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_secret_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1422,10 +1435,11 @@ static int cmd_actions_secret_list (int argc, char** argv, ApiClient* api, CbGlo
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
-  ActionSecret* secrets = NULL;
+  ActionSecret *secrets = NULL;
   size_t count = 0;
   int rc = api_action_secret_list (api, owner, repo, &secrets, &count);
   if (rc != API_OK) {
@@ -1441,7 +1455,7 @@ static int cmd_actions_secret_list (int argc, char** argv, ApiClient* api, CbGlo
   return CLI_OK;
 }
 
-static int cmd_actions_secret_set (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_secret_set (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   (void)gf;
   for (int i = 0; i < argc; i++) {
@@ -1459,10 +1473,11 @@ static int cmd_actions_secret_set (int argc, char** argv, ApiClient* api, CbGlob
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* name = argv[1];
-  const char* value = NULL;
+  const char *name = argv[1];
+  const char *value = NULL;
   for (int i = 2; i < argc; i++) {
     if (strcmp (argv[i], "--value") == 0 && i + 1 < argc)
       value = argv[++i];
@@ -1481,7 +1496,7 @@ static int cmd_actions_secret_set (int argc, char** argv, ApiClient* api, CbGlob
   return CLI_OK;
 }
 
-static int cmd_actions_secret_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_secret_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1498,9 +1513,10 @@ static int cmd_actions_secret_rm (int argc, char** argv, ApiClient* api, CbGloba
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* name = argv[1];
+  const char *name = argv[1];
   int yes = gf->yes;
   for (int i = 2; i < argc; i++) {
     if (strcmp (argv[i], "--yes") == 0)
@@ -1522,7 +1538,7 @@ static int cmd_actions_secret_rm (int argc, char** argv, ApiClient* api, CbGloba
   return CLI_OK;
 }
 
-static int cmd_actions_var_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_var_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1539,10 +1555,11 @@ static int cmd_actions_var_list (int argc, char** argv, ApiClient* api, CbGlobal
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
 
-  ActionVariable* vars = NULL;
+  ActionVariable *vars = NULL;
   size_t count = 0;
   int rc = api_action_variable_list (api, owner, repo, &vars, &count);
   if (rc != API_OK) {
@@ -1558,7 +1575,7 @@ static int cmd_actions_var_list (int argc, char** argv, ApiClient* api, CbGlobal
   return CLI_OK;
 }
 
-static int cmd_actions_var_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_var_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1575,9 +1592,10 @@ static int cmd_actions_var_show (int argc, char** argv, ApiClient* api, CbGlobal
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* name = argv[1];
+  const char *name = argv[1];
 
   ActionVariable var;
   int rc = api_action_variable_show (api, owner, repo, name, &var);
@@ -1591,7 +1609,7 @@ static int cmd_actions_var_show (int argc, char** argv, ApiClient* api, CbGlobal
   return CLI_OK;
 }
 
-static int cmd_actions_var_set (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_var_set (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   (void)gf;
   for (int i = 0; i < argc; i++) {
@@ -1609,10 +1627,11 @@ static int cmd_actions_var_set (int argc, char** argv, ApiClient* api, CbGlobalF
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* name = argv[1];
-  const char* value = NULL;
+  const char *name = argv[1];
+  const char *value = NULL;
   for (int i = 2; i < argc; i++) {
     if (strcmp (argv[i], "--value") == 0 && i + 1 < argc)
       value = argv[++i];
@@ -1631,7 +1650,7 @@ static int cmd_actions_var_set (int argc, char** argv, ApiClient* api, CbGlobalF
   return CLI_OK;
 }
 
-static int cmd_actions_var_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_var_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1648,9 +1667,10 @@ static int cmd_actions_var_rm (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* name = argv[1];
+  const char *name = argv[1];
   int yes = gf->yes;
   for (int i = 2; i < argc; i++) {
     if (strcmp (argv[i], "--yes") == 0)
@@ -1674,7 +1694,7 @@ static int cmd_actions_var_rm (int argc, char** argv, ApiClient* api, CbGlobalFl
 
 /* ===== Actions jobs & log handlers ===== */
 
-static int cmd_actions_jobs (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_jobs (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1692,7 +1712,8 @@ static int cmd_actions_jobs (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t run_id = strtoll (argv[1], NULL, 10);
   if (run_id <= 0) {
@@ -1700,7 +1721,7 @@ static int cmd_actions_jobs (int argc, char** argv, ApiClient* api, CbGlobalFlag
     return CLI_ERR;
   }
 
-  ActionJob* jobs = NULL;
+  ActionJob *jobs = NULL;
   size_t count = 0;
   int rc = api_action_job_list (api, owner, repo, run_id, &jobs, &count);
   if (rc != API_OK) {
@@ -1712,9 +1733,9 @@ static int cmd_actions_jobs (int argc, char** argv, ApiClient* api, CbGlobalFlag
     for (size_t i = 0; i < count; i++)
       printf ("%s\n", jobs[i].name ? jobs[i].name : "?");
   } else if (gf->json) {
-    JsonValue* arr = json_array_new ();
+    JsonValue *arr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set (obj, "id", json_number_new ((double)jobs[i].id));
       if (jobs[i].name)
         json_object_set_string (obj, "name", jobs[i].name);
@@ -1724,7 +1745,7 @@ static int cmd_actions_jobs (int argc, char** argv, ApiClient* api, CbGlobalFlag
         json_object_set_string (obj, "duration", jobs[i].duration);
       json_array_push (arr, obj);
     }
-    char* s = json_serialize (arr, false);
+    char *s = json_serialize (arr, false);
     printf ("%s\n", s);
     free (s);
     json_free (arr);
@@ -1744,7 +1765,7 @@ static int cmd_actions_jobs (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_actions_log (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions_log (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -1762,7 +1783,8 @@ static int cmd_actions_log (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t run_id = strtoll (argv[1], NULL, 10);
   if (run_id <= 0) {
@@ -1801,7 +1823,7 @@ static int cmd_actions_log (int argc, char** argv, ApiClient* api, CbGlobalFlags
               detail.steps[i].status ? detail.steps[i].status : "?",
               detail.steps[i].duration ? detail.steps[i].duration : "?");
 
-      ActionLogLine* lines = NULL;
+      ActionLogLine *lines = NULL;
       size_t line_count = 0;
       rc = api_action_log_fetch (api, owner, repo, run_id, job_index, (int)i,
                                  &lines, &line_count);
@@ -1825,16 +1847,16 @@ static int cmd_actions_log (int argc, char** argv, ApiClient* api, CbGlobalFlags
 
 /* ===== Actions command dispatch ===== */
 
-static int cmd_actions (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_actions (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_actions ();
     return CLI_USAGE;
   }
 
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
 
   if (is_help_arg (sub)) {
     help_actions ();
@@ -1857,9 +1879,9 @@ static int cmd_actions (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
       help_actions_secret ();
       return CLI_USAGE;
     }
-    const char* sec_sub = rest_argv[0];
+    const char *sec_sub = rest_argv[0];
     int sec_argc = rest_argc - 1;
-    char** sec_argv = rest_argv + 1;
+    char **sec_argv = rest_argv + 1;
     if (is_help_arg (sec_sub)) {
       help_actions_secret ();
       return CLI_OK;
@@ -1879,9 +1901,9 @@ static int cmd_actions (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
       help_actions_var ();
       return CLI_USAGE;
     }
-    const char* var_sub = rest_argv[0];
+    const char *var_sub = rest_argv[0];
     int var_argc = rest_argc - 1;
-    char** var_argv = rest_argv + 1;
+    char **var_argv = rest_argv + 1;
     if (is_help_arg (var_sub)) {
       help_actions_var ();
       return CLI_OK;
@@ -2108,21 +2130,21 @@ typedef struct SubCmd SubCmd;
 
 struct SubCmd
 {
-  const char* name;      /* subcommand name, e.g. "create" */
-  const char* desc;      /* short description for help listing */
-  const char* usage;     /* full usage line, e.g. "cb repo create <name> [flags]" */
-  const char* help_text; /* extra help paragraph (may be NULL) */
-  const FlagDef* flags;  /* flag table (NULL = no flags beyond --help) */
-  const SubCmd* subsubs; /* nested subcommands (NULL = leaf command) */
+  const char *name;      /* subcommand name, e.g. "create" */
+  const char *desc;      /* short description for help listing */
+  const char *usage;     /* full usage line, e.g. "cb repo create <name> [flags]" */
+  const char *help_text; /* extra help paragraph (may be NULL) */
+  const FlagDef *flags;  /* flag table (NULL = no flags beyond --help) */
+  const SubCmd *subsubs; /* nested subcommands (NULL = leaf command) */
 };
 
 struct Cmd
 {
-  const char* name;      /* top-level command, e.g. "repo" */
-  const char* desc;      /* short description for top-level listing */
-  const char* usage;     /* full usage line */
-  const char* help_text; /* extra help paragraph (may be NULL) */
-  const SubCmd* subs;    /* subcommands (NULL = leaf, but all top-level have subs) */
+  const char *name;      /* top-level command, e.g. "repo" */
+  const char *desc;      /* short description for top-level listing */
+  const char *usage;     /* full usage line */
+  const char *help_text; /* extra help paragraph (may be NULL) */
+  const SubCmd *subs;    /* subcommands (NULL = leaf, but all top-level have subs) */
 };
 
 static const SubCmd TOPIC_SUBS[] = {
@@ -2713,7 +2735,7 @@ static const Cmd COMMANDS[] = {
 
 /* Lookup helpers */
 
-static const Cmd* find_command (const char* name)
+static const Cmd *find_command (const char *name)
 {
   for (int i = 0; COMMANDS[i].name; i++) {
     if (strcmp (COMMANDS[i].name, name) == 0)
@@ -2722,7 +2744,7 @@ static const Cmd* find_command (const char* name)
   return NULL;
 }
 
-static const SubCmd* find_subcmd (const SubCmd* subs, const char* name)
+static const SubCmd *find_subcmd (const SubCmd *subs, const char *name)
 {
   if (!subs)
     return NULL;
@@ -2734,7 +2756,7 @@ static const SubCmd* find_subcmd (const SubCmd* subs, const char* name)
 }
 
 /* Print flags for a subcommand, including --help, in human format. */
-static void print_subcmd_flags_human (const FlagDef* flags)
+static void print_subcmd_flags_human (const FlagDef *flags)
 {
   if (flags) {
     for (int i = 0; flags[i].name; i++) {
@@ -2750,7 +2772,7 @@ static void print_subcmd_flags_human (const FlagDef* flags)
 }
 
 /* Print human help for a leaf subcommand (no nested subsubs). */
-static void print_subcmd_help_human (const char* cmd_name, const SubCmd* sub)
+static void print_subcmd_help_human (const char *cmd_name, const SubCmd *sub)
 {
   (void)cmd_name;
   printf ("Usage: %s\n\n", sub->usage);
@@ -2765,7 +2787,7 @@ static void print_subcmd_help_human (const char* cmd_name, const SubCmd* sub)
 }
 
 /* Print human help for a group subcommand (has nested subsubs). */
-static void print_subcmd_group_help_human (const char* cmd_name, const SubCmd* sub)
+static void print_subcmd_group_help_human (const char *cmd_name, const SubCmd *sub)
 {
   printf ("Usage: %s\n\n", sub->usage);
   if (sub->help_text)
@@ -2778,7 +2800,7 @@ static void print_subcmd_group_help_human (const char* cmd_name, const SubCmd* s
 }
 
 /* Print human help for a top-level command. */
-static void print_command_help_human (const Cmd* cmd)
+static void print_command_help_human (const Cmd *cmd)
 {
   printf ("Usage: %s\n\n", cmd->usage);
   if (cmd->help_text)
@@ -2814,14 +2836,14 @@ static void print_top_help_human (void)
 }
 
 /* Dispatch human help for a command path: cb <cmd> [sub] [subsub] --help */
-static void print_help_human (int argc, char** argv)
+static void print_help_human (int argc, char **argv)
 {
   /* argv starts after "cb", e.g. ["repo", "create", "--help"] */
   if (argc < 1) {
     print_top_help_human ();
     return;
   }
-  const Cmd* cmd = find_command (argv[0]);
+  const Cmd *cmd = find_command (argv[0]);
   if (!cmd) {
     print_top_help_human ();
     return;
@@ -2830,14 +2852,14 @@ static void print_help_human (int argc, char** argv)
     print_command_help_human (cmd);
     return;
   }
-  const SubCmd* sub = find_subcmd (cmd->subs, argv[1]);
+  const SubCmd *sub = find_subcmd (cmd->subs, argv[1]);
   if (!sub) {
     print_command_help_human (cmd);
     return;
   }
   if (sub->subsubs) {
     if (argc >= 3) {
-      const SubCmd* subsub = find_subcmd (sub->subsubs, argv[2]);
+      const SubCmd *subsub = find_subcmd (sub->subsubs, argv[2]);
       if (subsub) {
         print_subcmd_help_human (cmd->name, subsub);
         return;
@@ -2851,11 +2873,11 @@ static void print_help_human (int argc, char** argv)
 
 /* Thin wrappers so call sites can use named functions instead of building argv. */
 #define HELP_WRAPPER_1(name, c1) \
-  static void name (void) { print_help_human (1, (char*[]){ c1 }); }
+  static void name (void) { print_help_human (1, (char *[]){ c1 }); }
 #define HELP_WRAPPER_2(name, c1, c2) \
-  static void name (void) { print_help_human (2, (char*[]){ c1, c2 }); }
+  static void name (void) { print_help_human (2, (char *[]){ c1, c2 }); }
 #define HELP_WRAPPER_3(name, c1, c2, c3) \
-  static void name (void) { print_help_human (3, (char*[]){ c1, c2, c3 }); }
+  static void name (void) { print_help_human (3, (char *[]){ c1, c2, c3 }); }
 
 HELP_WRAPPER_1 (help_repo, "repo")
 HELP_WRAPPER_1 (help_org, "org")
@@ -2912,8 +2934,8 @@ HELP_WRAPPER_2 (help_package_download, "package", "download")
 
 /* ===== Machine-readable help spec (--help-spec) ===== */
 
-static void print_flag_spec (const FlagDef* flags, const char* cmd_name,
-                             const char* sub_name, const char* subsub_name)
+static void print_flag_spec (const FlagDef *flags, const char *cmd_name,
+                             const char *sub_name, const char *subsub_name)
 {
   if (!flags) {
     /* Emit --help as the only flag */
@@ -2924,7 +2946,7 @@ static void print_flag_spec (const FlagDef* flags, const char* cmd_name,
     return;
   }
   for (int i = 0; flags[i].name; i++) {
-    const char* alias = flags[i].alias ? flags[i].alias : "-";
+    const char *alias = flags[i].alias ? flags[i].alias : "-";
     if (subsub_name)
       printf ("FLAG2\t%s\t%s\t%s\t%s\t%s\t%d\n",
               cmd_name, sub_name, subsub_name,
@@ -2939,7 +2961,7 @@ static void print_help_spec (void)
 {
   /* Global flags */
   for (int i = 0; GLOBAL_FLAGS[i].name; i++) {
-    const char* alias = GLOBAL_FLAGS[i].alias ? GLOBAL_FLAGS[i].alias : "-";
+    const char *alias = GLOBAL_FLAGS[i].alias ? GLOBAL_FLAGS[i].alias : "-";
     printf ("GFLAG\t%s\t%s\t%d\n",
             GLOBAL_FLAGS[i].name, alias, GLOBAL_FLAGS[i].takes_value);
   }
@@ -2948,18 +2970,18 @@ static void print_help_spec (void)
 
   /* Commands and subcommands */
   for (int i = 0; COMMANDS[i].name; i++) {
-    const Cmd* cmd = &COMMANDS[i];
+    const Cmd *cmd = &COMMANDS[i];
     printf ("CMD\t%s\t%s\n", cmd->name, cmd->desc);
 
     if (!cmd->subs)
       continue;
     for (int j = 0; cmd->subs[j].name; j++) {
-      const SubCmd* sub = &cmd->subs[j];
+      const SubCmd *sub = &cmd->subs[j];
       printf ("SUB\t%s\t%s\t%s\n", cmd->name, sub->name, sub->desc);
 
       if (sub->subsubs) {
         for (int k = 0; sub->subsubs[k].name; k++) {
-          const SubCmd* subsub = &sub->subsubs[k];
+          const SubCmd *subsub = &sub->subsubs[k];
           printf ("SUB2\t%s\t%s\t%s\t%s\n",
                   cmd->name, sub->name, subsub->name, subsub->desc);
           print_flag_spec (subsub->flags, cmd->name, sub->name, subsub->name);
@@ -2975,12 +2997,13 @@ static void print_help_spec (void)
 
 /* (unused: parse_owner_repo_arg kept for future use) */
 
-static int require_owner_repo (const char* arg, char* owner, size_t owner_sz,
-                               char* repo, size_t repo_sz, ApiClient* api)
+static int require_owner_repo (const char *arg, char *owner, size_t owner_sz,
+                               char *repo, size_t repo_sz, ApiClient *api)
 {
   char verr[256];
   if (validate_owner_repo (arg, owner, owner_sz, repo, repo_sz,
-                           verr, sizeof (verr)) != VALIDATE_OK) {
+                           verr, sizeof (verr))
+      != VALIDATE_OK) {
     fprintf (stderr, "Error: %s\n", verr);
     return -1;
   }
@@ -3003,10 +3026,10 @@ static int require_owner_repo (const char* arg, char* owner, size_t owner_sz,
   return 0;
 }
 
-static void print_release (const Release* r, int json)
+static void print_release (const Release *r, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", r->id);
     if (r->tag_name)
       json_object_set_string (obj, "tag_name", r->tag_name);
@@ -3024,7 +3047,7 @@ static void print_release (const Release* r, int json)
       json_object_set_string (obj, "created_at", r->created_at);
     if (r->published_at)
       json_object_set_string (obj, "published_at", r->published_at);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3043,12 +3066,12 @@ static void print_release (const Release* r, int json)
   }
 }
 
-static void print_release_list (const Release* arr, size_t count, int json)
+static void print_release_list (const Release *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", arr[i].id);
       if (arr[i].tag_name)
         json_object_set_string (obj, "tag_name", arr[i].tag_name);
@@ -3060,7 +3083,7 @@ static void print_release_list (const Release* arr, size_t count, int json)
         json_object_set_string (obj, "published_at", arr[i].published_at);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3074,12 +3097,12 @@ static void print_release_list (const Release* arr, size_t count, int json)
   }
 }
 
-static void print_tag_list (const Tag* arr, size_t count, int json)
+static void print_tag_list (const Tag *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
       if (arr[i].id)
@@ -3088,7 +3111,7 @@ static void print_tag_list (const Tag* arr, size_t count, int json)
         json_object_set_string (obj, "message", arr[i].message);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3098,12 +3121,12 @@ static void print_tag_list (const Tag* arr, size_t count, int json)
   }
 }
 
-static void print_branch_list (const Branch* arr, size_t count, int json)
+static void print_branch_list (const Branch *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
       if (arr[i].commit_sha)
@@ -3111,7 +3134,7 @@ static void print_branch_list (const Branch* arr, size_t count, int json)
       json_object_set_bool (obj, "protected", arr[i].protected);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3124,10 +3147,10 @@ static void print_branch_list (const Branch* arr, size_t count, int json)
   }
 }
 
-static void print_issue (const Issue* is, int json)
+static void print_issue (const Issue *is, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", is->id);
     json_object_set_number (obj, "number", is->number);
     if (is->title)
@@ -3138,7 +3161,7 @@ static void print_issue (const Issue* is, int json)
       json_object_set_string (obj, "html_url", is->html_url);
     if (is->created_at)
       json_object_set_string (obj, "created_at", is->created_at);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3152,12 +3175,12 @@ static void print_issue (const Issue* is, int json)
   }
 }
 
-static void print_issue_list (const Issue* arr, size_t count, int json)
+static void print_issue_list (const Issue *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "number", arr[i].number);
       if (arr[i].title)
         json_object_set_string (obj, "title", arr[i].title);
@@ -3165,7 +3188,7 @@ static void print_issue_list (const Issue* arr, size_t count, int json)
         json_object_set_string (obj, "state", arr[i].state);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3177,12 +3200,12 @@ static void print_issue_list (const Issue* arr, size_t count, int json)
   }
 }
 
-static void print_label_list (const Label* arr, size_t count, int json)
+static void print_label_list (const Label *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", arr[i].id);
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
@@ -3192,7 +3215,7 @@ static void print_label_list (const Label* arr, size_t count, int json)
         json_object_set_string (obj, "description", arr[i].description);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3205,10 +3228,10 @@ static void print_label_list (const Label* arr, size_t count, int json)
   }
 }
 
-static void print_label (const Label* l, int json)
+static void print_label (const Label *l, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", l->id);
     if (l->name)
       json_object_set_string (obj, "name", l->name);
@@ -3218,7 +3241,7 @@ static void print_label (const Label* l, int json)
       json_object_set_string (obj, "description", l->description);
     json_object_set_bool (obj, "exclusive", l->exclusive);
     json_object_set_bool (obj, "is_archived", l->is_archived);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3233,12 +3256,12 @@ static void print_label (const Label* l, int json)
   }
 }
 
-static void print_milestone_list (const Milestone* arr, size_t count, int json)
+static void print_milestone_list (const Milestone *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", arr[i].id);
       if (arr[i].title)
         json_object_set_string (obj, "title", arr[i].title);
@@ -3248,7 +3271,7 @@ static void print_milestone_list (const Milestone* arr, size_t count, int json)
       json_object_set_number (obj, "closed_issues", arr[i].closed_issues);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3261,10 +3284,10 @@ static void print_milestone_list (const Milestone* arr, size_t count, int json)
   }
 }
 
-static void print_milestone (const Milestone* m, int json)
+static void print_milestone (const Milestone *m, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", m->id);
     if (m->title)
       json_object_set_string (obj, "title", m->title);
@@ -3280,7 +3303,7 @@ static void print_milestone (const Milestone* m, int json)
       json_object_set_string (obj, "updated_at", m->updated_at);
     json_object_set_number (obj, "open_issues", m->open_issues);
     json_object_set_number (obj, "closed_issues", m->closed_issues);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3297,10 +3320,10 @@ static void print_milestone (const Milestone* m, int json)
   }
 }
 
-static void print_pr (const PullRequest* p, int json)
+static void print_pr (const PullRequest *p, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", p->id);
     json_object_set_number (obj, "number", p->number);
     if (p->title)
@@ -3315,7 +3338,7 @@ static void print_pr (const PullRequest* p, int json)
       json_object_set_string (obj, "base", p->base_ref);
     if (p->html_url)
       json_object_set_string (obj, "html_url", p->html_url);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3331,12 +3354,12 @@ static void print_pr (const PullRequest* p, int json)
   }
 }
 
-static void print_pr_list (const PullRequest* arr, size_t count, int json)
+static void print_pr_list (const PullRequest *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "number", arr[i].number);
       if (arr[i].title)
         json_object_set_string (obj, "title", arr[i].title);
@@ -3345,7 +3368,7 @@ static void print_pr_list (const PullRequest* arr, size_t count, int json)
       json_object_set_bool (obj, "draft", arr[i].draft);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3358,12 +3381,12 @@ static void print_pr_list (const PullRequest* arr, size_t count, int json)
   }
 }
 
-static void print_commit_list (const Commit* arr, size_t count, int json)
+static void print_commit_list (const Commit *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (arr[i].sha)
         json_object_set_string (obj, "sha", arr[i].sha);
       if (arr[i].message)
@@ -3374,7 +3397,7 @@ static void print_commit_list (const Commit* arr, size_t count, int json)
         json_object_set_string (obj, "created", arr[i].created);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3387,12 +3410,12 @@ static void print_commit_list (const Commit* arr, size_t count, int json)
   }
 }
 
-static void print_content_entry_list (const ContentEntry* arr, size_t count, int json)
+static void print_content_entry_list (const ContentEntry *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (arr[i].type)
         json_object_set_string (obj, "type", arr[i].type);
       if (arr[i].name)
@@ -3404,7 +3427,7 @@ static void print_content_entry_list (const ContentEntry* arr, size_t count, int
       json_object_set_number (obj, "size", arr[i].size);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3416,12 +3439,12 @@ static void print_content_entry_list (const ContentEntry* arr, size_t count, int
   }
 }
 
-static void print_deploykey_list (const DeployKey* arr, size_t count, int json)
+static void print_deploykey_list (const DeployKey *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", arr[i].id);
       if (arr[i].title)
         json_object_set_string (obj, "title", arr[i].title);
@@ -3430,7 +3453,7 @@ static void print_deploykey_list (const DeployKey* arr, size_t count, int json)
       json_object_set_bool (obj, "read_only", arr[i].read_only);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3443,10 +3466,10 @@ static void print_deploykey_list (const DeployKey* arr, size_t count, int json)
   }
 }
 
-static void print_deploykey (const DeployKey* k, int json)
+static void print_deploykey (const DeployKey *k, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", k->id);
     if (k->title)
       json_object_set_string (obj, "title", k->title);
@@ -3457,7 +3480,7 @@ static void print_deploykey (const DeployKey* k, int json)
     json_object_set_bool (obj, "read_only", k->read_only);
     if (k->created_at)
       json_object_set_string (obj, "created_at", k->created_at);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3474,10 +3497,10 @@ static void print_deploykey (const DeployKey* k, int json)
   }
 }
 
-static void print_attachment (const Attachment* a, int json)
+static void print_attachment (const Attachment *a, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", a->id);
     if (a->name)
       json_object_set_string (obj, "name", a->name);
@@ -3491,7 +3514,7 @@ static void print_attachment (const Attachment* a, int json)
       json_object_set_string (obj, "browser_download_url", a->browser_download_url);
     if (a->created_at)
       json_object_set_string (obj, "created_at", a->created_at);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3510,12 +3533,12 @@ static void print_attachment (const Attachment* a, int json)
   }
 }
 
-static void print_hook_list (const Hook* arr, size_t count, int json)
+static void print_hook_list (const Hook *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", arr[i].id);
       if (arr[i].type)
         json_object_set_string (obj, "type", arr[i].type);
@@ -3524,7 +3547,7 @@ static void print_hook_list (const Hook* arr, size_t count, int json)
         json_object_set_string (obj, "url", arr[i].url);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3537,19 +3560,19 @@ static void print_hook_list (const Hook* arr, size_t count, int json)
   }
 }
 
-static void print_wikipage_list (const WikiPage* arr, size_t count, int json)
+static void print_wikipage_list (const WikiPage *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (arr[i].title)
         json_object_set_string (obj, "title", arr[i].title);
       if (arr[i].html_url)
         json_object_set_string (obj, "html_url", arr[i].html_url);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3561,10 +3584,10 @@ static void print_wikipage_list (const WikiPage* arr, size_t count, int json)
 
 /* ===== Package output helpers ===== */
 
-static void print_package (const Package* p, int json)
+static void print_package (const Package *p, int json)
 {
   if (json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", p->id);
     if (p->name)
       json_object_set_string (obj, "name", p->name);
@@ -3582,7 +3605,7 @@ static void print_package (const Package* p, int json)
       json_object_set_string (obj, "owner", p->owner_login);
     if (p->repo_full_name)
       json_object_set_string (obj, "repository", p->repo_full_name);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -3601,12 +3624,12 @@ static void print_package (const Package* p, int json)
   }
 }
 
-static void print_package_list (const Package* arr, size_t count, int json)
+static void print_package_list (const Package *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", arr[i].id);
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
@@ -3618,7 +3641,7 @@ static void print_package_list (const Package* arr, size_t count, int json)
         json_object_set_string (obj, "created_at", arr[i].created_at);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3633,12 +3656,12 @@ static void print_package_list (const Package* arr, size_t count, int json)
   }
 }
 
-static void print_package_file_list (const PackageFile* arr, size_t count, int json)
+static void print_package_file_list (const PackageFile *arr, size_t count, int json)
 {
   if (json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", arr[i].id);
       if (arr[i].name)
         json_object_set_string (obj, "name", arr[i].name);
@@ -3647,7 +3670,7 @@ static void print_package_file_list (const PackageFile* arr, size_t count, int j
         json_object_set_string (obj, "sha256", arr[i].sha256);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -3663,7 +3686,7 @@ static void print_package_file_list (const PackageFile* arr, size_t count, int j
 
 /* ===== Release command handlers ===== */
 
-static int cmd_release_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -3671,9 +3694,9 @@ static int cmd_release_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, RELEASE_LIST_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -3686,7 +3709,8 @@ static int cmd_release_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -3703,7 +3727,7 @@ static int cmd_release_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   idx = find_flag_idx (RELEASE_LIST_FLAGS, "--limit");
   if (fv[idx])
     limit = atoi (fv[idx]);
-  Release* releases;
+  Release *releases;
   size_t count;
   int rc = api_release_list (api, owner, repo, draft, prerelease, NULL, limit,
                              &releases, &count);
@@ -3726,7 +3750,7 @@ static int cmd_release_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_release_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -3734,9 +3758,9 @@ static int cmd_release_create (int argc, char** argv, ApiClient* api, CbGlobalFl
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, RELEASE_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -3749,7 +3773,8 @@ static int cmd_release_create (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -3808,7 +3833,7 @@ static int cmd_release_create (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_release_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -3822,7 +3847,8 @@ static int cmd_release_show (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   Release r;
@@ -3837,7 +3863,7 @@ static int cmd_release_show (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_release_latest (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_latest (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -3851,7 +3877,8 @@ static int cmd_release_latest (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   Release r;
   int rc = api_release_get_latest (api, owner, repo, &r);
@@ -3865,7 +3892,7 @@ static int cmd_release_latest (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_release_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -3873,9 +3900,9 @@ static int cmd_release_edit (int argc, char** argv, ApiClient* api, CbGlobalFlag
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, RELEASE_EDIT_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -3888,7 +3915,8 @@ static int cmd_release_edit (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -3965,7 +3993,7 @@ static int cmd_release_edit (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_release_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -3979,7 +4007,8 @@ static int cmd_release_delete (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   if (!gf->yes && !confirm ("Delete this release?")) {
@@ -3996,7 +4025,7 @@ static int cmd_release_delete (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_release_by_tag (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_by_tag (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4010,7 +4039,8 @@ static int cmd_release_by_tag (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   Release r;
   int rc = api_release_get_by_tag (api, owner, repo, argv[1], &r);
@@ -4024,7 +4054,7 @@ static int cmd_release_by_tag (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_release_delete_by_tag (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_delete_by_tag (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4038,7 +4068,8 @@ static int cmd_release_delete_by_tag (int argc, char** argv, ApiClient* api, CbG
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   if (!gf->yes && !confirm ("Delete this release by tag?")) {
     printf ("Cancelled.\n");
@@ -4054,7 +4085,7 @@ static int cmd_release_delete_by_tag (int argc, char** argv, ApiClient* api, CbG
   return CLI_OK;
 }
 
-static int cmd_release_asset_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_asset_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4068,10 +4099,11 @@ static int cmd_release_asset_list (int argc, char** argv, ApiClient* api, CbGlob
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t release_id = atol (argv[1]);
-  Attachment* assets;
+  Attachment *assets;
   size_t count;
   int rc = api_release_asset_list (api, owner, repo, release_id, &assets, &count);
   if (rc != API_OK) {
@@ -4082,9 +4114,9 @@ static int cmd_release_asset_list (int argc, char** argv, ApiClient* api, CbGlob
     for (size_t i = 0; i < count; i++)
       printf ("%s\n", assets[i].name ? assets[i].name : "");
   } else if (gf->json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", assets[i].id);
       if (assets[i].name)
         json_object_set_string (obj, "name", assets[i].name);
@@ -4092,7 +4124,7 @@ static int cmd_release_asset_list (int argc, char** argv, ApiClient* api, CbGlob
       json_object_set_number (obj, "download_count", assets[i].download_count);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -4108,7 +4140,7 @@ static int cmd_release_asset_list (int argc, char** argv, ApiClient* api, CbGlob
   return CLI_OK;
 }
 
-static int cmd_release_asset_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_asset_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4122,7 +4154,8 @@ static int cmd_release_asset_edit (int argc, char** argv, ApiClient* api, CbGlob
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t release_id = atol (argv[1]);
   int64_t asset_id = atol (argv[2]);
@@ -4131,9 +4164,9 @@ static int cmd_release_asset_edit (int argc, char** argv, ApiClient* api, CbGlob
     { "--name", NULL, 1 },
     { NULL, NULL, 0 },
   };
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc - 3, argv + 3, flags, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4163,7 +4196,7 @@ static int cmd_release_asset_edit (int argc, char** argv, ApiClient* api, CbGlob
   return CLI_OK;
 }
 
-static int cmd_release_asset_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_asset_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4177,7 +4210,8 @@ static int cmd_release_asset_delete (int argc, char** argv, ApiClient* api, CbGl
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t release_id = atol (argv[1]);
   int64_t asset_id = atol (argv[2]);
@@ -4195,7 +4229,7 @@ static int cmd_release_asset_delete (int argc, char** argv, ApiClient* api, CbGl
   return CLI_OK;
 }
 
-static int cmd_release_asset_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release_asset_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4209,7 +4243,8 @@ static int cmd_release_asset_show (int argc, char** argv, ApiClient* api, CbGlob
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t release_id = atol (argv[1]);
   int64_t asset_id = atol (argv[2]);
@@ -4227,15 +4262,15 @@ static int cmd_release_asset_show (int argc, char** argv, ApiClient* api, CbGlob
 
 /* ===== Release dispatch ===== */
 
-static int cmd_release (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_release (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_release ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
 
   if (is_help_arg (sub)) {
     help_release ();
@@ -4262,9 +4297,9 @@ static int cmd_release (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
       help_release_asset ();
       return CLI_USAGE;
     }
-    const char* asub = rest_argv[0];
+    const char *asub = rest_argv[0];
     int a_argc = rest_argc - 1;
-    char** a_argv = rest_argv + 1;
+    char **a_argv = rest_argv + 1;
     if (is_help_arg (asub)) {
       help_release_asset ();
       return CLI_OK;
@@ -4288,7 +4323,7 @@ static int cmd_release (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
 
 /* ===== Tag command handlers ===== */
 
-static int cmd_tag_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_tag_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4296,9 +4331,9 @@ static int cmd_tag_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, TAG_LIST_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4311,7 +4346,8 @@ static int cmd_tag_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -4321,7 +4357,7 @@ static int cmd_tag_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   int idx = find_flag_idx (TAG_LIST_FLAGS, "--limit");
   if (fv[idx])
     limit = atoi (fv[idx]);
-  Tag* tags;
+  Tag *tags;
   size_t count;
   int rc = api_tag_list (api, owner, repo, limit, &tags, &count);
   if (rc != API_OK) {
@@ -4343,7 +4379,7 @@ static int cmd_tag_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   return CLI_OK;
 }
 
-static int cmd_tag_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_tag_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4351,9 +4387,9 @@ static int cmd_tag_create (int argc, char** argv, ApiClient* api, CbGlobalFlags*
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, TAG_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4366,7 +4402,8 @@ static int cmd_tag_create (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -4399,12 +4436,12 @@ static int cmd_tag_create (int argc, char** argv, ApiClient* api, CbGlobalFlags*
     return CLI_ERR;
   }
   if (gf->json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     if (t.name)
       json_object_set_string (obj, "name", t.name);
     if (t.id)
       json_object_set_string (obj, "id", t.id);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -4418,7 +4455,7 @@ static int cmd_tag_create (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_tag_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_tag_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4432,7 +4469,8 @@ static int cmd_tag_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   Tag t;
   int rc = api_tag_get (api, owner, repo, argv[1], &t);
@@ -4441,14 +4479,14 @@ static int cmd_tag_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
     return CLI_ERR;
   }
   if (gf->json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     if (t.name)
       json_object_set_string (obj, "name", t.name);
     if (t.message)
       json_object_set_string (obj, "message", t.message);
     if (t.id)
       json_object_set_string (obj, "id", t.id);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -4461,7 +4499,7 @@ static int cmd_tag_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   return CLI_OK;
 }
 
-static int cmd_tag_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_tag_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4475,7 +4513,8 @@ static int cmd_tag_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   if (!gf->yes && !confirm ("Delete this tag?")) {
     printf ("Cancelled.\n");
@@ -4491,15 +4530,15 @@ static int cmd_tag_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_tag (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_tag (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_tag ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_tag ();
     return CLI_OK;
@@ -4519,7 +4558,7 @@ static int cmd_tag (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Branch command handlers ===== */
 
-static int cmd_branch_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_branch_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4533,9 +4572,10 @@ static int cmd_branch_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  Branch* branches;
+  Branch *branches;
   size_t count;
   int rc = api_branch_list (api, owner, repo, 0, &branches, &count);
   if (rc != API_OK) {
@@ -4551,7 +4591,7 @@ static int cmd_branch_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_branch_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_branch_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4559,9 +4599,9 @@ static int cmd_branch_create (int argc, char** argv, ApiClient* api, CbGlobalFla
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, BRANCH_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4574,7 +4614,8 @@ static int cmd_branch_create (int argc, char** argv, ApiClient* api, CbGlobalFla
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -4604,10 +4645,10 @@ static int cmd_branch_create (int argc, char** argv, ApiClient* api, CbGlobalFla
     return CLI_ERR;
   }
   if (gf->json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     if (b.name)
       json_object_set_string (obj, "name", b.name);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -4621,7 +4662,7 @@ static int cmd_branch_create (int argc, char** argv, ApiClient* api, CbGlobalFla
   return CLI_OK;
 }
 
-static int cmd_branch_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_branch_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4635,7 +4676,8 @@ static int cmd_branch_show (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   Branch b;
   int rc = api_branch_get (api, owner, repo, argv[1], &b);
@@ -4644,13 +4686,13 @@ static int cmd_branch_show (int argc, char** argv, ApiClient* api, CbGlobalFlags
     return CLI_ERR;
   }
   if (gf->json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     if (b.name)
       json_object_set_string (obj, "name", b.name);
     if (b.commit_sha)
       json_object_set_string (obj, "commit_sha", b.commit_sha);
     json_object_set_bool (obj, "protected", b.protected);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -4663,7 +4705,7 @@ static int cmd_branch_show (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_branch_rename (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_branch_rename (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4671,9 +4713,9 @@ static int cmd_branch_rename (int argc, char** argv, ApiClient* api, CbGlobalFla
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, BRANCH_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4686,7 +4728,8 @@ static int cmd_branch_rename (int argc, char** argv, ApiClient* api, CbGlobalFla
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -4718,7 +4761,7 @@ static int cmd_branch_rename (int argc, char** argv, ApiClient* api, CbGlobalFla
   return CLI_OK;
 }
 
-static int cmd_branch_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_branch_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4732,7 +4775,8 @@ static int cmd_branch_delete (int argc, char** argv, ApiClient* api, CbGlobalFla
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   if (!gf->yes && !confirm ("Delete this branch?")) {
     printf ("Cancelled.\n");
@@ -4748,15 +4792,15 @@ static int cmd_branch_delete (int argc, char** argv, ApiClient* api, CbGlobalFla
   return CLI_OK;
 }
 
-static int cmd_branch (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_branch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_branch ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_branch ();
     return CLI_OK;
@@ -4778,7 +4822,7 @@ static int cmd_branch (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Issue command handlers ===== */
 
-static int cmd_issue_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4786,9 +4830,9 @@ static int cmd_issue_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, ISSUE_LIST_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4801,7 +4845,8 @@ static int cmd_issue_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -4822,7 +4867,7 @@ static int cmd_issue_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   idx = find_flag_idx (ISSUE_LIST_FLAGS, "--limit");
   if (fv[idx])
     limit = atoi (fv[idx]);
-  Issue* issues;
+  Issue *issues;
   size_t count;
   int rc = api_issue_list (api, owner, repo, state, labels, type, limit,
                            &issues, &count);
@@ -4845,7 +4890,7 @@ static int cmd_issue_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_issue_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4853,9 +4898,9 @@ static int cmd_issue_create (int argc, char** argv, ApiClient* api, CbGlobalFlag
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, ISSUE_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4868,7 +4913,8 @@ static int cmd_issue_create (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -4912,7 +4958,7 @@ static int cmd_issue_create (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_issue_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4926,7 +4972,8 @@ static int cmd_issue_show (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   Issue is;
@@ -4941,7 +4988,7 @@ static int cmd_issue_show (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_issue_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -4949,9 +4996,9 @@ static int cmd_issue_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags*
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, ISSUE_EDIT_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -4964,7 +5011,8 @@ static int cmd_issue_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -5011,7 +5059,7 @@ static int cmd_issue_edit (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_issue_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5025,7 +5073,8 @@ static int cmd_issue_delete (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   if (!gf->yes && !confirm ("Delete this issue?")) {
@@ -5042,7 +5091,7 @@ static int cmd_issue_delete (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_issue_close (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_close (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5056,7 +5105,8 @@ static int cmd_issue_close (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   EditIssueOpts opts = { 0 };
@@ -5074,7 +5124,7 @@ static int cmd_issue_close (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_issue_reopen (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_reopen (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5088,7 +5138,8 @@ static int cmd_issue_reopen (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   EditIssueOpts opts = { 0 };
@@ -5106,7 +5157,7 @@ static int cmd_issue_reopen (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_issue_comment (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_comment (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5120,10 +5171,11 @@ static int cmd_issue_comment (int argc, char** argv, ApiClient* api, CbGlobalFla
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
-  const char* body = NULL;
+  const char *body = NULL;
   for (int i = 2; i < argc; i++) {
     if (strcmp (argv[i], "--body") == 0 && i + 1 < argc)
       body = argv[++i];
@@ -5142,7 +5194,7 @@ static int cmd_issue_comment (int argc, char** argv, ApiClient* api, CbGlobalFla
   return CLI_OK;
 }
 
-static int cmd_issue_label_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_label_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5156,11 +5208,12 @@ static int cmd_issue_label_add (int argc, char** argv, ApiClient* api, CbGlobalF
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   size_t label_count = (size_t)(argc - 2);
-  int64_t* labels = malloc (label_count * sizeof (int64_t));
+  int64_t *labels = malloc (label_count * sizeof (int64_t));
   for (int i = 0; i < argc - 2; i++)
     labels[i] = atol (argv[i + 2]);
   int rc = api_issue_label_add (api, owner, repo, number, labels, label_count);
@@ -5174,7 +5227,7 @@ static int cmd_issue_label_add (int argc, char** argv, ApiClient* api, CbGlobalF
   return CLI_OK;
 }
 
-static int cmd_issue_label_clear (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue_label_clear (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5188,7 +5241,8 @@ static int cmd_issue_label_clear (int argc, char** argv, ApiClient* api, CbGloba
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   int rc = api_issue_label_clear (api, owner, repo, number);
@@ -5201,15 +5255,15 @@ static int cmd_issue_label_clear (int argc, char** argv, ApiClient* api, CbGloba
   return CLI_OK;
 }
 
-static int cmd_issue (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_issue (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_issue ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_issue ();
     return CLI_OK;
@@ -5247,9 +5301,9 @@ static int cmd_issue (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
       printf ("Usage: cb issue label [owner/]repo <add|set|rm|clear> ...\n");
       return CLI_USAGE;
     }
-    const char* lsub = rest_argv[0];
+    const char *lsub = rest_argv[0];
     int l_argc = rest_argc - 1;
-    char** l_argv = rest_argv + 1;
+    char **l_argv = rest_argv + 1;
     if (is_help_arg (lsub)) {
       printf ("Usage: cb issue label [owner/]repo <add|set|rm|clear> ...\n");
       return CLI_OK;
@@ -5268,7 +5322,7 @@ static int cmd_issue (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Label command handlers ===== */
 
-static int cmd_label_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_label_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5282,9 +5336,10 @@ static int cmd_label_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  Label* labels;
+  Label *labels;
   size_t count;
   int rc = api_label_list (api, owner, repo, &labels, &count);
   if (rc != API_OK) {
@@ -5300,7 +5355,7 @@ static int cmd_label_list (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_label_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_label_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5308,9 +5363,9 @@ static int cmd_label_create (int argc, char** argv, ApiClient* api, CbGlobalFlag
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, LABEL_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -5323,7 +5378,8 @@ static int cmd_label_create (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -5372,7 +5428,7 @@ static int cmd_label_create (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_label_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_label_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5386,7 +5442,8 @@ static int cmd_label_delete (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   if (!gf->yes && !confirm ("Delete this label?")) {
@@ -5403,7 +5460,7 @@ static int cmd_label_delete (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_label_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_label_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5417,7 +5474,8 @@ static int cmd_label_show (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   Label l;
@@ -5432,15 +5490,15 @@ static int cmd_label_show (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_label (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_label (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_label ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_label ();
     return CLI_OK;
@@ -5460,7 +5518,7 @@ static int cmd_label (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Milestone command handlers ===== */
 
-static int cmd_milestone_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_milestone_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5474,14 +5532,15 @@ static int cmd_milestone_list (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* state = NULL;
+  const char *state = NULL;
   for (int i = 1; i < argc; i++) {
     if (strcmp (argv[i], "--state") == 0 && i + 1 < argc)
       state = argv[++i];
   }
-  Milestone* milestones;
+  Milestone *milestones;
   size_t count;
   int rc = api_milestone_list (api, owner, repo, state, &milestones, &count);
   if (rc != API_OK) {
@@ -5497,7 +5556,7 @@ static int cmd_milestone_list (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_milestone_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_milestone_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5505,9 +5564,9 @@ static int cmd_milestone_create (int argc, char** argv, ApiClient* api, CbGlobal
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, MILESTONE_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -5520,7 +5579,8 @@ static int cmd_milestone_create (int argc, char** argv, ApiClient* api, CbGlobal
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -5564,7 +5624,7 @@ static int cmd_milestone_create (int argc, char** argv, ApiClient* api, CbGlobal
   return CLI_OK;
 }
 
-static int cmd_milestone_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_milestone_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5578,7 +5638,8 @@ static int cmd_milestone_delete (int argc, char** argv, ApiClient* api, CbGlobal
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   if (!gf->yes && !confirm ("Delete this milestone?")) {
@@ -5595,7 +5656,7 @@ static int cmd_milestone_delete (int argc, char** argv, ApiClient* api, CbGlobal
   return CLI_OK;
 }
 
-static int cmd_milestone_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_milestone_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5609,7 +5670,8 @@ static int cmd_milestone_show (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   Milestone m;
@@ -5624,15 +5686,15 @@ static int cmd_milestone_show (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_milestone (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_milestone (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_milestone ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_milestone ();
     return CLI_OK;
@@ -5652,7 +5714,7 @@ static int cmd_milestone (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
 
 /* ===== PR command handlers ===== */
 
-static int cmd_pr_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_pr_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5666,9 +5728,10 @@ static int cmd_pr_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* state = NULL;
+  const char *state = NULL;
   int limit = 0;
   for (int i = 1; i < argc; i++) {
     if (strcmp (argv[i], "--state") == 0 && i + 1 < argc)
@@ -5676,7 +5739,7 @@ static int cmd_pr_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
     else if (strcmp (argv[i], "--limit") == 0 && i + 1 < argc)
       limit = atoi (argv[++i]);
   }
-  PullRequest* prs;
+  PullRequest *prs;
   size_t count;
   int rc = api_pr_list (api, owner, repo, state, limit, &prs, &count);
   if (rc != API_OK) {
@@ -5692,7 +5755,7 @@ static int cmd_pr_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
   return CLI_OK;
 }
 
-static int cmd_pr_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_pr_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5700,9 +5763,9 @@ static int cmd_pr_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, PR_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -5715,7 +5778,8 @@ static int cmd_pr_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -5767,7 +5831,7 @@ static int cmd_pr_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_pr_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_pr_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5781,7 +5845,8 @@ static int cmd_pr_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   PullRequest p;
@@ -5796,7 +5861,7 @@ static int cmd_pr_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
   return CLI_OK;
 }
 
-static int cmd_pr_close (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_pr_close (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5810,7 +5875,8 @@ static int cmd_pr_close (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   EditPullRequestOpts opts = { 0 };
@@ -5828,7 +5894,7 @@ static int cmd_pr_close (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   return CLI_OK;
 }
 
-static int cmd_pr_reopen (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_pr_reopen (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5842,7 +5908,8 @@ static int cmd_pr_reopen (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   EditPullRequestOpts opts = { 0 };
@@ -5860,7 +5927,7 @@ static int cmd_pr_reopen (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_pr_merge (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_pr_merge (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5874,7 +5941,8 @@ static int cmd_pr_merge (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int number = atoi (argv[1]);
   MergePullRequestOpts opts = { 0 };
@@ -5901,15 +5969,15 @@ static int cmd_pr_merge (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   return CLI_OK;
 }
 
-static int cmd_pr (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_pr (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_pr ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_pr ();
     return CLI_OK;
@@ -5926,9 +5994,7 @@ static int cmd_pr (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
     return cmd_pr_reopen (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "merge") == 0)
     return cmd_pr_merge (rest_argc, rest_argv, api, gf);
-  if (strcmp (sub, "edit") == 0 || strcmp (sub, "unmerge") == 0 ||
-      strcmp (sub, "files") == 0 || strcmp (sub, "commits") == 0 ||
-      strcmp (sub, "diff") == 0 || strcmp (sub, "review") == 0) {
+  if (strcmp (sub, "edit") == 0 || strcmp (sub, "unmerge") == 0 || strcmp (sub, "files") == 0 || strcmp (sub, "commits") == 0 || strcmp (sub, "diff") == 0 || strcmp (sub, "review") == 0) {
     fprintf (stderr, "Error: pr %s not yet implemented\n", sub);
     return CLI_ERR;
   }
@@ -5939,7 +6005,7 @@ static int cmd_pr (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Commit command handlers ===== */
 
-static int cmd_commit_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_commit_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -5947,9 +6013,9 @@ static int cmd_commit_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, COMMIT_LIST_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -5962,7 +6028,8 @@ static int cmd_commit_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -5980,7 +6047,7 @@ static int cmd_commit_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
   idx = find_flag_idx (COMMIT_LIST_FLAGS, "--limit");
   if (fv[idx])
     limit = atoi (fv[idx]);
-  Commit* commits;
+  Commit *commits;
   size_t count;
   int rc = api_commit_list (api, owner, repo, sha, path, limit, &commits, &count);
   if (rc != API_OK) {
@@ -6002,24 +6069,22 @@ static int cmd_commit_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_commit (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_commit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_commit ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_commit ();
     return CLI_OK;
   }
   if (strcmp (sub, "list") == 0)
     return cmd_commit_list (rest_argc, rest_argv, api, gf);
-  if (strcmp (sub, "show") == 0 || strcmp (sub, "status") == 0 ||
-      strcmp (sub, "diff") == 0 || strcmp (sub, "compare") == 0 ||
-      strcmp (sub, "note") == 0) {
+  if (strcmp (sub, "show") == 0 || strcmp (sub, "status") == 0 || strcmp (sub, "diff") == 0 || strcmp (sub, "compare") == 0 || strcmp (sub, "note") == 0) {
     fprintf (stderr, "Error: commit %s not yet implemented\n", sub);
     return CLI_ERR;
   }
@@ -6030,7 +6095,7 @@ static int cmd_commit (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Content command handlers ===== */
 
-static int cmd_content_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_content_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6044,14 +6109,15 @@ static int cmd_content_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  const char* ref = NULL;
+  const char *ref = NULL;
   for (int i = 1; i < argc; i++) {
     if (strcmp (argv[i], "--ref") == 0 && i + 1 < argc)
       ref = argv[++i];
   }
-  ContentEntry* entries;
+  ContentEntry *entries;
   size_t count;
   int rc = api_content_list (api, owner, repo, ref, &entries, &count);
   if (rc != API_OK) {
@@ -6067,24 +6133,22 @@ static int cmd_content_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_content (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_content (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_content ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_content ();
     return CLI_OK;
   }
   if (strcmp (sub, "list") == 0)
     return cmd_content_list (rest_argc, rest_argv, api, gf);
-  if (strcmp (sub, "show") == 0 || strcmp (sub, "create") == 0 ||
-      strcmp (sub, "update") == 0 || strcmp (sub, "delete") == 0 ||
-      strcmp (sub, "raw") == 0 || strcmp (sub, "archive") == 0) {
+  if (strcmp (sub, "show") == 0 || strcmp (sub, "create") == 0 || strcmp (sub, "update") == 0 || strcmp (sub, "delete") == 0 || strcmp (sub, "raw") == 0 || strcmp (sub, "archive") == 0) {
     fprintf (stderr, "Error: content %s not yet implemented\n", sub);
     return CLI_ERR;
   }
@@ -6095,7 +6159,7 @@ static int cmd_content (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
 
 /* ===== Key command handlers ===== */
 
-static int cmd_key_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_key_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6109,9 +6173,10 @@ static int cmd_key_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  DeployKey* keys;
+  DeployKey *keys;
   size_t count;
   int rc = api_key_list (api, owner, repo, &keys, &count);
   if (rc != API_OK) {
@@ -6127,7 +6192,7 @@ static int cmd_key_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   return CLI_OK;
 }
 
-static int cmd_key_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_key_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6135,9 +6200,9 @@ static int cmd_key_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, KEY_ADD_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -6150,7 +6215,8 @@ static int cmd_key_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -6198,7 +6264,7 @@ static int cmd_key_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
   return CLI_OK;
 }
 
-static int cmd_key_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_key_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6212,7 +6278,8 @@ static int cmd_key_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   if (!gf->yes && !confirm ("Delete this deploy key?")) {
@@ -6229,7 +6296,7 @@ static int cmd_key_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_key_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_key_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6243,7 +6310,8 @@ static int cmd_key_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   DeployKey k;
@@ -6258,15 +6326,15 @@ static int cmd_key_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* g
   return CLI_OK;
 }
 
-static int cmd_key (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_key (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_key ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_key ();
     return CLI_OK;
@@ -6286,7 +6354,7 @@ static int cmd_key (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Collaborator command handlers ===== */
 
-static int cmd_collaborator_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_collaborator_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6300,9 +6368,10 @@ static int cmd_collaborator_list (int argc, char** argv, ApiClient* api, CbGloba
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  User* users;
+  User *users;
   size_t count;
   int rc = api_collaborator_list (api, owner, repo, &users, &count);
   if (rc != API_OK) {
@@ -6310,15 +6379,15 @@ static int cmd_collaborator_list (int argc, char** argv, ApiClient* api, CbGloba
     return CLI_ERR;
   }
   if (gf->json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       if (users[i].login)
         json_object_set_string (obj, "login", users[i].login);
       json_object_set_number (obj, "id", users[i].id);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -6330,7 +6399,7 @@ static int cmd_collaborator_list (int argc, char** argv, ApiClient* api, CbGloba
   return CLI_OK;
 }
 
-static int cmd_collaborator_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_collaborator_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6338,9 +6407,9 @@ static int cmd_collaborator_add (int argc, char** argv, ApiClient* api, CbGlobal
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, COLLAB_ADD_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -6353,13 +6422,14 @@ static int cmd_collaborator_add (int argc, char** argv, ApiClient* api, CbGlobal
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
     return CLI_ERR;
   }
-  const char* permission = "write";
+  const char *permission = "write";
   int idx = find_flag_idx (COLLAB_ADD_FLAGS, "--permission");
   if (fv[idx])
     permission = fv[idx];
@@ -6379,7 +6449,7 @@ static int cmd_collaborator_add (int argc, char** argv, ApiClient* api, CbGlobal
   return CLI_OK;
 }
 
-static int cmd_collaborator_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_collaborator_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6393,7 +6463,8 @@ static int cmd_collaborator_rm (int argc, char** argv, ApiClient* api, CbGlobalF
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   if (!gf->yes && !confirm ("Remove this collaborator?")) {
     printf ("Cancelled.\n");
@@ -6409,15 +6480,15 @@ static int cmd_collaborator_rm (int argc, char** argv, ApiClient* api, CbGlobalF
   return CLI_OK;
 }
 
-static int cmd_collaborator (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_collaborator (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_collaborator ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_collaborator ();
     return CLI_OK;
@@ -6439,7 +6510,7 @@ static int cmd_collaborator (int argc, char** argv, ApiClient* api, CbGlobalFlag
 
 /* ===== Fork command handlers ===== */
 
-static int cmd_fork_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_fork_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6453,9 +6524,10 @@ static int cmd_fork_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  Repo* forks;
+  Repo *forks;
   size_t count;
   int rc = api_fork_list (api, owner, repo, &forks, &count);
   if (rc != API_OK) {
@@ -6471,7 +6543,7 @@ static int cmd_fork_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_fork_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_fork_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6479,9 +6551,9 @@ static int cmd_fork_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, FORK_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -6494,7 +6566,8 @@ static int cmd_fork_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -6526,15 +6599,15 @@ static int cmd_fork_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_fork (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_fork (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_fork ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_fork ();
     return CLI_OK;
@@ -6550,7 +6623,7 @@ static int cmd_fork (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Hook command handlers ===== */
 
-static int cmd_hook_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_hook_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6564,9 +6637,10 @@ static int cmd_hook_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  Hook* hooks;
+  Hook *hooks;
   size_t count;
   int rc = api_hook_list (api, owner, repo, &hooks, &count);
   if (rc != API_OK) {
@@ -6582,7 +6656,7 @@ static int cmd_hook_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_hook_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_hook_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6590,9 +6664,9 @@ static int cmd_hook_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, HOOK_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -6605,7 +6679,8 @@ static int cmd_hook_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (positional[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0) {
+                          repo, sizeof (repo), api)
+      != 0) {
     free (positional);
     free (fv);
     free (fb);
@@ -6666,7 +6741,7 @@ static int cmd_hook_create (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_hook_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_hook_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6680,7 +6755,8 @@ static int cmd_hook_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   int64_t id = atol (argv[1]);
   if (!gf->yes && !confirm ("Delete this webhook?")) {
@@ -6697,15 +6773,15 @@ static int cmd_hook_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_hook (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_hook (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_hook ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_hook ();
     return CLI_OK;
@@ -6716,8 +6792,7 @@ static int cmd_hook (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
     return cmd_hook_create (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "delete") == 0)
     return cmd_hook_delete (rest_argc, rest_argv, api, gf);
-  if (strcmp (sub, "show") == 0 || strcmp (sub, "edit") == 0 ||
-      strcmp (sub, "test") == 0) {
+  if (strcmp (sub, "show") == 0 || strcmp (sub, "edit") == 0 || strcmp (sub, "test") == 0) {
     fprintf (stderr, "Error: hook %s not yet implemented\n", sub);
     return CLI_ERR;
   }
@@ -6728,7 +6803,7 @@ static int cmd_hook (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Wiki command handlers ===== */
 
-static int cmd_wiki_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_wiki_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6742,9 +6817,10 @@ static int cmd_wiki_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
-  WikiPage* pages;
+  WikiPage *pages;
   size_t count;
   int rc = api_wiki_list (api, owner, repo, &pages, &count);
   if (rc != API_OK) {
@@ -6760,7 +6836,7 @@ static int cmd_wiki_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_wiki_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_wiki_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6774,7 +6850,8 @@ static int cmd_wiki_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags
   }
   char owner[128], repo[128];
   if (require_owner_repo (argv[0], owner, sizeof (owner),
-                          repo, sizeof (repo), api) != 0)
+                          repo, sizeof (repo), api)
+      != 0)
     return CLI_ERR;
   if (!gf->yes && !confirm ("Delete this wiki page?")) {
     printf ("Cancelled.\n");
@@ -6790,15 +6867,15 @@ static int cmd_wiki_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_wiki (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_wiki (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_wiki ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_wiki ();
     return CLI_OK;
@@ -6807,8 +6884,7 @@ static int cmd_wiki (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
     return cmd_wiki_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "delete") == 0)
     return cmd_wiki_delete (rest_argc, rest_argv, api, gf);
-  if (strcmp (sub, "create") == 0 || strcmp (sub, "show") == 0 ||
-      strcmp (sub, "edit") == 0 || strcmp (sub, "revisions") == 0) {
+  if (strcmp (sub, "create") == 0 || strcmp (sub, "show") == 0 || strcmp (sub, "edit") == 0 || strcmp (sub, "revisions") == 0) {
     fprintf (stderr, "Error: wiki %s not yet implemented\n", sub);
     return CLI_ERR;
   }
@@ -6819,7 +6895,7 @@ static int cmd_wiki (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== SSH key (user public key) commands ===== */
 
-static int cmd_sshkey_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_sshkey_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6827,7 +6903,7 @@ static int cmd_sshkey_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
       return CLI_OK;
     }
   }
-  PublicKey* keys;
+  PublicKey *keys;
   size_t count;
   int rc = api_user_key_list (api, &keys, &count);
   if (rc != API_OK) {
@@ -6835,9 +6911,9 @@ static int cmd_sshkey_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
     return CLI_ERR;
   }
   if (gf->json) {
-    JsonValue* jarr = json_array_new ();
+    JsonValue *jarr = json_array_new ();
     for (size_t i = 0; i < count; i++) {
-      JsonValue* obj = json_object_new ();
+      JsonValue *obj = json_object_new ();
       json_object_set_number (obj, "id", keys[i].id);
       if (keys[i].title)
         json_object_set_string (obj, "title", keys[i].title);
@@ -6848,7 +6924,7 @@ static int cmd_sshkey_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
       json_object_set_bool (obj, "read_only", keys[i].read_only ? true : false);
       json_array_push (jarr, obj);
     }
-    char* s = json_serialize (jarr, true);
+    char *s = json_serialize (jarr, true);
     printf ("%s\n", s);
     free (s);
     json_free (jarr);
@@ -6868,7 +6944,7 @@ static int cmd_sshkey_list (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_sshkey_add (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_sshkey_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6877,9 +6953,9 @@ static int cmd_sshkey_add (int argc, char** argv, ApiClient* api, CbGlobalFlags*
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, SSHKEY_ADD_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -6893,13 +6969,13 @@ static int cmd_sshkey_add (int argc, char** argv, ApiClient* api, CbGlobalFlags*
     free (fb);
     return CLI_USAGE;
   }
-  const char* title = fv[idx];
+  const char *title = fv[idx];
 
   idx = find_flag_idx (SSHKEY_ADD_FLAGS, "--key");
-  const char* key_str = fv[idx];
+  const char *key_str = fv[idx];
 
   idx = find_flag_idx (SSHKEY_ADD_FLAGS, "--file");
-  const char* file_path = fv[idx];
+  const char *file_path = fv[idx];
 
   if (!key_str && !file_path) {
     fprintf (stderr, "Error: --key or --file is required\n");
@@ -6916,10 +6992,10 @@ static int cmd_sshkey_add (int argc, char** argv, ApiClient* api, CbGlobalFlags*
     return CLI_USAGE;
   }
 
-  char* file_buf = NULL;
-  const char* key_val;
+  char *file_buf = NULL;
+  const char *key_val;
   if (file_path) {
-    FILE* f = fopen (file_path, "r");
+    FILE *f = fopen (file_path, "r");
     if (!f) {
       fprintf (stderr, "Error: cannot open %s: %s\n", file_path, strerror (errno));
       free (positional);
@@ -6976,7 +7052,7 @@ static int cmd_sshkey_add (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_sshkey_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_sshkey_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -6988,7 +7064,7 @@ static int cmd_sshkey_show (int argc, char** argv, ApiClient* api, CbGlobalFlags
     fprintf (stderr, "Error: sshkey show requires <id>\n");
     return CLI_USAGE;
   }
-  char* end;
+  char *end;
   long long id = strtoll (argv[0], &end, 10);
   if (*end != '\0' || id <= 0) {
     fprintf (stderr, "Error: invalid key id '%s'\n", argv[0]);
@@ -7001,7 +7077,7 @@ static int cmd_sshkey_show (int argc, char** argv, ApiClient* api, CbGlobalFlags
     return CLI_ERR;
   }
   if (gf->json) {
-    JsonValue* obj = json_object_new ();
+    JsonValue *obj = json_object_new ();
     json_object_set_number (obj, "id", key.id);
     if (key.title)
       json_object_set_string (obj, "title", key.title);
@@ -7016,7 +7092,7 @@ static int cmd_sshkey_show (int argc, char** argv, ApiClient* api, CbGlobalFlags
       json_object_set_string (obj, "url", key.url);
     if (key.created_at)
       json_object_set_string (obj, "created_at", key.created_at);
-    char* s = json_serialize (obj, true);
+    char *s = json_serialize (obj, true);
     printf ("%s\n", s);
     free (s);
     json_free (obj);
@@ -7036,7 +7112,7 @@ static int cmd_sshkey_show (int argc, char** argv, ApiClient* api, CbGlobalFlags
   return CLI_OK;
 }
 
-static int cmd_sshkey_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_sshkey_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7048,7 +7124,7 @@ static int cmd_sshkey_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
     fprintf (stderr, "Error: sshkey rm requires <id>\n");
     return CLI_USAGE;
   }
-  char* end;
+  char *end;
   long long id = strtoll (argv[0], &end, 10);
   if (*end != '\0' || id <= 0) {
     fprintf (stderr, "Error: invalid key id '%s'\n", argv[0]);
@@ -7068,15 +7144,15 @@ static int cmd_sshkey_rm (int argc, char** argv, ApiClient* api, CbGlobalFlags* 
   return CLI_OK;
 }
 
-static int cmd_sshkey (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_sshkey (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_sshkey ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_sshkey ();
     return CLI_OK;
@@ -7096,7 +7172,7 @@ static int cmd_sshkey (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Package commands ===== */
 
-static int cmd_package_list (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7104,9 +7180,9 @@ static int cmd_package_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, PACKAGE_LIST_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -7118,8 +7194,8 @@ static int cmd_package_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
     return CLI_USAGE;
   }
 
-  const char* type = NULL;
-  const char* q = NULL;
+  const char *type = NULL;
+  const char *q = NULL;
   int limit = 0;
   int idx = find_flag_idx (PACKAGE_LIST_FLAGS, "--type");
   if (fv[idx])
@@ -7131,7 +7207,7 @@ static int cmd_package_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   if (fv[idx])
     limit = atoi (fv[idx]);
 
-  Package* pkgs;
+  Package *pkgs;
   size_t count;
   int rc = api_package_list (api, positional[0], type, q, limit, &pkgs, &count);
   if (rc != API_OK) {
@@ -7156,7 +7232,7 @@ static int cmd_package_list (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_package_show (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7184,7 +7260,7 @@ static int cmd_package_show (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_package_delete (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7192,9 +7268,9 @@ static int cmd_package_delete (int argc, char** argv, ApiClient* api, CbGlobalFl
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, PACKAGE_DELETE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -7232,7 +7308,7 @@ static int cmd_package_delete (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_package_files (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_files (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7245,7 +7321,7 @@ static int cmd_package_files (int argc, char** argv, ApiClient* api, CbGlobalFla
     help_package_files ();
     return CLI_USAGE;
   }
-  PackageFile* files;
+  PackageFile *files;
   size_t count;
   int rc = api_package_files (api, argv[0], argv[1], argv[2], argv[3], &files, &count);
   if (rc != API_OK) {
@@ -7261,7 +7337,7 @@ static int cmd_package_files (int argc, char** argv, ApiClient* api, CbGlobalFla
   return CLI_OK;
 }
 
-static int cmd_package_link (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_link (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7285,7 +7361,7 @@ static int cmd_package_link (int argc, char** argv, ApiClient* api, CbGlobalFlag
   return CLI_OK;
 }
 
-static int cmd_package_unlink (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_unlink (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7293,9 +7369,9 @@ static int cmd_package_unlink (int argc, char** argv, ApiClient* api, CbGlobalFl
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, PACKAGE_UNLINK_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -7333,7 +7409,7 @@ static int cmd_package_unlink (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_package_upload (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_upload (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7341,9 +7417,9 @@ static int cmd_package_upload (int argc, char** argv, ApiClient* api, CbGlobalFl
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, PACKAGE_UPLOAD_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -7357,7 +7433,7 @@ static int cmd_package_upload (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
 
   int file_idx = find_flag_idx (PACKAGE_UPLOAD_FLAGS, "--file");
-  const char* file_path = fv[file_idx];
+  const char *file_path = fv[file_idx];
   if (!file_path) {
     fprintf (stderr, "Error: --file <path> is required (use --file - for stdin)\n");
     free (positional);
@@ -7367,10 +7443,10 @@ static int cmd_package_upload (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
 
   /* Read file contents into memory */
-  char* data = NULL;
+  char *data = NULL;
   size_t data_len = 0;
   if (strcmp (file_path, "-") == 0) {
-    FILE* f = cb_open_memstream (&data, &data_len);
+    FILE *f = cb_open_memstream (&data, &data_len);
     if (!f) {
       fprintf (stderr, "Error: failed to read stdin\n");
       free (positional);
@@ -7384,7 +7460,7 @@ static int cmd_package_upload (int argc, char** argv, ApiClient* api, CbGlobalFl
       fwrite (buf, 1, n, f);
     cb_close_memstream (f);
   } else {
-    FILE* f = fopen (file_path, "rb");
+    FILE *f = fopen (file_path, "rb");
     if (!f) {
       fprintf (stderr, "Error: cannot open '%s': %s\n", file_path, strerror (errno));
       free (positional);
@@ -7426,7 +7502,7 @@ static int cmd_package_upload (int argc, char** argv, ApiClient* api, CbGlobalFl
   }
 
   /* Derive filename from --file path (basename) */
-  const char* filename = strrchr (file_path, '/');
+  const char *filename = strrchr (file_path, '/');
   filename = filename ? filename + 1 : file_path;
   if (strcmp (filename, "-") == 0)
     filename = "stdin";
@@ -7450,7 +7526,7 @@ static int cmd_package_upload (int argc, char** argv, ApiClient* api, CbGlobalFl
   return CLI_OK;
 }
 
-static int cmd_package_download (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package_download (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7458,9 +7534,9 @@ static int cmd_package_download (int argc, char** argv, ApiClient* api, CbGlobal
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, PACKAGE_DOWNLOAD_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -7474,9 +7550,9 @@ static int cmd_package_download (int argc, char** argv, ApiClient* api, CbGlobal
   }
 
   int out_idx = find_flag_idx (PACKAGE_DOWNLOAD_FLAGS, "--output");
-  const char* output_path = fv[out_idx];
+  const char *output_path = fv[out_idx];
 
-  char* data;
+  char *data;
   size_t len;
   int rc = api_package_download (api, positional[0], positional[1], positional[2],
                                  positional[3], &data, &len);
@@ -7489,7 +7565,7 @@ static int cmd_package_download (int argc, char** argv, ApiClient* api, CbGlobal
   }
 
   if (output_path && strcmp (output_path, "-") != 0) {
-    FILE* f = fopen (output_path, "wb");
+    FILE *f = fopen (output_path, "wb");
     if (!f) {
       fprintf (stderr, "Error: cannot open '%s': %s\n", output_path, strerror (errno));
       free (data);
@@ -7515,15 +7591,15 @@ static int cmd_package_download (int argc, char** argv, ApiClient* api, CbGlobal
   return CLI_OK;
 }
 
-static int cmd_package (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_package (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_package ();
     return CLI_USAGE;
   }
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
   if (is_help_arg (sub)) {
     help_package ();
     return CLI_OK;
@@ -7551,7 +7627,7 @@ static int cmd_package (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf
 
 /* ===== Org commands ===== */
 
-static int cmd_org_create (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_org_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   for (int i = 0; i < argc; i++) {
     if (is_help_arg (argv[i])) {
@@ -7559,9 +7635,9 @@ static int cmd_org_create (int argc, char** argv, ApiClient* api, CbGlobalFlags*
       return CLI_OK;
     }
   }
-  const char** positional;
-  const char** fv;
-  int* fb;
+  const char **positional;
+  const char **fv;
+  int *fb;
   int npos = parse_flags (argc, argv, ORG_CREATE_FLAGS, &positional, &fv, &fb);
   if (npos < 0)
     return CLI_USAGE;
@@ -7573,7 +7649,7 @@ static int cmd_org_create (int argc, char** argv, ApiClient* api, CbGlobalFlags*
     return CLI_USAGE;
   }
 
-  const char* name = positional[0];
+  const char *name = positional[0];
   char verr[256];
   if (validate_org_name (name, verr, sizeof (verr)) != VALIDATE_OK) {
     fprintf (stderr, "Error: %s\n", verr);
@@ -7656,16 +7732,16 @@ static int cmd_org_create (int argc, char** argv, ApiClient* api, CbGlobalFlags*
   return CLI_OK;
 }
 
-static int cmd_org (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_org (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_org ();
     return CLI_USAGE;
   }
 
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
 
   if (is_help_arg (sub)) {
     help_org ();
@@ -7681,16 +7757,16 @@ static int cmd_org (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
 
 /* ===== Command dispatch ===== */
 
-static int cmd_repo (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
+static int cmd_repo (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
     help_repo ();
     return CLI_USAGE;
   }
 
-  const char* sub = argv[0];
+  const char *sub = argv[0];
   int rest_argc = argc - 1;
-  char** rest_argv = argv + 1;
+  char **rest_argv = argv + 1;
 
   if (is_help_arg (sub)) {
     help_repo ();
@@ -7715,9 +7791,9 @@ static int cmd_repo (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
       help_repo_topic ();
       return CLI_USAGE;
     }
-    const char* topic_sub = rest_argv[0];
+    const char *topic_sub = rest_argv[0];
     int topic_argc = rest_argc - 1;
-    char** topic_argv = rest_argv + 1;
+    char **topic_argv = rest_argv + 1;
     if (is_help_arg (topic_sub)) {
       help_repo_topic ();
       return CLI_OK;
@@ -7740,17 +7816,17 @@ static int cmd_repo (int argc, char** argv, ApiClient* api, CbGlobalFlags* gf)
   return CLI_USAGE;
 }
 
-void cli_print_help (const char* cmd)
+void cli_print_help (const char *cmd)
 {
   (void)cmd;
   print_top_help_human ();
 }
 
-int cli_run (int argc, char** argv)
+int cli_run (int argc, char **argv)
 {
   /* Extract global flags first */
   CbGlobalFlags gf;
-  char** filtered_argv = NULL;
+  char **filtered_argv = NULL;
   int filtered_argc = extract_global_flags (argc, argv, &gf, &filtered_argv);
   if (filtered_argc < 0) {
     return CLI_USAGE;
@@ -7772,7 +7848,7 @@ int cli_run (int argc, char** argv)
     return CLI_USAGE;
   }
 
-  const char* cmd = filtered_argv[1];
+  const char *cmd = filtered_argv[1];
   if (strcmp (cmd, "--help") == 0 || strcmp (cmd, "-h") == 0) {
     print_top_help_human ();
     free (filtered_argv);
@@ -7795,7 +7871,7 @@ int cli_run (int argc, char** argv)
   Config cfg;
   char err[256];
   /* Try to find config file */
-  const char* cfg_dir = cb_config_dir ();
+  const char *cfg_dir = cb_config_dir ();
   char config_path[512] = { 0 };
   if (cfg_dir) {
 #ifdef _WIN32

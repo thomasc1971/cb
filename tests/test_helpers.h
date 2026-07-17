@@ -41,8 +41,8 @@ static int verbose = 0;
 
 #define ASSERT_STR_EQ(a, b)                                            \
   do {                                                                 \
-    const char* _sa = (a);                                             \
-    const char* _sb = (b);                                             \
+    const char *_sa = (a);                                             \
+    const char *_sb = (b);                                             \
     if (_sa == NULL || _sb == NULL || strcmp (_sa, _sb) != 0) {        \
       fprintf (stderr, "  FAIL: %s:%d: %s == %s (\"%s\" != \"%s\")\n", \
                __FILE__, __LINE__, #a, #b,                             \
@@ -91,7 +91,7 @@ static int verbose = 0;
     return test_fail_count > 0 ? 1 : 0;        \
   } while (0)
 
-static inline void test_parse_args (int argc, char* argv[])
+static inline void test_parse_args (int argc, char *argv[])
 {
   for (int i = 1; i < argc; i++)
     if (strcmp (argv[i], "-v") == 0)

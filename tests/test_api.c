@@ -8,7 +8,7 @@
 
 static MockServer server;
 
-static void setup_server (MockResponse* responses, size_t count)
+static void setup_server (MockResponse *responses, size_t count)
 {
   memset (&server, 0, sizeof (server));
   if (mock_server_start (&server, responses, count) != 0) {
@@ -22,22 +22,21 @@ static void teardown_server (void)
   mock_server_stop (&server);
 }
 
-static void make_client (ApiClient* a)
+static void make_client (ApiClient *a)
 {
   char base_url[256];
   snprintf (base_url, sizeof (base_url), "http://127.0.0.1:%d/api/v1", server.port);
   api_client_init (a, base_url, "test-token");
 }
 
-static const char* REPO_JSON_STR =
-    "{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
-    "\"description\":\"test repo\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
-    "\"default_branch\":\"main\",\"language\":\"Go\","
-    "\"private\":true,\"archived\":false,\"template\":false,"
-    "\"stars_count\":12,\"forks_count\":3,"
-    "\"has_issues\":true,\"has_wiki\":true,\"has_pull_requests\":true}";
+static const char *REPO_JSON_STR = "{\"name\":\"myproj\",\"full_name\":\"thomasc/myproj\","
+                                   "\"description\":\"test repo\",\"html_url\":\"https://codeberg.org/thomasc/myproj\","
+                                   "\"default_branch\":\"main\",\"language\":\"Go\","
+                                   "\"private\":true,\"archived\":false,\"template\":false,"
+                                   "\"stars_count\":12,\"forks_count\":3,"
+                                   "\"has_issues\":true,\"has_wiki\":true,\"has_pull_requests\":true}";
 
-static void set_body (MockResponse* r, const char* s)
+static void set_body (MockResponse *r, const char *s)
 {
   size_t len = strlen (s);
   if (len >= sizeof (r->body))
@@ -291,17 +290,16 @@ static void test_repo_edit_rename (void)
 
 static void test_repo_list_success (void)
 {
-  const char* list_json =
-      "[{\"name\":\"proj1\",\"full_name\":\"thomasc/proj1\",\"private\":false,"
-      "\"stars_count\":5,\"forks_count\":1,\"archived\":false,\"template\":false,"
-      "\"has_issues\":true,\"has_wiki\":true,\"has_pull_requests\":true,"
-      "\"html_url\":\"https://codeberg.org/thomasc/proj1\","
-      "\"default_branch\":\"main\",\"language\":\"C\",\"description\":\"one\"},"
-      "{\"name\":\"proj2\",\"full_name\":\"thomasc/proj2\",\"private\":true,"
-      "\"stars_count\":0,\"forks_count\":0,\"archived\":true,\"template\":false,"
-      "\"has_issues\":false,\"has_wiki\":false,\"has_pull_requests\":true,"
-      "\"html_url\":\"https://codeberg.org/thomasc/proj2\","
-      "\"default_branch\":\"main\",\"language\":\"Go\",\"description\":\"two\"}]";
+  const char *list_json = "[{\"name\":\"proj1\",\"full_name\":\"thomasc/proj1\",\"private\":false,"
+                          "\"stars_count\":5,\"forks_count\":1,\"archived\":false,\"template\":false,"
+                          "\"has_issues\":true,\"has_wiki\":true,\"has_pull_requests\":true,"
+                          "\"html_url\":\"https://codeberg.org/thomasc/proj1\","
+                          "\"default_branch\":\"main\",\"language\":\"C\",\"description\":\"one\"},"
+                          "{\"name\":\"proj2\",\"full_name\":\"thomasc/proj2\",\"private\":true,"
+                          "\"stars_count\":0,\"forks_count\":0,\"archived\":true,\"template\":false,"
+                          "\"has_issues\":false,\"has_wiki\":false,\"has_pull_requests\":true,"
+                          "\"html_url\":\"https://codeberg.org/thomasc/proj2\","
+                          "\"default_branch\":\"main\",\"language\":\"Go\",\"description\":\"two\"}]";
 
   MockResponse resp = {
     .method = "GET", .path = "/api/v1/user/repos", .status = 200
@@ -311,7 +309,7 @@ static void test_repo_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Repo* repos;
+  Repo *repos;
   size_t count;
   int rc = api_repo_list (&a, NULL, 0, &repos, &count);
   ASSERT_EQ (rc, API_OK);
@@ -335,7 +333,7 @@ static void test_repo_list_empty (void)
 
   ApiClient a;
   make_client (&a);
-  Repo* repos;
+  Repo *repos;
   size_t count;
   int rc = api_repo_list (&a, NULL, 0, &repos, &count);
   ASSERT_EQ (rc, API_OK);
@@ -354,7 +352,7 @@ static void test_repo_list_org (void)
 
   ApiClient a;
   make_client (&a);
-  Repo* repos;
+  Repo *repos;
   size_t count;
   int rc = api_repo_list (&a, "myorg", 1, &repos, &count);
   ASSERT_EQ (rc, API_OK);
@@ -412,7 +410,7 @@ static void test_topic_list (void)
 
   ApiClient a;
   make_client (&a);
-  char** topics;
+  char **topics;
   size_t count;
   int rc = api_topic_list (&a, "thomasc", "myproj", &topics, &count);
   ASSERT_EQ (rc, API_OK);
@@ -434,7 +432,7 @@ static void test_topic_set (void)
 
   ApiClient a;
   make_client (&a);
-  const char* topics[] = { "go", "cli", "codeberg" };
+  const char *topics[] = { "go", "cli", "codeberg" };
   int rc = api_topic_set (&a, "thomasc", "myproj", topics, 3);
   ASSERT_EQ (rc, API_OK);
   ASSERT_TRUE (strstr (server.last_body, "\"topics\":[\"go\",\"cli\",\"codeberg\"]") != NULL);
@@ -495,12 +493,11 @@ static void test_scope_error (void)
 
 /* ===== Org create ===== */
 
-static const char* ORG_JSON_STR =
-    "{\"id\":42,\"name\":\"myorg\",\"full_name\":\"myorg\","
-    "\"description\":\"test org\",\"email\":\"org@example.com\","
-    "\"location\":\"Berlin\",\"website\":\"https://example.com\","
-    "\"visibility\":\"public\",\"avatar_url\":\"https://codeberg.org/avatars/42\","
-    "\"repo_admin_change_team_access\":true}";
+static const char *ORG_JSON_STR = "{\"id\":42,\"name\":\"myorg\",\"full_name\":\"myorg\","
+                                  "\"description\":\"test org\",\"email\":\"org@example.com\","
+                                  "\"location\":\"Berlin\",\"website\":\"https://example.com\","
+                                  "\"visibility\":\"public\",\"avatar_url\":\"https://codeberg.org/avatars/42\","
+                                  "\"repo_admin_change_team_access\":true}";
 
 static void test_org_create_success (void)
 {
@@ -563,7 +560,7 @@ static void test_org_create_auth_error (void)
   teardown_server ();
 }
 
-int main (int argc, char* argv[])
+int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
   printf ("Running API client tests:\n");

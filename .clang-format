@@ -1,27 +1,10 @@
 ---
-AlignConsecutiveMacros: Consecutive
-AlignConsecutiveAssignments: None
-AlignConsecutiveBitFields: None
-AlignConsecutiveDeclarations: None
-AlignEscapedNewlines: Right
-AlignOperands: Align
-AlignTrailingComments: true
+BasedOnStyle: GNU
 
-AllowAllArgumentsOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortEnumsOnASingleLine: false
-AllowShortBlocksOnASingleLine: Never
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: Never
-AllowShortLoopsOnASingleLine: false
+# No line length limit (GNU defaults to 79)
+ColumnLimit: 0
 
-AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: MultiLine
-
-# Custom brace breaking
+# K&R braces for control statements (GNU uses Allman everywhere)
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: true
@@ -40,48 +23,17 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: true
 
-# Make the closing brace of container literals go to a new line
-Cpp11BracedListStyle: false
-
-# Never format includes
-IncludeBlocks: Preserve
+# Never sort or reformat includes
 SortIncludes: Never
 
-# No length limit, in case it breaks macros, you can
-# disable it with /* clang-format off/on */ comments
-ColumnLimit: 0
+# Keep return type on same line as function name
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
 
-IndentWidth: 2
-ContinuationIndentWidth: 4
-IndentCaseLabels: false
-IndentCaseBlocks: false
-IndentGotoLabels: true
-IndentPPDirectives: None
-IndentExternBlock: NoIndent
+# Multi-line enums
+AllowShortEnumsOnASingleLine: false
 
-PointerAlignment: Left
-SpaceAfterCStyleCast: false
-SpacesInCStyleCastParentheses: false
-SpacesInConditionalStatement: false
-SpacesInContainerLiterals: true
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeCaseColon: false
-SpaceBeforeParens: Always
-SpaceAroundPointerQualifiers: Default
-SpaceInEmptyBlock: false
-SpaceInEmptyParentheses: false
-
-UseCRLF: false
-UseTab: Never
-
-ForEachMacros:
-  [
-    "spa_list_for_each",
-    "spa_list_for_each_safe",
-    "wl_list_for_each",
-    "wl_list_for_each_safe",
-    "wl_array_for_each",
-    "udev_list_entry_foreach",
-  ]
+# Align consecutive #define values
+AlignConsecutiveMacros: Consecutive
 
 ---

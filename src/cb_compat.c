@@ -12,9 +12,9 @@
 
 typedef struct
 {
-  FILE* fp;
-  char** bufp;
-  size_t* sizep;
+  FILE *fp;
+  char **bufp;
+  size_t *sizep;
 } cb_memstream_state;
 
 /* We store the state alongside the FILE* using a small wrapper.
@@ -23,7 +23,7 @@ typedef struct
 
 static cb_memstream_state _cb_ms_state;
 
-FILE* cb_open_memstream (char** bufp, size_t* sizep)
+FILE *cb_open_memstream (char **bufp, size_t *sizep)
 {
   *bufp = NULL;
   *sizep = 0;
@@ -35,13 +35,13 @@ FILE* cb_open_memstream (char** bufp, size_t* sizep)
   return _cb_ms_state.fp;
 }
 
-int cb_close_memstream (FILE* f)
+int cb_close_memstream (FILE *f)
 {
   if (f != _cb_ms_state.fp)
     return fclose (f);
 
   long size;
-  char* buf;
+  char *buf;
 
   fseek (f, 0, SEEK_END);
   size = ftell (f);
@@ -89,7 +89,7 @@ void cb_wsa_cleanup (void)
   WSACleanup ();
 }
 
-const char* cb_wsa_strerror (int err)
+const char *cb_wsa_strerror (int err)
 {
   static char buf[256];
   switch (err) {
@@ -121,14 +121,14 @@ const char* cb_wsa_strerror (int err)
 
 #ifdef _WIN32
 
-int cb_setenv (const char* name, const char* value, int overwrite)
+int cb_setenv (const char *name, const char *value, int overwrite)
 {
   if (!overwrite && getenv (name))
     return 0;
   return _putenv_s (name, value);
 }
 
-int cb_unsetenv (const char* name)
+int cb_unsetenv (const char *name)
 {
   _putenv_s (name, "");
   SetEnvironmentVariableA (name, NULL);
@@ -137,12 +137,12 @@ int cb_unsetenv (const char* name)
 
 #else
 
-int cb_setenv (const char* name, const char* value, int overwrite)
+int cb_setenv (const char *name, const char *value, int overwrite)
 {
   return setenv (name, value, overwrite);
 }
 
-int cb_unsetenv (const char* name)
+int cb_unsetenv (const char *name)
 {
   return unsetenv (name);
 }
@@ -153,15 +153,15 @@ int cb_unsetenv (const char* name)
 
 #ifdef _WIN32
 
-const char* cb_config_dir (void)
+const char *cb_config_dir (void)
 {
-  const char* xdg = getenv ("XDG_CONFIG_HOME");
+  const char *xdg = getenv ("XDG_CONFIG_HOME");
   if (xdg && xdg[0])
     return xdg;
-  const char* dir = getenv ("APPDATA");
+  const char *dir = getenv ("APPDATA");
   if (dir && dir[0])
     return dir;
-  const char* userprofile = getenv ("USERPROFILE");
+  const char *userprofile = getenv ("USERPROFILE");
   if (userprofile && userprofile[0]) {
     static char buf[MAX_PATH];
     snprintf (buf, sizeof (buf), "%s\\AppData\\Roaming", userprofile);
@@ -172,12 +172,12 @@ const char* cb_config_dir (void)
 
 #else
 
-const char* cb_config_dir (void)
+const char *cb_config_dir (void)
 {
-  const char* xdg = getenv ("XDG_CONFIG_HOME");
+  const char *xdg = getenv ("XDG_CONFIG_HOME");
   if (xdg && xdg[0])
     return xdg;
-  const char* home = getenv ("HOME");
+  const char *home = getenv ("HOME");
   if (home && home[0]) {
     static char buf[512];
     snprintf (buf, sizeof (buf), "%s/.config", home);
@@ -190,21 +190,18 @@ const char* cb_config_dir (void)
 
 /* --- Base64 encoding/decoding --- */
 
-static const char b64_table[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char b64_table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-char* base64_encode (const unsigned char* data, size_t len)
+char *base64_encode (const unsigned char *data, size_t len)
 {
   size_t out_len = 4 * ((len + 2) / 3);
-  char* out = malloc (out_len + 1);
+  char *out = malloc (out_len + 1);
   if (!out)
     return NULL;
 
   size_t i, j;
   for (i = 0, j = 0; i + 2 < len; i += 3) {
-    unsigned int v = ((unsigned int)data[i] << 16) |
-                     ((unsigned int)data[i + 1] << 8) |
-                     (unsigned int)data[i + 2];
+    unsigned int v = ((unsigned int)data[i] << 16) | ((unsigned int)data[i + 1] << 8) | (unsigned int)data[i + 2];
     out[j++] = b64_table[(v >> 18) & 0x3F];
     out[j++] = b64_table[(v >> 12) & 0x3F];
     out[j++] = b64_table[(v >> 6) & 0x3F];
@@ -238,18 +235,18 @@ static int b64_val (char c)
   return -1;
 }
 
-unsigned char* base64_decode (const char* str, size_t* out_len)
+unsigned char *base64_decode (const char *str, size_t *out_len)
 {
   size_t len = strlen (str);
   if (len == 0) {
     *out_len = 0;
-    unsigned char* out = malloc (1);
+    unsigned char *out = malloc (1);
     if (out)
       out[0] = '\0';
     return out;
   }
 
-  unsigned char* out = malloc (len);
+  unsigned char *out = malloc (len);
   if (!out)
     return NULL;
 
@@ -263,8 +260,7 @@ unsigned char* base64_decode (const char* str, size_t* out_len)
       free (out);
       return NULL;
     }
-    unsigned int v = ((unsigned int)a << 18) | ((unsigned int)b << 12) |
-                     ((unsigned int)c << 6) | (unsigned int)d;
+    unsigned int v = ((unsigned int)a << 18) | ((unsigned int)b << 12) | ((unsigned int)c << 6) | (unsigned int)d;
     out[j++] = (unsigned char)((v >> 16) & 0xFF);
     if (str[i + 2] != '=')
       out[j++] = (unsigned char)((v >> 8) & 0xFF);
@@ -277,19 +273,18 @@ unsigned char* base64_decode (const char* str, size_t* out_len)
 
 /* --- URL encoding --- */
 
-char* url_encode (const char* str)
+char *url_encode (const char *str)
 {
   if (!str)
     return NULL;
   size_t len = strlen (str);
-  char* out = malloc (len * 3 + 1);
+  char *out = malloc (len * 3 + 1);
   if (!out)
     return NULL;
   size_t j = 0;
   for (size_t i = 0; i < len; i++) {
     unsigned char c = (unsigned char)str[i];
-    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-        (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' || c == '~') {
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_' || c == '~') {
       out[j++] = (char)c;
     } else {
       snprintf (out + j, 4, "%%%02X", c);

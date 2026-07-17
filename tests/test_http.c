@@ -8,7 +8,7 @@
 
 static MockServer server;
 
-static void setup_server (MockResponse* responses, size_t count)
+static void setup_server (MockResponse *responses, size_t count)
 {
   memset (&server, 0, sizeof (server));
   if (mock_server_start (&server, responses, count) != 0) {
@@ -71,7 +71,7 @@ static void test_post_sends_body (void)
   HttpClient c;
   http_client_init (&c, "127.0.0.1", server.port, 0, "tok");
   HttpResponse r;
-  const char* body = "{\"name\":\"test\"}";
+  const char *body = "{\"name\":\"test\"}";
   int rc = http_request (&c, HTTP_POST, "/create", body, &r);
   ASSERT_EQ (rc, 0);
   ASSERT_EQ (r.status, 201);
@@ -230,7 +230,7 @@ static void test_large_response (void)
   teardown_server ();
 }
 
-int main (int argc, char* argv[])
+int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
   printf ("Running HTTP client tests:\n");

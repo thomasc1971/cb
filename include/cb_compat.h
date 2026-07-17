@@ -13,8 +13,8 @@
 #define cb_open_memstream(bufp, sizep) open_memstream (bufp, sizep)
 #define cb_close_memstream(f)          fclose (f)
 #else
-FILE* cb_open_memstream (char** bufp, size_t* sizep);
-int cb_close_memstream (FILE* f);
+FILE *cb_open_memstream (char **bufp, size_t *sizep);
+int cb_close_memstream (FILE *f);
 #endif
 
 /* --- Socket compat (POSIX vs Winsock2) --- */
@@ -45,15 +45,15 @@ typedef WSAPOLLFD cb_pollfd;
 
 int cb_wsa_startup (void);
 void cb_wsa_cleanup (void);
-const char* cb_wsa_strerror (int err);
+const char *cb_wsa_strerror (int err);
 
 /* On Windows, SO_RCVTIMEO/SO_SNDTIMEO take a DWORD (ms), not struct timeval */
 static inline int cb_set_sock_timeout (cb_socket_t fd, int timeout_sec)
 {
   DWORD ms = (DWORD)(timeout_sec * 1000);
-  if (setsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&ms, sizeof (ms)) < 0)
+  if (setsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&ms, sizeof (ms)) < 0)
     return -1;
-  if (setsockopt (fd, SOL_SOCKET, SO_SNDTIMEO, (const char*)&ms, sizeof (ms)) < 0)
+  if (setsockopt (fd, SOL_SOCKET, SO_SNDTIMEO, (const char *)&ms, sizeof (ms)) < 0)
     return -1;
   return 0;
 }
@@ -131,8 +131,8 @@ static inline int cb_set_sock_timeout (cb_socket_t fd, int timeout_sec)
 
 /* --- setenv/unsetenv compat --- */
 
-int cb_setenv (const char* name, const char* value, int overwrite);
-int cb_unsetenv (const char* name);
+int cb_setenv (const char *name, const char *value, int overwrite);
+int cb_unsetenv (const char *name);
 
 /* --- Config directory --- */
 
@@ -140,15 +140,15 @@ int cb_unsetenv (const char* name);
  * Linux/macOS: $HOME/.config
  * Windows: %APPDATA% (or %USERPROFILE%\AppData\Roaming)
  * Returns NULL if no suitable directory is found. */
-const char* cb_config_dir (void);
+const char *cb_config_dir (void);
 
 /* --- Base64 encoding/decoding --- */
 
-char* base64_encode (const unsigned char* data, size_t len);
-unsigned char* base64_decode (const char* str, size_t* out_len);
+char *base64_encode (const unsigned char *data, size_t len);
+unsigned char *base64_decode (const char *str, size_t *out_len);
 
 /* --- URL encoding for query parameters --- */
 
-char* url_encode (const char* str);
+char *url_encode (const char *str);
 
 #endif /* CB_COMPAT_H */

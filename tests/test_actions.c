@@ -8,7 +8,7 @@
 
 static MockServer server;
 
-static void setup_server (MockResponse* responses, size_t count)
+static void setup_server (MockResponse *responses, size_t count)
 {
   memset (&server, 0, sizeof (server));
   if (mock_server_start (&server, responses, count) != 0) {
@@ -22,14 +22,14 @@ static void teardown_server (void)
   mock_server_stop (&server);
 }
 
-static void make_client (ApiClient* a)
+static void make_client (ApiClient *a)
 {
   char base_url[256];
   snprintf (base_url, sizeof (base_url), "http://127.0.0.1:%d/api/v1", server.port);
   api_client_init (a, base_url, "test-token");
 }
 
-static void set_body (MockResponse* r, const char* s)
+static void set_body (MockResponse *r, const char *s)
 {
   size_t len = strlen (s);
   if (len >= sizeof (r->body))
@@ -38,39 +38,33 @@ static void set_body (MockResponse* r, const char* s)
   r->body[len] = '\0';
 }
 
-static const char* RUN_LIST_JSON =
-    "{\"total_count\":2,\"workflow_runs\":["
-    "{\"id\":5218403,\"index_in_repo\":2,\"title\":\"Add CI\","
-    "\"status\":\"success\",\"event\":\"push\",\"workflow_id\":\"build.yml\","
-    "\"prettyref\":\"master\",\"commit_sha\":\"86920ea\","
-    "\"html_url\":\"https://codeberg.org/thomasc/cb/actions/runs/2\","
-    "\"created\":\"2026-07-02T13:44:17+02:00\",\"started\":\"2026-07-02T13:46:21+02:00\","
-    "\"stopped\":\"2026-07-02T13:47:19+02:00\"},"
-    "{\"id\":5218298,\"index_in_repo\":1,\"title\":\"Initial CI\","
-    "\"status\":\"failure\",\"event\":\"push\",\"workflow_id\":\"build.yml\","
-    "\"prettyref\":\"master\",\"commit_sha\":\"32cb444\","
-    "\"html_url\":\"https://codeberg.org/thomasc/cb/actions/runs/1\","
-    "\"created\":\"2026-07-02T13:37:17+02:00\",\"started\":\"\",\"stopped\":\"\"}"
-    "]}";
+static const char *RUN_LIST_JSON = "{\"total_count\":2,\"workflow_runs\":["
+                                   "{\"id\":5218403,\"index_in_repo\":2,\"title\":\"Add CI\","
+                                   "\"status\":\"success\",\"event\":\"push\",\"workflow_id\":\"build.yml\","
+                                   "\"prettyref\":\"master\",\"commit_sha\":\"86920ea\","
+                                   "\"html_url\":\"https://codeberg.org/thomasc/cb/actions/runs/2\","
+                                   "\"created\":\"2026-07-02T13:44:17+02:00\",\"started\":\"2026-07-02T13:46:21+02:00\","
+                                   "\"stopped\":\"2026-07-02T13:47:19+02:00\"},"
+                                   "{\"id\":5218298,\"index_in_repo\":1,\"title\":\"Initial CI\","
+                                   "\"status\":\"failure\",\"event\":\"push\",\"workflow_id\":\"build.yml\","
+                                   "\"prettyref\":\"master\",\"commit_sha\":\"32cb444\","
+                                   "\"html_url\":\"https://codeberg.org/thomasc/cb/actions/runs/1\","
+                                   "\"created\":\"2026-07-02T13:37:17+02:00\",\"started\":\"\",\"stopped\":\"\"}"
+                                   "]}";
 
-static const char* RUN_EMPTY_JSON =
-    "{\"total_count\":0,\"workflow_runs\":[]}";
+static const char *RUN_EMPTY_JSON = "{\"total_count\":0,\"workflow_runs\":[]}";
 
-static const char* RUNNER_LIST_JSON =
-    "[{\"id\":1,\"name\":\"codeberg-small\",\"uuid\":\"abc-123\","
-    "\"status\":\"online\",\"version\":\"5.0.0\"},"
-    "{\"id\":2,\"name\":\"codeberg-tiny\",\"uuid\":\"def-456\","
-    "\"status\":\"offline\",\"version\":\"5.0.0\"}]";
+static const char *RUNNER_LIST_JSON = "[{\"id\":1,\"name\":\"codeberg-small\",\"uuid\":\"abc-123\","
+                                      "\"status\":\"online\",\"version\":\"5.0.0\"},"
+                                      "{\"id\":2,\"name\":\"codeberg-tiny\",\"uuid\":\"def-456\","
+                                      "\"status\":\"offline\",\"version\":\"5.0.0\"}]";
 
-static const char* SECRET_LIST_JSON =
-    "{\"data\":[{\"name\":\"RELEASE_TOKEN\"},{\"name\":\"DOCKER_PASSWORD\"}]}";
+static const char *SECRET_LIST_JSON = "{\"data\":[{\"name\":\"RELEASE_TOKEN\"},{\"name\":\"DOCKER_PASSWORD\"}]}";
 
-static const char* VARIABLE_LIST_JSON =
-    "[{\"name\":\"BUILD_OPTS\",\"data\":\"-j4\"},"
-    "{\"name\":\"DEPLOY_TARGET\",\"data\":\"staging\"}]";
+static const char *VARIABLE_LIST_JSON = "[{\"name\":\"BUILD_OPTS\",\"data\":\"-j4\"},"
+                                        "{\"name\":\"DEPLOY_TARGET\",\"data\":\"staging\"}]";
 
-static const char* VARIABLE_SINGLE_JSON =
-    "{\"name\":\"BUILD_OPTS\",\"data\":\"-j4\"}";
+static const char *VARIABLE_SINGLE_JSON = "{\"name\":\"BUILD_OPTS\",\"data\":\"-j4\"}";
 
 /* ===== Run list ===== */
 
@@ -84,7 +78,7 @@ static void test_action_run_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  ActionRun* runs = NULL;
+  ActionRun *runs = NULL;
   size_t count = 0;
   int rc = api_action_run_list (&a, "thomasc", "cb", &runs, &count);
   ASSERT_EQ (rc, API_OK);
@@ -113,7 +107,7 @@ static void test_action_run_list_empty (void)
 
   ApiClient a;
   make_client (&a);
-  ActionRun* runs = NULL;
+  ActionRun *runs = NULL;
   size_t count = 0;
   int rc = api_action_run_list (&a, "thomasc", "cb", &runs, &count);
   ASSERT_EQ (rc, API_OK);
@@ -133,7 +127,7 @@ static void test_action_run_list_404 (void)
 
   ApiClient a;
   make_client (&a);
-  ActionRun* runs = NULL;
+  ActionRun *runs = NULL;
   size_t count = 0;
   int rc = api_action_run_list (&a, "thomasc", "missing", &runs, &count);
   ASSERT_EQ (rc, API_ERR_NOT_FOUND);
@@ -211,7 +205,7 @@ static void test_action_runner_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  ActionRunner* runners = NULL;
+  ActionRunner *runners = NULL;
   size_t count = 0;
   int rc = api_action_runner_list (&a, "thomasc", "cb", &runners, &count);
   ASSERT_EQ (rc, API_OK);
@@ -277,7 +271,7 @@ static void test_action_secret_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  ActionSecret* secrets = NULL;
+  ActionSecret *secrets = NULL;
   size_t count = 0;
   int rc = api_action_secret_list (&a, "thomasc", "cb", &secrets, &count);
   ASSERT_EQ (rc, API_OK);
@@ -298,7 +292,7 @@ static void test_action_secret_list_empty_bare_array (void)
 
   ApiClient a;
   make_client (&a);
-  ActionSecret* secrets = NULL;
+  ActionSecret *secrets = NULL;
   size_t count = 0;
   int rc = api_action_secret_list (&a, "thomasc", "cb", &secrets, &count);
   ASSERT_EQ (rc, API_OK);
@@ -317,7 +311,7 @@ static void test_action_secret_list_empty_data (void)
 
   ApiClient a;
   make_client (&a);
-  ActionSecret* secrets = NULL;
+  ActionSecret *secrets = NULL;
   size_t count = 0;
   int rc = api_action_secret_list (&a, "thomasc", "cb", &secrets, &count);
   ASSERT_EQ (rc, API_OK);
@@ -384,7 +378,7 @@ static void test_action_variable_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  ActionVariable* vars = NULL;
+  ActionVariable *vars = NULL;
   size_t count = 0;
   int rc = api_action_variable_list (&a, "thomasc", "cb", &vars, &count);
   ASSERT_EQ (rc, API_OK);
@@ -434,7 +428,7 @@ static void test_action_variable_set_create (void)
            sizeof (responses[0].path) - 1);
   responses[0].status = 404;
   {
-    const char* msg = "{\"message\":\"not found\"}";
+    const char *msg = "{\"message\":\"not found\"}";
     size_t len = strlen (msg);
     memcpy (responses[0].body, msg, len);
     responses[0].body[len] = '\0';
@@ -506,22 +500,20 @@ static void test_action_variable_delete_success (void)
 
 /* ===== Jobs & logs ===== */
 
-static const char* JOB_LOG_RESPONSE =
-    "{\"state\":{\"run\":{\"title\":\"test\",\"status\":\"failure\","
-    "\"jobs\":[{\"id\":100,\"name\":\"build-linux\",\"status\":\"failure\",\"duration\":\"59s\"},"
-    "{\"id\":101,\"name\":\"build-windows\",\"status\":\"skipped\",\"duration\":\"1s\"}]},"
-    "\"currentJob\":{\"title\":\"build-linux\",\"steps\":["
-    "{\"summary\":\"Set up job\",\"status\":\"success\",\"duration\":\"1s\"},"
-    "{\"summary\":\"Install deps\",\"status\":\"failure\",\"duration\":\"2s\"}"
-    "]}},"
-    "\"logs\":{\"stepsLog\":[]}}";
+static const char *JOB_LOG_RESPONSE = "{\"state\":{\"run\":{\"title\":\"test\",\"status\":\"failure\","
+                                      "\"jobs\":[{\"id\":100,\"name\":\"build-linux\",\"status\":\"failure\",\"duration\":\"59s\"},"
+                                      "{\"id\":101,\"name\":\"build-windows\",\"status\":\"skipped\",\"duration\":\"1s\"}]},"
+                                      "\"currentJob\":{\"title\":\"build-linux\",\"steps\":["
+                                      "{\"summary\":\"Set up job\",\"status\":\"success\",\"duration\":\"1s\"},"
+                                      "{\"summary\":\"Install deps\",\"status\":\"failure\",\"duration\":\"2s\"}"
+                                      "]}},"
+                                      "\"logs\":{\"stepsLog\":[]}}";
 
-static const char* STEP_LOG_RESPONSE =
-    "{\"state\":{\"run\":{\"jobs\":[]},\"currentJob\":{\"steps\":[]}},"
-    "\"logs\":{\"stepsLog\":[{\"step\":1,\"cursor\":null,\"lines\":["
-    "{\"index\":1,\"message\":\"apt-get update\",\"timestamp\":1782992811.0},"
-    "{\"index\":2,\"message\":\"E: Unable to locate package libretls-dev\",\"timestamp\":1782992812.0}"
-    "]}]}}";
+static const char *STEP_LOG_RESPONSE = "{\"state\":{\"run\":{\"jobs\":[]},\"currentJob\":{\"steps\":[]}},"
+                                       "\"logs\":{\"stepsLog\":[{\"step\":1,\"cursor\":null,\"lines\":["
+                                       "{\"index\":1,\"message\":\"apt-get update\",\"timestamp\":1782992811.0},"
+                                       "{\"index\":2,\"message\":\"E: Unable to locate package libretls-dev\",\"timestamp\":1782992812.0}"
+                                       "]}]}}";
 
 static void test_action_job_list_success (void)
 {
@@ -535,7 +527,7 @@ static void test_action_job_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  ActionJob* jobs = NULL;
+  ActionJob *jobs = NULL;
   size_t count = 0;
   int rc = api_action_job_list (&a, "thomasc", "cb", 3, &jobs, &count);
   ASSERT_EQ (rc, API_OK);
@@ -593,7 +585,7 @@ static void test_action_log_fetch_success (void)
 
   ApiClient a;
   make_client (&a);
-  ActionLogLine* lines = NULL;
+  ActionLogLine *lines = NULL;
   size_t count = 0;
   int rc = api_action_log_fetch (&a, "thomasc", "cb", 3, 0, 1, &lines, &count);
   ASSERT_EQ (rc, API_OK);
@@ -605,7 +597,7 @@ static void test_action_log_fetch_success (void)
   teardown_server ();
 }
 
-int main (int argc, char* argv[])
+int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
   printf ("Running actions tests:\n");

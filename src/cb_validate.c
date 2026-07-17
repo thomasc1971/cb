@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int validate_repo_name (const char* name, char* error_out, size_t error_sz)
+int validate_repo_name (const char *name, char *error_out, size_t error_sz)
 {
   if (!name || name[0] == '\0') {
     if (error_out)
@@ -41,8 +41,7 @@ int validate_repo_name (const char* name, char* error_out, size_t error_sz)
   /* AlphaDashDot: alphanumeric, dash, dot, underscore */
   for (size_t i = 0; i < len; i++) {
     char c = name[i];
-    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-          (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_')) {
+    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_')) {
       if (error_out)
         snprintf (error_out, error_sz,
                   "repository name contains invalid character '%c' (allowed: alphanumeric, -, ., _)", c);
@@ -53,7 +52,7 @@ int validate_repo_name (const char* name, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_description (const char* desc, char* error_out, size_t error_sz)
+int validate_description (const char *desc, char *error_out, size_t error_sz)
 {
   if (!desc)
     return VALIDATE_OK; /* NULL = no description */
@@ -65,7 +64,7 @@ int validate_description (const char* desc, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_website (const char* url, char* error_out, size_t error_sz)
+int validate_website (const char *url, char *error_out, size_t error_sz)
 {
   if (!url)
     return VALIDATE_OK;
@@ -77,7 +76,7 @@ int validate_website (const char* url, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_merge_style (const char* style, char* error_out, size_t error_sz)
+int validate_merge_style (const char *style, char *error_out, size_t error_sz)
 {
   if (!style) {
     if (error_out)
@@ -85,7 +84,7 @@ int validate_merge_style (const char* style, char* error_out, size_t error_sz)
     return VALIDATE_ERR;
   }
 
-  const char* valid[] = {
+  const char *valid[] = {
     "merge", "rebase", "rebase-merge", "squash",
     "fast-forward-only", "manually-merged", "rebase-update-only", NULL
   };
@@ -103,8 +102,8 @@ int validate_merge_style (const char* style, char* error_out, size_t error_sz)
   return VALIDATE_ERR;
 }
 
-int validate_owner_repo (const char* str, char* owner_out, size_t owner_sz,
-                         char* repo_out, size_t repo_sz, char* error_out, size_t error_sz)
+int validate_owner_repo (const char *str, char *owner_out, size_t owner_sz,
+                         char *repo_out, size_t repo_sz, char *error_out, size_t error_sz)
 {
   if (!str || str[0] == '\0') {
     if (error_out)
@@ -118,7 +117,7 @@ int validate_owner_repo (const char* str, char* owner_out, size_t owner_sz,
   if (repo_out && repo_sz > 0)
     repo_out[0] = '\0';
 
-  const char* slash = strchr (str, '/');
+  const char *slash = strchr (str, '/');
   if (!slash) {
     /* No slash: owner is empty, repo is the full string */
     if (repo_sz <= strlen (str)) {
@@ -134,7 +133,7 @@ int validate_owner_repo (const char* str, char* owner_out, size_t owner_sz,
 
   /* Has slash: split into owner and repo */
   size_t owner_len = (size_t)(slash - str);
-  const char* repo_start = slash + 1;
+  const char *repo_start = slash + 1;
 
   if (owner_len == 0) {
     if (error_out)
@@ -165,7 +164,7 @@ int validate_owner_repo (const char* str, char* owner_out, size_t owner_sz,
   return VALIDATE_OK;
 }
 
-int validate_tag_name (const char* name, char* error_out, size_t error_sz)
+int validate_tag_name (const char *name, char *error_out, size_t error_sz)
 {
   if (!name || name[0] == '\0') {
     if (error_out)
@@ -180,7 +179,7 @@ int validate_tag_name (const char* name, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_branch_name (const char* name, char* error_out, size_t error_sz)
+int validate_branch_name (const char *name, char *error_out, size_t error_sz)
 {
   if (!name || name[0] == '\0') {
     if (error_out)
@@ -195,7 +194,7 @@ int validate_branch_name (const char* name, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_issue_title (const char* title, char* error_out, size_t error_sz)
+int validate_issue_title (const char *title, char *error_out, size_t error_sz)
 {
   if (!title || title[0] == '\0') {
     if (error_out)
@@ -210,7 +209,7 @@ int validate_issue_title (const char* title, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_label_color (const char* color, char* error_out, size_t error_sz)
+int validate_label_color (const char *color, char *error_out, size_t error_sz)
 {
   if (!color || color[0] == '\0') {
     if (error_out)
@@ -244,7 +243,7 @@ int validate_label_color (const char* color, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_permission (const char* perm, char* error_out, size_t error_sz)
+int validate_permission (const char *perm, char *error_out, size_t error_sz)
 {
   if (!perm || perm[0] == '\0') {
     if (error_out)
@@ -259,7 +258,7 @@ int validate_permission (const char* perm, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_org_name (const char* name, char* error_out, size_t error_sz)
+int validate_org_name (const char *name, char *error_out, size_t error_sz)
 {
   if (!name || name[0] == '\0') {
     if (error_out)
@@ -277,8 +276,7 @@ int validate_org_name (const char* name, char* error_out, size_t error_sz)
   /* AlphaDashDot: alphanumeric, dash, dot, underscore */
   for (size_t i = 0; i < len; i++) {
     char c = name[i];
-    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-          (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_')) {
+    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '.' || c == '_')) {
       if (error_out)
         snprintf (error_out, error_sz,
                   "organization name contains invalid character '%c' (allowed: alphanumeric, -, ., _)", c);
@@ -289,7 +287,7 @@ int validate_org_name (const char* name, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_visibility (const char* vis, char* error_out, size_t error_sz)
+int validate_visibility (const char *vis, char *error_out, size_t error_sz)
 {
   if (!vis || vis[0] == '\0') {
     if (error_out)
@@ -297,8 +295,7 @@ int validate_visibility (const char* vis, char* error_out, size_t error_sz)
     return VALIDATE_ERR;
   }
 
-  if (strcmp (vis, "public") != 0 && strcmp (vis, "limited") != 0 &&
-      strcmp (vis, "private") != 0) {
+  if (strcmp (vis, "public") != 0 && strcmp (vis, "limited") != 0 && strcmp (vis, "private") != 0) {
     if (error_out)
       snprintf (error_out, error_sz,
                 "invalid visibility '%s' (valid: public, limited, private)", vis);
@@ -308,7 +305,7 @@ int validate_visibility (const char* vis, char* error_out, size_t error_sz)
   return VALIDATE_OK;
 }
 
-int validate_sha (const char* sha, char* error_out, size_t error_sz)
+int validate_sha (const char *sha, char *error_out, size_t error_sz)
 {
   if (!sha || sha[0] == '\0') {
     if (error_out)

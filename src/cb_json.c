@@ -31,14 +31,14 @@
 
 typedef struct
 {
-  const char* p;
-  const char* end;
-  const char* error;
+  const char *p;
+  const char *end;
+  const char *error;
 } Parser;
 
-static JsonValue* parse_value (Parser* ps);
+static JsonValue *parse_value (Parser *ps);
 
-static void skip_ws (Parser* ps)
+static void skip_ws (Parser *ps)
 {
   while (ps->p < ps->end) {
     char c = *ps->p;
@@ -49,7 +49,7 @@ static void skip_ws (Parser* ps)
   }
 }
 
-static bool match_literal (Parser* ps, const char* lit)
+static bool match_literal (Parser *ps, const char *lit)
 {
   size_t len = strlen (lit);
   if ((size_t)(ps->end - ps->p) < len)
@@ -60,16 +60,16 @@ static bool match_literal (Parser* ps, const char* lit)
   return true;
 }
 
-static JsonValue* new_value (JsonType type)
+static JsonValue *new_value (JsonType type)
 {
-  JsonValue* v = calloc (1, sizeof (JsonValue));
+  JsonValue *v = calloc (1, sizeof (JsonValue));
   if (!v)
     return NULL;
   v->type = type;
   return v;
 }
 
-static JsonValue* parse_null (Parser* ps)
+static JsonValue *parse_null (Parser *ps)
 {
   if (!match_literal (ps, "null")) {
     ps->error = "expected 'null'";
@@ -78,48 +78,46 @@ static JsonValue* parse_null (Parser* ps)
   return new_value (JSON_NULL);
 }
 
-static JsonValue* parse_true (Parser* ps)
+static JsonValue *parse_true (Parser *ps)
 {
   if (!match_literal (ps, "true")) {
     ps->error = "expected 'true'";
     return NULL;
   }
-  JsonValue* v = new_value (JSON_BOOL);
+  JsonValue *v = new_value (JSON_BOOL);
   if (v)
     v->boolean = true;
   return v;
 }
 
-static JsonValue* parse_false (Parser* ps)
+static JsonValue *parse_false (Parser *ps)
 {
   if (!match_literal (ps, "false")) {
     ps->error = "expected 'false'";
     return NULL;
   }
-  JsonValue* v = new_value (JSON_BOOL);
+  JsonValue *v = new_value (JSON_BOOL);
   if (v)
     v->boolean = false;
   return v;
 }
 
-static JsonValue* parse_number (Parser* ps)
+static JsonValue *parse_number (Parser *ps)
 {
-  const char* start = ps->p;
+  const char *start = ps->p;
   if (ps->p < ps->end && *ps->p == '-')
     ps->p++;
-  while (ps->p < ps->end && ((*ps->p >= '0' && *ps->p <= '9') ||
-                             *ps->p == '.' || *ps->p == 'e' || *ps->p == 'E' ||
-                             *ps->p == '+' || *ps->p == '-'))
+  while (ps->p < ps->end && ((*ps->p >= '0' && *ps->p <= '9') || *ps->p == '.' || *ps->p == 'e' || *ps->p == 'E' || *ps->p == '+' || *ps->p == '-'))
     ps->p++;
 
   size_t len = ps->p - start;
-  char* buf = malloc (len + 1);
+  char *buf = malloc (len + 1);
   if (!buf)
     return NULL;
   memcpy (buf, start, len);
   buf[len] = '\0';
 
-  char* endptr = NULL;
+  char *endptr = NULL;
   double val = strtod (buf, &endptr);
   if (endptr != buf + len) {
     ps->error = "invalid number";
@@ -128,13 +126,13 @@ static JsonValue* parse_number (Parser* ps)
   }
   free (buf);
 
-  JsonValue* v = new_value (JSON_NUMBER);
+  JsonValue *v = new_value (JSON_NUMBER);
   if (v)
     v->number = val;
   return v;
 }
 
-static char* parse_string_raw (Parser* ps)
+static char *parse_string_raw (Parser *ps)
 {
   if (ps->p >= ps->end || *ps->p != '"') {
     ps->error = "expected '\"'";
@@ -145,7 +143,7 @@ static char* parse_string_raw (Parser* ps)
   /* First pass: compute decoded length */
   size_t cap = 16;
   size_t len = 0;
-  char* buf = malloc (cap);
+  char *buf = malloc (cap);
   if (!buf)
     return NULL;
 
@@ -255,12 +253,12 @@ static char* parse_string_raw (Parser* ps)
   return buf;
 }
 
-static JsonValue* parse_string (Parser* ps)
+static JsonValue *parse_string (Parser *ps)
 {
-  char* s = parse_string_raw (ps);
+  char *s = parse_string_raw (ps);
   if (!s)
     return NULL;
-  JsonValue* v = new_value (JSON_STRING);
+  JsonValue *v = new_value (JSON_STRING);
   if (!v) {
     free (s);
     return NULL;
@@ -269,12 +267,12 @@ static JsonValue* parse_string (Parser* ps)
   return v;
 }
 
-static JsonValue* parse_array (Parser* ps)
+static JsonValue *parse_array (Parser *ps)
 {
   ps->p++; /* skip '[' */
   skip_ws (ps);
 
-  JsonValue* arr = new_value (JSON_ARRAY);
+  JsonValue *arr = new_value (JSON_ARRAY);
   if (!arr)
     return NULL;
 
@@ -285,7 +283,7 @@ static JsonValue* parse_array (Parser* ps)
   }
 
   size_t cap = 4;
-  arr->array.items = malloc (cap * sizeof (JsonValue*));
+  arr->array.items = malloc (cap * sizeof (JsonValue *));
   if (!arr->array.items) {
     json_free (arr);
     return NULL;
@@ -293,7 +291,7 @@ static JsonValue* parse_array (Parser* ps)
 
   for (;;) {
     skip_ws (ps);
-    JsonValue* item = parse_value (ps);
+    JsonValue *item = parse_value (ps);
     if (!item) {
       json_free (arr);
       return NULL;
@@ -301,7 +299,7 @@ static JsonValue* parse_array (Parser* ps)
 
     if (arr->array.count >= cap) {
       cap *= 2;
-      JsonValue** tmp = realloc (arr->array.items, cap * sizeof (JsonValue*));
+      JsonValue **tmp = realloc (arr->array.items, cap * sizeof (JsonValue *));
       if (!tmp) {
         json_free (item);
         json_free (arr);
@@ -333,12 +331,12 @@ static JsonValue* parse_array (Parser* ps)
   return arr;
 }
 
-static JsonValue* parse_object (Parser* ps)
+static JsonValue *parse_object (Parser *ps)
 {
   ps->p++; /* skip '{' */
   skip_ws (ps);
 
-  JsonValue* obj = new_value (JSON_OBJECT);
+  JsonValue *obj = new_value (JSON_OBJECT);
   if (!obj)
     return NULL;
 
@@ -349,8 +347,8 @@ static JsonValue* parse_object (Parser* ps)
   }
 
   size_t cap = 4;
-  obj->object.keys = malloc (cap * sizeof (char*));
-  obj->object.values = malloc (cap * sizeof (JsonValue*));
+  obj->object.keys = malloc (cap * sizeof (char *));
+  obj->object.values = malloc (cap * sizeof (JsonValue *));
   if (!obj->object.keys || !obj->object.values) {
     json_free (obj);
     return NULL;
@@ -358,7 +356,7 @@ static JsonValue* parse_object (Parser* ps)
 
   for (;;) {
     skip_ws (ps);
-    char* key = parse_string_raw (ps);
+    char *key = parse_string_raw (ps);
     if (!key) {
       json_free (obj);
       return NULL;
@@ -374,7 +372,7 @@ static JsonValue* parse_object (Parser* ps)
     ps->p++; /* skip ':' */
 
     skip_ws (ps);
-    JsonValue* val = parse_value (ps);
+    JsonValue *val = parse_value (ps);
     if (!val) {
       free (key);
       json_free (obj);
@@ -383,8 +381,8 @@ static JsonValue* parse_object (Parser* ps)
 
     if (obj->object.count >= cap) {
       cap *= 2;
-      char** tmpk = realloc (obj->object.keys, cap * sizeof (char*));
-      JsonValue** tmpv = realloc (obj->object.values, cap * sizeof (JsonValue*));
+      char **tmpk = realloc (obj->object.keys, cap * sizeof (char *));
+      JsonValue **tmpv = realloc (obj->object.values, cap * sizeof (JsonValue *));
       if (!tmpk || !tmpv) {
         free (key);
         json_free (val);
@@ -420,7 +418,7 @@ static JsonValue* parse_object (Parser* ps)
   return obj;
 }
 
-static JsonValue* parse_value (Parser* ps)
+static JsonValue *parse_value (Parser *ps)
 {
   skip_ws (ps);
   if (ps->p >= ps->end) {
@@ -460,7 +458,7 @@ static JsonValue* parse_value (Parser* ps)
   }
 }
 
-JsonValue* json_parse (const char* str, const char** error_out)
+JsonValue *json_parse (const char *str, const char **error_out)
 {
   if (!str) {
     if (error_out)
@@ -474,7 +472,7 @@ JsonValue* json_parse (const char* str, const char** error_out)
     .error = NULL
   };
 
-  JsonValue* v = parse_value (&ps);
+  JsonValue *v = parse_value (&ps);
   if (!v) {
     if (error_out)
       *error_out = ps.error ? ps.error : "parse error";
@@ -497,7 +495,7 @@ JsonValue* json_parse (const char* str, const char** error_out)
 
 /* ===== Free ===== */
 
-void json_free (JsonValue* v)
+void json_free (JsonValue *v)
 {
   if (!v)
     return;
@@ -527,38 +525,38 @@ void json_free (JsonValue* v)
 
 /* ===== Type checks ===== */
 
-bool json_is_null (const JsonValue* v) { return v && v->type == JSON_NULL; }
-bool json_is_bool (const JsonValue* v) { return v && v->type == JSON_BOOL; }
-bool json_is_number (const JsonValue* v) { return v && v->type == JSON_NUMBER; }
-bool json_is_string (const JsonValue* v) { return v && v->type == JSON_STRING; }
-bool json_is_array (const JsonValue* v) { return v && v->type == JSON_ARRAY; }
-bool json_is_object (const JsonValue* v) { return v && v->type == JSON_OBJECT; }
+bool json_is_null (const JsonValue *v) { return v && v->type == JSON_NULL; }
+bool json_is_bool (const JsonValue *v) { return v && v->type == JSON_BOOL; }
+bool json_is_number (const JsonValue *v) { return v && v->type == JSON_NUMBER; }
+bool json_is_string (const JsonValue *v) { return v && v->type == JSON_STRING; }
+bool json_is_array (const JsonValue *v) { return v && v->type == JSON_ARRAY; }
+bool json_is_object (const JsonValue *v) { return v && v->type == JSON_OBJECT; }
 
 /* ===== Accessors ===== */
 
-bool json_bool (const JsonValue* v)
+bool json_bool (const JsonValue *v)
 {
   return v && v->type == JSON_BOOL ? v->boolean : false;
 }
 
-double json_number (const JsonValue* v)
+double json_number (const JsonValue *v)
 {
   return v && v->type == JSON_NUMBER ? v->number : 0.0;
 }
 
-const char* json_string (const JsonValue* v)
+const char *json_string (const JsonValue *v)
 {
   return v && v->type == JSON_STRING ? v->string : NULL;
 }
 
 /* ===== Array helpers ===== */
 
-size_t json_array_count (const JsonValue* v)
+size_t json_array_count (const JsonValue *v)
 {
   return v && v->type == JSON_ARRAY ? v->array.count : 0;
 }
 
-JsonValue* json_array_get (const JsonValue* v, size_t index)
+JsonValue *json_array_get (const JsonValue *v, size_t index)
 {
   if (!v || v->type != JSON_ARRAY || index >= v->array.count)
     return NULL;
@@ -567,26 +565,26 @@ JsonValue* json_array_get (const JsonValue* v, size_t index)
 
 /* ===== Object helpers ===== */
 
-size_t json_object_count (const JsonValue* v)
+size_t json_object_count (const JsonValue *v)
 {
   return v && v->type == JSON_OBJECT ? v->object.count : 0;
 }
 
-const char* json_object_key (const JsonValue* v, size_t index)
+const char *json_object_key (const JsonValue *v, size_t index)
 {
   if (!v || v->type != JSON_OBJECT || index >= v->object.count)
     return NULL;
   return v->object.keys[index];
 }
 
-JsonValue* json_object_get (const JsonValue* v, size_t index)
+JsonValue *json_object_get (const JsonValue *v, size_t index)
 {
   if (!v || v->type != JSON_OBJECT || index >= v->object.count)
     return NULL;
   return v->object.values[index];
 }
 
-JsonValue* json_object_lookup (const JsonValue* v, const char* key)
+JsonValue *json_object_lookup (const JsonValue *v, const char *key)
 {
   if (!v || v->type != JSON_OBJECT || !key)
     return NULL;
@@ -599,27 +597,27 @@ JsonValue* json_object_lookup (const JsonValue* v, const char* key)
 
 /* ===== Builder API ===== */
 
-JsonValue* json_null_new (void) { return new_value (JSON_NULL); }
+JsonValue *json_null_new (void) { return new_value (JSON_NULL); }
 
-JsonValue* json_bool_new (bool val)
+JsonValue *json_bool_new (bool val)
 {
-  JsonValue* v = new_value (JSON_BOOL);
+  JsonValue *v = new_value (JSON_BOOL);
   if (v)
     v->boolean = val;
   return v;
 }
 
-JsonValue* json_number_new (double val)
+JsonValue *json_number_new (double val)
 {
-  JsonValue* v = new_value (JSON_NUMBER);
+  JsonValue *v = new_value (JSON_NUMBER);
   if (v)
     v->number = val;
   return v;
 }
 
-JsonValue* json_string_new (const char* val)
+JsonValue *json_string_new (const char *val)
 {
-  JsonValue* v = new_value (JSON_STRING);
+  JsonValue *v = new_value (JSON_STRING);
   if (!v)
     return NULL;
   v->string = strdup (val ? val : "");
@@ -630,24 +628,24 @@ JsonValue* json_string_new (const char* val)
   return v;
 }
 
-JsonValue* json_array_new (void)
+JsonValue *json_array_new (void)
 {
-  JsonValue* v = new_value (JSON_ARRAY);
+  JsonValue *v = new_value (JSON_ARRAY);
   return v;
 }
 
-void json_array_push (JsonValue* arr, JsonValue* item)
+void json_array_push (JsonValue *arr, JsonValue *item)
 {
   if (!arr || arr->type != JSON_ARRAY || !item)
     return;
   if (arr->array.count == 0) {
-    arr->array.items = malloc (4 * sizeof (JsonValue*));
+    arr->array.items = malloc (4 * sizeof (JsonValue *));
     if (!arr->array.items)
       return;
   } else if ((arr->array.count & (arr->array.count - 1)) == 0) {
     /* Grow when count is a power of 2 */
     size_t newcap = arr->array.count * 2;
-    JsonValue** tmp = realloc (arr->array.items, newcap * sizeof (JsonValue*));
+    JsonValue **tmp = realloc (arr->array.items, newcap * sizeof (JsonValue *));
     if (!tmp)
       return;
     arr->array.items = tmp;
@@ -655,12 +653,12 @@ void json_array_push (JsonValue* arr, JsonValue* item)
   arr->array.items[arr->array.count++] = item;
 }
 
-JsonValue* json_object_new (void)
+JsonValue *json_object_new (void)
 {
   return new_value (JSON_OBJECT);
 }
 
-void json_object_set (JsonValue* obj, const char* key, JsonValue* val)
+void json_object_set (JsonValue *obj, const char *key, JsonValue *val)
 {
   if (!obj || obj->type != JSON_OBJECT || !key || !val)
     return;
@@ -675,14 +673,14 @@ void json_object_set (JsonValue* obj, const char* key, JsonValue* val)
   }
 
   if (obj->object.count == 0) {
-    obj->object.keys = malloc (4 * sizeof (char*));
-    obj->object.values = malloc (4 * sizeof (JsonValue*));
+    obj->object.keys = malloc (4 * sizeof (char *));
+    obj->object.values = malloc (4 * sizeof (JsonValue *));
     if (!obj->object.keys || !obj->object.values)
       return;
   } else if ((obj->object.count & (obj->object.count - 1)) == 0) {
     size_t newcap = obj->object.count * 2;
-    char** tmpk = realloc (obj->object.keys, newcap * sizeof (char*));
-    JsonValue** tmpv = realloc (obj->object.values, newcap * sizeof (JsonValue*));
+    char **tmpk = realloc (obj->object.keys, newcap * sizeof (char *));
+    JsonValue **tmpv = realloc (obj->object.values, newcap * sizeof (JsonValue *));
     if (!tmpk || !tmpv)
       return;
     obj->object.keys = tmpk;
@@ -693,32 +691,32 @@ void json_object_set (JsonValue* obj, const char* key, JsonValue* val)
   obj->object.count++;
 }
 
-void json_object_set_string (JsonValue* obj, const char* key, const char* val)
+void json_object_set_string (JsonValue *obj, const char *key, const char *val)
 {
   json_object_set (obj, key, json_string_new (val));
 }
 
-void json_object_set_number (JsonValue* obj, const char* key, double val)
+void json_object_set_number (JsonValue *obj, const char *key, double val)
 {
   json_object_set (obj, key, json_number_new (val));
 }
 
-void json_object_set_bool (JsonValue* obj, const char* key, bool val)
+void json_object_set_bool (JsonValue *obj, const char *key, bool val)
 {
   json_object_set (obj, key, json_bool_new (val));
 }
 
-void json_object_set_null (JsonValue* obj, const char* key)
+void json_object_set_null (JsonValue *obj, const char *key)
 {
   json_object_set (obj, key, json_null_new ());
 }
 
 /* ===== Serializer ===== */
 
-static void serialize_string (const char* s, FILE* f)
+static void serialize_string (const char *s, FILE *f)
 {
   fputc ('"', f);
-  for (const char* p = s; *p; p++) {
+  for (const char *p = s; *p; p++) {
     switch (*p) {
     case '"':
       fputs ("\\\"", f);
@@ -751,7 +749,7 @@ static void serialize_string (const char* s, FILE* f)
   fputc ('"', f);
 }
 
-static void serialize_value (const JsonValue* v, FILE* f, bool omit_null)
+static void serialize_value (const JsonValue *v, FILE *f, bool omit_null)
 {
   if (!v) {
     fputs ("null", f);
@@ -806,11 +804,11 @@ static void serialize_value (const JsonValue* v, FILE* f, bool omit_null)
   }
 }
 
-char* json_serialize (const JsonValue* v, bool omit_null)
+char *json_serialize (const JsonValue *v, bool omit_null)
 {
-  char* result = NULL;
+  char *result = NULL;
   size_t size = 0;
-  FILE* f = cb_open_memstream (&result, &size);
+  FILE *f = cb_open_memstream (&result, &size);
   if (!f)
     return NULL;
   serialize_value (v, f, omit_null);

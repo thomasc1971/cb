@@ -8,7 +8,7 @@
 
 static MockServer server;
 
-static void setup_server (MockResponse* responses, size_t count)
+static void setup_server (MockResponse *responses, size_t count)
 {
   memset (&server, 0, sizeof (server));
   if (mock_server_start (&server, responses, count) != 0) {
@@ -22,33 +22,31 @@ static void teardown_server (void)
   mock_server_stop (&server);
 }
 
-static void make_client (ApiClient* a)
+static void make_client (ApiClient *a)
 {
   char base_url[256];
   snprintf (base_url, sizeof (base_url), "http://127.0.0.1:%d/api/v1", server.port);
   api_client_init (a, base_url, "test-token");
 }
 
-static const char* RELEASE_JSON =
-    "{\"id\":1,\"tag_name\":\"v1.0.0\",\"name\":\"First Release\","
-    "\"body\":\"Initial release\",\"target_commitish\":\"main\","
-    "\"draft\":false,\"prerelease\":false,\"hide_archive_links\":false,"
-    "\"html_url\":\"https://codeberg.org/owner/repo/releases/tag/v1.0.0\","
-    "\"tarball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.tar.gz\","
-    "\"zipball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.zip\","
-    "\"upload_url\":\"https://codeberg.org/owner/repo/releases/1/assets\","
-    "\"url\":\"https://codeberg.org/api/v1/repos/owner/repo/releases/1\","
-    "\"created_at\":\"2026-01-01T00:00:00Z\","
-    "\"published_at\":\"2026-01-01T00:00:00Z\","
-    "\"author\":{\"login\":\"thomasc\"},\"assets\":[]}";
+static const char *RELEASE_JSON = "{\"id\":1,\"tag_name\":\"v1.0.0\",\"name\":\"First Release\","
+                                  "\"body\":\"Initial release\",\"target_commitish\":\"main\","
+                                  "\"draft\":false,\"prerelease\":false,\"hide_archive_links\":false,"
+                                  "\"html_url\":\"https://codeberg.org/owner/repo/releases/tag/v1.0.0\","
+                                  "\"tarball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.tar.gz\","
+                                  "\"zipball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.zip\","
+                                  "\"upload_url\":\"https://codeberg.org/owner/repo/releases/1/assets\","
+                                  "\"url\":\"https://codeberg.org/api/v1/repos/owner/repo/releases/1\","
+                                  "\"created_at\":\"2026-01-01T00:00:00Z\","
+                                  "\"published_at\":\"2026-01-01T00:00:00Z\","
+                                  "\"author\":{\"login\":\"thomasc\"},\"assets\":[]}";
 
-static const char* ATTACHMENT_JSON =
-    "{\"id\":10,\"name\":\"binary.tar.gz\","
-    "\"browser_download_url\":\"https://codeberg.org/owner/repo/releases/download/v1.0.0/binary.tar.gz\","
-    "\"uuid\":\"abc-123\",\"created_at\":\"2026-01-01T00:00:00Z\","
-    "\"type\":\"addon\",\"size\":1024,\"download_count\":5}";
+static const char *ATTACHMENT_JSON = "{\"id\":10,\"name\":\"binary.tar.gz\","
+                                     "\"browser_download_url\":\"https://codeberg.org/owner/repo/releases/download/v1.0.0/binary.tar.gz\","
+                                     "\"uuid\":\"abc-123\",\"created_at\":\"2026-01-01T00:00:00Z\","
+                                     "\"type\":\"addon\",\"size\":1024,\"download_count\":5}";
 
-static void set_body (MockResponse* r, const char* s)
+static void set_body (MockResponse *r, const char *s)
 {
   size_t len = strlen (s);
   if (len >= sizeof (r->body))
@@ -73,7 +71,7 @@ static void test_release_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Release* releases;
+  Release *releases;
   size_t count;
   int rc = api_release_list (&a, "thomasc", "myproj", 0, 0, NULL, 0,
                              &releases, &count);
@@ -104,7 +102,7 @@ static void test_release_list_empty (void)
 
   ApiClient a;
   make_client (&a);
-  Release* releases;
+  Release *releases;
   size_t count;
   int rc = api_release_list (&a, "thomasc", "myproj", 0, 0, NULL, 0,
                              &releases, &count);
@@ -128,7 +126,7 @@ static void test_release_list_404 (void)
 
   ApiClient a;
   make_client (&a);
-  Release* releases;
+  Release *releases;
   size_t count;
   int rc = api_release_list (&a, "thomasc", "missing", 0, 0, NULL, 0,
                              &releases, &count);
@@ -336,7 +334,7 @@ static void test_release_asset_list (void)
 
   ApiClient a;
   make_client (&a);
-  Attachment* assets;
+  Attachment *assets;
   size_t count;
   int rc = api_release_asset_list (&a, "thomasc", "myproj", 1, &assets, &count);
   ASSERT_EQ (rc, API_OK);
@@ -392,12 +390,11 @@ static void test_release_asset_delete (void)
 
 /* ===== Tags ===== */
 
-static const char* TAG_JSON =
-    "{\"name\":\"v1.0.0\",\"id\":\"abc123\","
-    "\"message\":\"Release v1.0.0\","
-    "\"tarball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.tar.gz\","
-    "\"zipball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.zip\","
-    "\"commit\":{\"sha\":\"def456\",\"url\":\"\"}}";
+static const char *TAG_JSON = "{\"name\":\"v1.0.0\",\"id\":\"abc123\","
+                              "\"message\":\"Release v1.0.0\","
+                              "\"tarball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.tar.gz\","
+                              "\"zipball_url\":\"https://codeberg.org/owner/repo/archive/v1.0.0.zip\","
+                              "\"commit\":{\"sha\":\"def456\",\"url\":\"\"}}";
 
 static void test_tag_list_success (void)
 {
@@ -413,7 +410,7 @@ static void test_tag_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Tag* tags;
+  Tag *tags;
   size_t count;
   int rc = api_tag_list (&a, "thomasc", "myproj", 0, &tags, &count);
   ASSERT_EQ (rc, API_OK);
@@ -495,11 +492,10 @@ static void test_tag_delete_success (void)
 
 /* ===== Branches ===== */
 
-static const char* BRANCH_JSON =
-    "{\"name\":\"main\",\"protected\":false,"
-    "\"effective_branch_protection_name\":\"\","
-    "\"user_can_merge\":true,\"user_can_push\":true,"
-    "\"commit\":{\"id\":\"abc123\",\"commit\":{\"message\":\"Initial commit\"}}}";
+static const char *BRANCH_JSON = "{\"name\":\"main\",\"protected\":false,"
+                                 "\"effective_branch_protection_name\":\"\","
+                                 "\"user_can_merge\":true,\"user_can_push\":true,"
+                                 "\"commit\":{\"id\":\"abc123\",\"commit\":{\"message\":\"Initial commit\"}}}";
 
 static void test_branch_list_success (void)
 {
@@ -515,7 +511,7 @@ static void test_branch_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Branch* branches;
+  Branch *branches;
   size_t count;
   int rc = api_branch_list (&a, "thomasc", "myproj", 0, &branches, &count);
   ASSERT_EQ (rc, API_OK);
@@ -597,14 +593,13 @@ static void test_branch_delete_success (void)
 
 /* ===== Issues ===== */
 
-static const char* ISSUE_JSON =
-    "{\"id\":42,\"number\":1,\"title\":\"Bug report\","
-    "\"body\":\"Something is broken\",\"state\":\"open\","
-    "\"html_url\":\"https://codeberg.org/owner/repo/issues/1\","
-    "\"created_at\":\"2026-01-01T00:00:00Z\","
-    "\"updated_at\":\"2026-01-01T00:00:00Z\","
-    "\"closed_at\":null,\"due_date\":null,"
-    "\"is_locked\":false,\"comments\":0,\"pin_order\":0}";
+static const char *ISSUE_JSON = "{\"id\":42,\"number\":1,\"title\":\"Bug report\","
+                                "\"body\":\"Something is broken\",\"state\":\"open\","
+                                "\"html_url\":\"https://codeberg.org/owner/repo/issues/1\","
+                                "\"created_at\":\"2026-01-01T00:00:00Z\","
+                                "\"updated_at\":\"2026-01-01T00:00:00Z\","
+                                "\"closed_at\":null,\"due_date\":null,"
+                                "\"is_locked\":false,\"comments\":0,\"pin_order\":0}";
 
 static void test_issue_list_success (void)
 {
@@ -620,7 +615,7 @@ static void test_issue_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Issue* issues;
+  Issue *issues;
   size_t count;
   int rc = api_issue_list (&a, "thomasc", "myproj", NULL, NULL, NULL, 0,
                            &issues, &count);
@@ -703,9 +698,8 @@ static void test_issue_delete_success (void)
 
 /* ===== Labels ===== */
 
-static const char* LABEL_JSON =
-    "{\"id\":5,\"name\":\"bug\",\"color\":\"ff0000\","
-    "\"description\":\"Bug report\",\"exclusive\":false,\"is_archived\":false}";
+static const char *LABEL_JSON = "{\"id\":5,\"name\":\"bug\",\"color\":\"ff0000\","
+                                "\"description\":\"Bug report\",\"exclusive\":false,\"is_archived\":false}";
 
 static void test_label_list_success (void)
 {
@@ -721,7 +715,7 @@ static void test_label_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Label* labels;
+  Label *labels;
   size_t count;
   int rc = api_label_list (&a, "thomasc", "myproj", &labels, &count);
   ASSERT_EQ (rc, API_OK);
@@ -806,12 +800,11 @@ static void test_label_delete_success (void)
 
 /* ===== Milestones ===== */
 
-static const char* MILESTONE_JSON =
-    "{\"id\":3,\"title\":\"v1.0\",\"description\":\"First release\","
-    "\"state\":\"open\",\"due_on\":\"2026-12-31T00:00:00Z\","
-    "\"created_at\":\"2026-01-01T00:00:00Z\","
-    "\"updated_at\":\"2026-01-01T00:00:00Z\","
-    "\"open_issues\":5,\"closed_issues\":2}";
+static const char *MILESTONE_JSON = "{\"id\":3,\"title\":\"v1.0\",\"description\":\"First release\","
+                                    "\"state\":\"open\",\"due_on\":\"2026-12-31T00:00:00Z\","
+                                    "\"created_at\":\"2026-01-01T00:00:00Z\","
+                                    "\"updated_at\":\"2026-01-01T00:00:00Z\","
+                                    "\"open_issues\":5,\"closed_issues\":2}";
 
 static void test_milestone_list_success (void)
 {
@@ -827,7 +820,7 @@ static void test_milestone_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Milestone* ms;
+  Milestone *ms;
   size_t count;
   int rc = api_milestone_list (&a, "thomasc", "myproj", NULL, &ms, &count);
   ASSERT_EQ (rc, API_OK);
@@ -912,18 +905,17 @@ static void test_milestone_delete_success (void)
 
 /* ===== Pull Requests ===== */
 
-static const char* PR_JSON =
-    "{\"id\":99,\"number\":7,\"title\":\"Fix bug\","
-    "\"body\":\"Fixes the thing\",\"state\":\"open\","
-    "\"draft\":false,\"merged\":false,\"mergeable\":true,"
-    "\"merged_at\":null,\"closed_at\":null,"
-    "\"created_at\":\"2026-01-01T00:00:00Z\","
-    "\"updated_at\":\"2026-01-01T00:00:00Z\","
-    "\"html_url\":\"https://codeberg.org/owner/repo/pulls/7\","
-    "\"diff_url\":\"https://codeberg.org/owner/repo/pulls/7.diff\","
-    "\"patch_url\":\"https://codeberg.org/owner/repo/pulls/7.patch\","
-    "\"merge_commit_sha\":\"\","
-    "\"base\":{\"ref\":\"main\"},\"head\":{\"ref\":\"fix-bug\"}}";
+static const char *PR_JSON = "{\"id\":99,\"number\":7,\"title\":\"Fix bug\","
+                             "\"body\":\"Fixes the thing\",\"state\":\"open\","
+                             "\"draft\":false,\"merged\":false,\"mergeable\":true,"
+                             "\"merged_at\":null,\"closed_at\":null,"
+                             "\"created_at\":\"2026-01-01T00:00:00Z\","
+                             "\"updated_at\":\"2026-01-01T00:00:00Z\","
+                             "\"html_url\":\"https://codeberg.org/owner/repo/pulls/7\","
+                             "\"diff_url\":\"https://codeberg.org/owner/repo/pulls/7.diff\","
+                             "\"patch_url\":\"https://codeberg.org/owner/repo/pulls/7.patch\","
+                             "\"merge_commit_sha\":\"\","
+                             "\"base\":{\"ref\":\"main\"},\"head\":{\"ref\":\"fix-bug\"}}";
 
 static void test_pr_list_success (void)
 {
@@ -939,7 +931,7 @@ static void test_pr_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  PullRequest* prs;
+  PullRequest *prs;
   size_t count;
   int rc = api_pr_list (&a, "thomasc", "myproj", NULL, 0, &prs, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1004,13 +996,12 @@ static void test_pr_get_success (void)
 
 /* ===== Commits ===== */
 
-static const char* COMMIT_JSON =
-    "{\"sha\":\"abc123def456\",\"created\":\"2026-01-01T00:00:00Z\","
-    "\"html_url\":\"https://codeberg.org/owner/repo/commit/abc123\","
-    "\"commit\":{\"message\":\"Initial commit\","
-    "\"author\":{\"name\":\"Alice\",\"email\":\"alice@example.com\"},"
-    "\"committer\":{\"name\":\"Alice\",\"email\":\"alice@example.com\"}},"
-    "\"stats\":{\"additions\":10,\"deletions\":2,\"total\":12}}";
+static const char *COMMIT_JSON = "{\"sha\":\"abc123def456\",\"created\":\"2026-01-01T00:00:00Z\","
+                                 "\"html_url\":\"https://codeberg.org/owner/repo/commit/abc123\","
+                                 "\"commit\":{\"message\":\"Initial commit\","
+                                 "\"author\":{\"name\":\"Alice\",\"email\":\"alice@example.com\"},"
+                                 "\"committer\":{\"name\":\"Alice\",\"email\":\"alice@example.com\"}},"
+                                 "\"stats\":{\"additions\":10,\"deletions\":2,\"total\":12}}";
 
 static void test_commit_list_success (void)
 {
@@ -1026,7 +1017,7 @@ static void test_commit_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Commit* commits;
+  Commit *commits;
   size_t count;
   int rc = api_commit_list (&a, "thomasc", "myproj", NULL, NULL, 0,
                             &commits, &count);
@@ -1043,20 +1034,18 @@ static void test_commit_list_success (void)
 
 /* ===== Content ===== */
 
-static const char* CONTENT_FILE_JSON =
-    "{\"type\":\"file\",\"name\":\"README.md\",\"path\":\"README.md\","
-    "\"sha\":\"abc123\",\"size\":42,\"encoding\":\"base64\","
-    "\"content\":\"SGVsbG8gV29ybGQ=\","
-    "\"download_url\":\"https://codeberg.org/owner/repo/raw/README.md\","
-    "\"html_url\":\"https://codeberg.org/owner/repo/src/README.md\","
-    "\"git_url\":\"https://codeberg.org/api/v1/repos/owner/repo/git/blobs/abc123\","
-    "\"last_commit_sha\":\"def456\"}";
+static const char *CONTENT_FILE_JSON = "{\"type\":\"file\",\"name\":\"README.md\",\"path\":\"README.md\","
+                                       "\"sha\":\"abc123\",\"size\":42,\"encoding\":\"base64\","
+                                       "\"content\":\"SGVsbG8gV29ybGQ=\","
+                                       "\"download_url\":\"https://codeberg.org/owner/repo/raw/README.md\","
+                                       "\"html_url\":\"https://codeberg.org/owner/repo/src/README.md\","
+                                       "\"git_url\":\"https://codeberg.org/api/v1/repos/owner/repo/git/blobs/abc123\","
+                                       "\"last_commit_sha\":\"def456\"}";
 
-static const char* CONTENT_DIR_JSON =
-    "[{\"type\":\"dir\",\"name\":\"src\",\"path\":\"src\","
-    "\"sha\":\"abc123\",\"size\":0,"
-    "\"download_url\":null,\"html_url\":null,\"git_url\":null,"
-    "\"last_commit_sha\":\"def456\"}]";
+static const char *CONTENT_DIR_JSON = "[{\"type\":\"dir\",\"name\":\"src\",\"path\":\"src\","
+                                      "\"sha\":\"abc123\",\"size\":0,"
+                                      "\"download_url\":null,\"html_url\":null,\"git_url\":null,"
+                                      "\"last_commit_sha\":\"def456\"}]";
 
 static void test_content_list_success (void)
 {
@@ -1070,7 +1059,7 @@ static void test_content_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  ContentEntry* entries;
+  ContentEntry *entries;
   size_t count;
   int rc = api_content_list (&a, "thomasc", "myproj", NULL, &entries, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1108,10 +1097,9 @@ static void test_content_get_file (void)
 
 /* ===== Deploy Keys ===== */
 
-static const char* KEY_JSON =
-    "{\"id\":7,\"title\":\"CI key\","
-    "\"key\":\"ssh-rsa AAAA...\",\"fingerprint\":\"SHA256:abc\","
-    "\"read_only\":true,\"created_at\":\"2026-01-01T00:00:00Z\"}";
+static const char *KEY_JSON = "{\"id\":7,\"title\":\"CI key\","
+                              "\"key\":\"ssh-rsa AAAA...\",\"fingerprint\":\"SHA256:abc\","
+                              "\"read_only\":true,\"created_at\":\"2026-01-01T00:00:00Z\"}";
 
 static void test_key_list_success (void)
 {
@@ -1127,7 +1115,7 @@ static void test_key_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  DeployKey* keys;
+  DeployKey *keys;
   size_t count;
   int rc = api_key_list (&a, "thomasc", "myproj", &keys, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1194,9 +1182,8 @@ static void test_key_add_success (void)
 
 /* ===== Collaborators ===== */
 
-static const char* USER_JSON =
-    "{\"id\":1,\"login\":\"alice\",\"full_name\":\"Alice\","
-    "\"html_url\":\"https://codeberg.org/alice\"}";
+static const char *USER_JSON = "{\"id\":1,\"login\":\"alice\",\"full_name\":\"Alice\","
+                               "\"html_url\":\"https://codeberg.org/alice\"}";
 
 static void test_collaborator_list_success (void)
 {
@@ -1212,7 +1199,7 @@ static void test_collaborator_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  User* users;
+  User *users;
   size_t count;
   int rc = api_collaborator_list (&a, "thomasc", "myproj", &users, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1244,10 +1231,9 @@ static void test_collaborator_add (void)
 
 /* ===== Hooks ===== */
 
-static const char* HOOK_JSON =
-    "{\"id\":11,\"type\":\"gitea\",\"active\":true,"
-    "\"config\":{\"url\":\"https://example.com/hook\",\"content_type\":\"json\"},"
-    "\"branch_filter\":\"\",\"authorization_header\":\"\"}";
+static const char *HOOK_JSON = "{\"id\":11,\"type\":\"gitea\",\"active\":true,"
+                               "\"config\":{\"url\":\"https://example.com/hook\",\"content_type\":\"json\"},"
+                               "\"branch_filter\":\"\",\"authorization_header\":\"\"}";
 
 static void test_hook_list_success (void)
 {
@@ -1263,7 +1249,7 @@ static void test_hook_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Hook* hooks;
+  Hook *hooks;
   size_t count;
   int rc = api_hook_list (&a, "thomasc", "myproj", &hooks, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1289,7 +1275,7 @@ static void test_hook_create_success (void)
 
   ApiClient a;
   make_client (&a);
-  const char* events[] = { "push", NULL };
+  const char *events[] = { "push", NULL };
   CreateHookOpts opts = {
     .type = "gitea",
     .url = "https://example.com/hook",
@@ -1327,12 +1313,11 @@ static void test_hook_delete_success (void)
 
 /* ===== Wiki ===== */
 
-static const char* WIKI_JSON =
-    "{\"title\":\"Home\",\"content_base64\":\"SGVsbG8=\","
-    "\"html_url\":\"https://codeberg.org/owner/repo/wiki/Home\","
-    "\"sub_url\":\"/owner/repo/wiki/Home\","
-    "\"commit_count\":3,"
-    "\"last_commit\":{\"sha\":\"abc123\"}}";
+static const char *WIKI_JSON = "{\"title\":\"Home\",\"content_base64\":\"SGVsbG8=\","
+                               "\"html_url\":\"https://codeberg.org/owner/repo/wiki/Home\","
+                               "\"sub_url\":\"/owner/repo/wiki/Home\","
+                               "\"commit_count\":3,"
+                               "\"last_commit\":{\"sha\":\"abc123\"}}";
 
 static void test_wiki_list_success (void)
 {
@@ -1348,7 +1333,7 @@ static void test_wiki_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  WikiPage* pages;
+  WikiPage *pages;
   size_t count;
   int rc = api_wiki_list (&a, "thomasc", "myproj", &pages, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1432,8 +1417,8 @@ static void test_repo_languages (void)
 
   ApiClient a;
   make_client (&a);
-  char** langs;
-  int64_t* bytes;
+  char **langs;
+  int64_t *bytes;
   size_t count;
   int rc = api_repo_languages (&a, "thomasc", "myproj", &langs, &bytes, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1479,21 +1464,19 @@ static void test_user_get_current (void)
 
 /* ===== SSH key (user public key) tests ===== */
 
-static const char* SSHKEY_LIST_JSON =
-    "[{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
-    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
-    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
-    "\"created_at\":\"2026-07-10T12:00:00Z\"},"
-    "{\"id\":2,\"title\":\"CI Runner\",\"key\":\"ssh-ed25519 AAAAC3... runner\","
-    "\"fingerprint\":\"SHA256:def456\",\"key_type\":\"ssh-ed25519\","
-    "\"read_only\":true,\"url\":\"https://codeberg.org/api/v1/user/keys/2\","
-    "\"created_at\":\"2026-07-11T09:00:00Z\"}]";
+static const char *SSHKEY_LIST_JSON = "[{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+                                      "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+                                      "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+                                      "\"created_at\":\"2026-07-10T12:00:00Z\"},"
+                                      "{\"id\":2,\"title\":\"CI Runner\",\"key\":\"ssh-ed25519 AAAAC3... runner\","
+                                      "\"fingerprint\":\"SHA256:def456\",\"key_type\":\"ssh-ed25519\","
+                                      "\"read_only\":true,\"url\":\"https://codeberg.org/api/v1/user/keys/2\","
+                                      "\"created_at\":\"2026-07-11T09:00:00Z\"}]";
 
-static const char* SSHKEY_SINGLE_JSON =
-    "{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
-    "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
-    "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
-    "\"created_at\":\"2026-07-10T12:00:00Z\"}";
+static const char *SSHKEY_SINGLE_JSON = "{\"id\":1,\"title\":\"Laptop\",\"key\":\"ssh-ed25519 AAAAC3... laptop\","
+                                        "\"fingerprint\":\"SHA256:abc123\",\"key_type\":\"ssh-ed25519\","
+                                        "\"read_only\":false,\"url\":\"https://codeberg.org/api/v1/user/keys/1\","
+                                        "\"created_at\":\"2026-07-10T12:00:00Z\"}";
 
 static void test_user_key_list_success (void)
 {
@@ -1505,7 +1488,7 @@ static void test_user_key_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  PublicKey* keys;
+  PublicKey *keys;
   size_t count;
   int rc = api_user_key_list (&a, &keys, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1533,7 +1516,7 @@ static void test_user_key_list_empty (void)
 
   ApiClient a;
   make_client (&a);
-  PublicKey* keys;
+  PublicKey *keys;
   size_t count;
   int rc = api_user_key_list (&a, &keys, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1619,7 +1602,7 @@ static void test_user_key_list_401 (void)
 
   ApiClient a;
   make_client (&a);
-  PublicKey* keys;
+  PublicKey *keys;
   size_t count;
   int rc = api_user_key_list (&a, &keys, &count);
   ASSERT_EQ (rc, API_ERR_AUTH);
@@ -1648,19 +1631,17 @@ static void test_user_key_get_404 (void)
 
 /* ===== Package tests ===== */
 
-static const char* PACKAGE_JSON =
-    "{\"id\":1,\"name\":\"mylib\",\"type\":\"generic\","
-    "\"version\":\"1.0.0\","
-    "\"html_url\":\"https://codeberg.org/thomasc/-/packages/generic/mylib/1.0.0\","
-    "\"created_at\":\"2024-01-01T00:00:00Z\","
-    "\"creator\":{\"login\":\"thomasc\"},"
-    "\"owner\":{\"login\":\"thomasc\"},"
-    "\"repository\":{\"full_name\":\"thomasc/myrepo\"}}";
+static const char *PACKAGE_JSON = "{\"id\":1,\"name\":\"mylib\",\"type\":\"generic\","
+                                  "\"version\":\"1.0.0\","
+                                  "\"html_url\":\"https://codeberg.org/thomasc/-/packages/generic/mylib/1.0.0\","
+                                  "\"created_at\":\"2024-01-01T00:00:00Z\","
+                                  "\"creator\":{\"login\":\"thomasc\"},"
+                                  "\"owner\":{\"login\":\"thomasc\"},"
+                                  "\"repository\":{\"full_name\":\"thomasc/myrepo\"}}";
 
-static const char* PACKAGE_FILE_JSON =
-    "{\"id\":2,\"Size\":1024,\"name\":\"mylib-1.0.0.tar.gz\","
-    "\"md5\":\"abc123\",\"sha1\":\"def456\","
-    "\"sha256\":\"789abc\",\"sha512\":\"xyz\"}";
+static const char *PACKAGE_FILE_JSON = "{\"id\":2,\"Size\":1024,\"name\":\"mylib-1.0.0.tar.gz\","
+                                       "\"md5\":\"abc123\",\"sha1\":\"def456\","
+                                       "\"sha256\":\"789abc\",\"sha512\":\"xyz\"}";
 
 static void test_package_list_success (void)
 {
@@ -1676,7 +1657,7 @@ static void test_package_list_success (void)
 
   ApiClient a;
   make_client (&a);
-  Package* pkgs;
+  Package *pkgs;
   size_t count;
   int rc = api_package_list (&a, "thomasc", NULL, NULL, 0, &pkgs, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1706,7 +1687,7 @@ static void test_package_list_empty (void)
 
   ApiClient a;
   make_client (&a);
-  Package* pkgs;
+  Package *pkgs;
   size_t count;
   int rc = api_package_list (&a, "thomasc", NULL, NULL, 0, &pkgs, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1728,7 +1709,7 @@ static void test_package_list_with_type_filter (void)
 
   ApiClient a;
   make_client (&a);
-  Package* pkgs;
+  Package *pkgs;
   size_t count;
   int rc = api_package_list (&a, "thomasc", "generic", NULL, 0, &pkgs, &count);
   ASSERT_EQ (rc, API_OK);
@@ -1750,7 +1731,7 @@ static void test_package_list_404 (void)
 
   ApiClient a;
   make_client (&a);
-  Package* pkgs;
+  Package *pkgs;
   size_t count;
   int rc = api_package_list (&a, "missing", NULL, NULL, 0, &pkgs, &count);
   ASSERT_EQ (rc, API_ERR_NOT_FOUND);
@@ -1858,7 +1839,7 @@ static void test_package_files_success (void)
 
   ApiClient a;
   make_client (&a);
-  PackageFile* files;
+  PackageFile *files;
   size_t count;
   int rc = api_package_files (&a, "thomasc", "generic", "mylib", "1.0.0",
                               &files, &count);
@@ -1885,7 +1866,7 @@ static void test_package_files_empty (void)
 
   ApiClient a;
   make_client (&a);
-  PackageFile* files;
+  PackageFile *files;
   size_t count;
   int rc = api_package_files (&a, "thomasc", "generic", "mylib", "1.0.0",
                               &files, &count);
@@ -1945,7 +1926,7 @@ static void test_package_upload_success (void)
 
   ApiClient a;
   make_client (&a);
-  const char* data = "binary file content";
+  const char *data = "binary file content";
   int rc = api_package_upload (&a, "thomasc", "mylib", "1.0.0", "file.tar.gz",
                                data, strlen (data));
   ASSERT_EQ (rc, API_OK);
@@ -1967,7 +1948,7 @@ static void test_package_upload_conflict (void)
 
   ApiClient a;
   make_client (&a);
-  const char* data = "binary file content";
+  const char *data = "binary file content";
   int rc = api_package_upload (&a, "thomasc", "mylib", "1.0.0", "file.tar.gz",
                                data, strlen (data));
   ASSERT_EQ (rc, API_ERR_CONFLICT);
@@ -1988,7 +1969,7 @@ static void test_package_download_success (void)
 
   ApiClient a;
   make_client (&a);
-  char* data;
+  char *data;
   size_t len;
   int rc = api_package_download (&a, "thomasc", "mylib", "1.0.0", "file.tar.gz",
                                  &data, &len);
@@ -2013,7 +1994,7 @@ static void test_package_download_404 (void)
 
   ApiClient a;
   make_client (&a);
-  char* data;
+  char *data;
   size_t len;
   int rc = api_package_download (&a, "thomasc", "notfound", "1.0.0", "file.tar.gz",
                                  &data, &len);

@@ -38,17 +38,17 @@ typedef struct
  * host_out: buffer of at least host_sz bytes (e.g. 256)
  * path_prefix_out: buffer of at least prefix_sz bytes (e.g. 256) - e.g. "/api/v1"
  */
-int config_parse_url (const char* url, char* host_out, size_t host_sz,
-                      int* port_out, int* use_tls_out,
-                      char* path_prefix_out, size_t prefix_sz);
+int config_parse_url (const char *url, char *host_out, size_t host_sz,
+                      int *port_out, int *use_tls_out,
+                      char *path_prefix_out, size_t prefix_sz);
 
 /* Load config from file + env vars.
  * config_path: path to config file (may be NULL to skip file loading)
  * Returns 0 on success, -1 on error (error message in error_out).
  */
-int config_load (Config* cfg, const char* config_path, char* error_out, size_t error_sz);
+int config_load (Config *cfg, const char *config_path, char *error_out, size_t error_sz);
 
 /* Apply a CLI override for base_url. Only overrides if cli_base_url is non-NULL and non-empty. */
-void config_apply_cli_override (Config* cfg, const char* cli_base_url);
+void config_apply_cli_override (Config *cfg, const char *cli_base_url);
 
 #endif /* CB_CONFIG_H */

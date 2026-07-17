@@ -30,7 +30,7 @@
 #include <tls.h>
 #endif
 
-const char* http_method_str (HttpMethod m)
+const char *http_method_str (HttpMethod m)
 {
   switch (m) {
   case HTTP_GET:
@@ -48,8 +48,8 @@ const char* http_method_str (HttpMethod m)
   }
 }
 
-int http_client_init (HttpClient* c, const char* host, int port, int use_tls,
-                      const char* token)
+int http_client_init (HttpClient *c, const char *host, int port, int use_tls,
+                      const char *token)
 {
   memset (c, 0, sizeof (*c));
   c->host = strdup (host);
@@ -75,7 +75,7 @@ int http_client_init (HttpClient* c, const char* host, int port, int use_tls,
   return 0;
 }
 
-void http_client_free (HttpClient* c)
+void http_client_free (HttpClient *c)
 {
   if (!c)
     return;
@@ -84,7 +84,7 @@ void http_client_free (HttpClient* c)
   memset (c, 0, sizeof (*c));
 }
 
-void http_response_free (HttpResponse* resp)
+void http_response_free (HttpResponse *resp)
 {
   if (!resp)
     return;
@@ -95,7 +95,7 @@ void http_response_free (HttpResponse* resp)
 
 /* Plain HTTP implementation using sockets */
 
-static int send_all (cb_socket_t fd, const char* buf, size_t len)
+static int send_all (cb_socket_t fd, const char *buf, size_t len)
 {
   size_t sent = 0;
   while (sent < len) {
@@ -110,18 +110,18 @@ static int send_all (cb_socket_t fd, const char* buf, size_t len)
   return 0;
 }
 
-static int recv_all (cb_socket_t fd, char** body_out, size_t* len_out)
+static int recv_all (cb_socket_t fd, char **body_out, size_t *len_out)
 {
   size_t cap = 4096;
   size_t len = 0;
-  char* buf = malloc (cap);
+  char *buf = malloc (cap);
   if (!buf)
     return -1;
 
   for (;;) {
     if (len + 1 >= cap) {
       cap *= 2;
-      char* tmp = realloc (buf, cap);
+      char *tmp = realloc (buf, cap);
       if (!tmp) {
         free (buf);
         return -1;
@@ -145,7 +145,7 @@ static int recv_all (cb_socket_t fd, char** body_out, size_t* len_out)
   return 0;
 }
 
-static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
+static int parse_response (const char *raw, size_t raw_len, HttpResponse *resp)
 {
   /* Parse status line: HTTP/1.1 XXX ... */
   if (raw_len < 12) {
@@ -154,7 +154,7 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
   }
 
   /* Find status code */
-  const char* p = raw;
+  const char *p = raw;
   p = memchr (p, ' ', raw_len);
   if (!p) {
     snprintf (resp->error, sizeof (resp->error), "malformed status line");
@@ -164,8 +164,8 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
   resp->status = atoi (p);
 
   /* Find end of headers */
-  const char* body_start = NULL;
-  const char* header_end = NULL;
+  const char *body_start = NULL;
+  const char *header_end = NULL;
   for (size_t i = 0; i + 3 < raw_len; i++) {
     if (raw[i] == '\r' && raw[i + 1] == '\n' && raw[i + 2] == '\r' && raw[i + 3] == '\n') {
       header_end = raw + i;
@@ -190,10 +190,10 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
   /* Check for chunked transfer encoding */
   int is_chunked = 0;
   {
-    const char* hdr = raw;
-    const char* hend = header_end ? header_end : body_start;
+    const char *hdr = raw;
+    const char *hend = header_end ? header_end : body_start;
     while (hdr < hend) {
-      const char* eol = memchr (hdr, '\r', (size_t)(hend - hdr));
+      const char *eol = memchr (hdr, '\r', (size_t)(hend - hdr));
       if (!eol)
         eol = memchr (hdr, '\n', (size_t)(hend - hdr));
       if (!eol)
@@ -201,7 +201,7 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
 
       size_t line_len = (size_t)(eol - hdr);
       if (line_len > 18 && strncasecmp (hdr, "Transfer-Encoding:", 18) == 0) {
-        const char* val = hdr + 18;
+        const char *val = hdr + 18;
         while (val < eol && (*val == ' ' || *val == '\t'))
           val++;
         if ((size_t)(eol - val) >= 7 && strncasecmp (val, "chunked", 7) == 0)
@@ -215,24 +215,24 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
     }
   }
 
-  const char* raw_body = body_start;
+  const char *raw_body = body_start;
   size_t raw_body_len = raw_len - (size_t)(body_start - raw);
 
   if (is_chunked) {
     /* Decode chunked transfer encoding */
     size_t out_cap = raw_body_len;
-    char* out = malloc (out_cap + 1);
+    char *out = malloc (out_cap + 1);
     if (!out) {
       snprintf (resp->error, sizeof (resp->error), "out of memory");
       return -1;
     }
     size_t out_len = 0;
-    const char* cp = raw_body;
-    const char* cp_end = raw_body + raw_body_len;
+    const char *cp = raw_body;
+    const char *cp_end = raw_body + raw_body_len;
 
     while (cp < cp_end) {
       /* Read chunk size line (hex) */
-      const char* eol = memchr (cp, '\r', (size_t)(cp_end - cp));
+      const char *eol = memchr (cp, '\r', (size_t)(cp_end - cp));
       if (!eol)
         eol = memchr (cp, '\n', (size_t)(cp_end - cp));
       if (!eol)
@@ -244,7 +244,7 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
         slen = sizeof (sizebuf) - 1;
       memcpy (sizebuf, cp, slen);
       /* Strip any chunk extensions (after ';') */
-      char* semi = strchr (sizebuf, ';');
+      char *semi = strchr (sizebuf, ';');
       if (semi)
         *semi = '\0';
 
@@ -264,7 +264,7 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
 
       if (out_len + chunk_size > out_cap) {
         out_cap = (out_len + chunk_size) * 2;
-        char* tmp = realloc (out, out_cap + 1);
+        char *tmp = realloc (out, out_cap + 1);
         if (!tmp) {
           free (out);
           snprintf (resp->error, sizeof (resp->error), "out of memory");
@@ -301,9 +301,9 @@ static int parse_response (const char* raw, size_t raw_len, HttpResponse* resp)
   return 0;
 }
 
-static int do_plain_http (HttpClient* c, HttpMethod method, const char* path,
-                          const char* body, size_t body_len, const char* content_type,
-                          HttpResponse* resp)
+static int do_plain_http (HttpClient *c, HttpMethod method, const char *path,
+                          const char *body, size_t body_len, const char *content_type,
+                          HttpResponse *resp)
 {
   struct addrinfo hints, *res = NULL;
   memset (&hints, 0, sizeof (hints));
@@ -337,9 +337,9 @@ static int do_plain_http (HttpClient* c, HttpMethod method, const char* path,
   freeaddrinfo (res);
 
   /* Build request */
-  char* request = NULL;
+  char *request = NULL;
   size_t req_len = 0;
-  FILE* f = cb_open_memstream (&request, &req_len);
+  FILE *f = cb_open_memstream (&request, &req_len);
   if (!f) {
     snprintf (resp->error, sizeof (resp->error), "open_memstream failed");
     cb_close_socket (fd);
@@ -372,7 +372,7 @@ static int do_plain_http (HttpClient* c, HttpMethod method, const char* path,
   free (request);
 
   /* Receive response */
-  char* raw = NULL;
+  char *raw = NULL;
   size_t raw_len = 0;
   if (recv_all (fd, &raw, &raw_len) < 0) {
     snprintf (resp->error, sizeof (resp->error), "recv failed: %s", cb_sock_strerror (cb_sock_errno));
@@ -388,17 +388,17 @@ static int do_plain_http (HttpClient* c, HttpMethod method, const char* path,
 
 /* TLS implementation using libtls */
 #ifdef HAVE_LIBTLS
-static int do_tls_http (HttpClient* c, HttpMethod method, const char* path,
-                        const char* body, size_t body_len, const char* content_type,
-                        HttpResponse* resp)
+static int do_tls_http (HttpClient *c, HttpMethod method, const char *path,
+                        const char *body, size_t body_len, const char *content_type,
+                        HttpResponse *resp)
 {
-  struct tls* ctx = tls_client ();
+  struct tls *ctx = tls_client ();
   if (!ctx) {
     snprintf (resp->error, sizeof (resp->error), "tls_client() failed");
     return -1;
   }
 
-  struct tls_config* config = tls_config_new ();
+  struct tls_config *config = tls_config_new ();
   if (!config) {
     tls_free (ctx);
     snprintf (resp->error, sizeof (resp->error), "tls_config_new() failed");
@@ -457,9 +457,9 @@ static int do_tls_http (HttpClient* c, HttpMethod method, const char* path,
   }
 
   /* Build request */
-  char* request = NULL;
+  char *request = NULL;
   size_t req_len = 0;
-  FILE* f = cb_open_memstream (&request, &req_len);
+  FILE *f = cb_open_memstream (&request, &req_len);
   if (!f) {
     snprintf (resp->error, sizeof (resp->error), "open_memstream failed");
     tls_close (ctx);
@@ -512,7 +512,7 @@ static int do_tls_http (HttpClient* c, HttpMethod method, const char* path,
   /* Read response */
   size_t cap = 4096;
   size_t len = 0;
-  char* raw = malloc (cap);
+  char *raw = malloc (cap);
   if (!raw) {
     tls_close (ctx);
     tls_free (ctx);
@@ -522,7 +522,7 @@ static int do_tls_http (HttpClient* c, HttpMethod method, const char* path,
   for (;;) {
     if (len + 1 >= cap) {
       cap *= 2;
-      char* tmp = realloc (raw, cap);
+      char *tmp = realloc (raw, cap);
       if (!tmp) {
         free (raw);
         tls_close (ctx);
@@ -565,9 +565,9 @@ static int do_tls_http (HttpClient* c, HttpMethod method, const char* path,
 }
 #endif /* HAVE_LIBTLS */
 
-int http_request_raw (HttpClient* c, HttpMethod method, const char* path,
-                      const char* body, size_t body_len, const char* content_type,
-                      HttpResponse* resp)
+int http_request_raw (HttpClient *c, HttpMethod method, const char *path,
+                      const char *body, size_t body_len, const char *content_type,
+                      HttpResponse *resp)
 {
   memset (resp, 0, sizeof (*resp));
 
@@ -584,8 +584,8 @@ int http_request_raw (HttpClient* c, HttpMethod method, const char* path,
   return do_plain_http (c, method, path, body, body_len, content_type, resp);
 }
 
-int http_request (HttpClient* c, HttpMethod method, const char* path,
-                  const char* body, HttpResponse* resp)
+int http_request (HttpClient *c, HttpMethod method, const char *path,
+                  const char *body, HttpResponse *resp)
 {
   size_t body_len = body ? strlen (body) : 0;
   return http_request_raw (c, method, path, body, body_len, NULL, resp);
