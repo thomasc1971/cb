@@ -78,6 +78,7 @@ static void help_fork(void);
 static void help_hook(void);
 static void help_wiki(void);
 static void help_sshkey(void);
+static void help_package(void);
 
 /* ===== Flag parsing ===== */
 
@@ -2068,6 +2069,38 @@ static const FlagDef HOOK_CREATE_FLAGS[] = {
     { NULL, NULL, 0 }
 };
 
+static const FlagDef PACKAGE_LIST_FLAGS[] = {
+    { "--type", "-t", 1 },
+    { "--query", "-q", 1 },
+    { "--limit", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef PACKAGE_DELETE_FLAGS[] = {
+    { "--yes", "-y", 0 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef PACKAGE_UNLINK_FLAGS[] = {
+    { "--yes", "-y", 0 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef PACKAGE_UPLOAD_FLAGS[] = {
+    { "--file", "-f", 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
+static const FlagDef PACKAGE_DOWNLOAD_FLAGS[] = {
+    { "--output", "-o", 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
 /* ===== Command tree (single source of truth for --help and --help-spec) ===== */
 
 typedef struct Cmd Cmd;
@@ -2579,6 +2612,38 @@ static const SubCmd SSHKEY_SUBS[] = {
     { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
+static const SubCmd PACKAGE_SUBS[] = {
+    { "list", "List packages",
+      "cb package list <owner> [--type <type>] [--query <q>] [--limit N]",
+      "List packages owned by a user or organization.", PACKAGE_LIST_FLAGS, NULL },
+    { "show", "Show a package",
+      "cb package show <owner> <type> <name> <version>",
+      "Show details of a specific package version.", NULL, NULL },
+    { "delete", "Delete a package",
+      "cb package delete <owner> <type> <name> <version> [--yes]",
+      "Delete a package version.", PACKAGE_DELETE_FLAGS, NULL },
+    { "files", "List package files",
+      "cb package files <owner> <type> <name> <version>",
+      "List all files of a package version.", NULL, NULL },
+    { "link", "Link a package to a repository",
+      "cb package link <owner> <type> <name> <repo>",
+      "Link a package to a repository.", NULL, NULL },
+    { "unlink", "Unlink a package from its repository",
+      "cb package unlink <owner> <type> <name> [--yes]",
+      "Unlink a package from its repository.", PACKAGE_UNLINK_FLAGS, NULL },
+    { "upload", "Upload a file to a generic package",
+      "cb package upload <owner> <name> <version> --file <path>",
+      "Upload a file to a generic package version.\n"
+      "Use --file - to read from stdin.",
+      PACKAGE_UPLOAD_FLAGS, NULL },
+    { "download", "Download a file from a generic package",
+      "cb package download <owner> <name> <version> <filename> [--output <path>]",
+      "Download a file from a generic package version.\n"
+      "Use --output - or omit it to write to stdout.",
+      PACKAGE_DOWNLOAD_FLAGS, NULL },
+    { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
 static const Cmd COMMANDS[] = {
     { "repo", "Repository management (create, delete, rename, edit, show, list, transfer, topic)",
       "cb repo <subcommand> [args] [flags]",
@@ -2637,6 +2702,12 @@ static const Cmd COMMANDS[] = {
     { "sshkey", "Manage SSH public keys (list, add, show, rm)",
       "cb sshkey <subcommand> [args] [flags]",
       "Manage your account's SSH public keys.", SSHKEY_SUBS },
+    { "package", "Manage packages (list, show, delete, files, link, unlink)",
+      "cb package <subcommand> <owner> [args] [flags]",
+      "Manage packages in the Forgejo Package Registry.\n\n"
+      "Package commands are scoped to an owner (user or organization),\n"
+      "not a repository. The <owner> argument is always required.",
+      PACKAGE_SUBS },
     { NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -2804,6 +2875,7 @@ HELP_WRAPPER_1(help_fork, "fork")
 HELP_WRAPPER_1(help_hook, "hook")
 HELP_WRAPPER_1(help_wiki, "wiki")
 HELP_WRAPPER_1(help_sshkey, "sshkey")
+HELP_WRAPPER_1(help_package, "package")
 
 HELP_WRAPPER_2(help_repo_create, "repo", "create")
 HELP_WRAPPER_2(help_repo_delete, "repo", "delete")
@@ -2829,6 +2901,14 @@ HELP_WRAPPER_2(help_release_create, "release", "create")
 HELP_WRAPPER_2(help_release_edit, "release", "edit")
 HELP_WRAPPER_2(help_release_asset, "release", "asset")
 HELP_WRAPPER_2(help_tag_list, "tag", "list")
+HELP_WRAPPER_2(help_package_list, "package", "list")
+HELP_WRAPPER_2(help_package_show, "package", "show")
+HELP_WRAPPER_2(help_package_delete, "package", "delete")
+HELP_WRAPPER_2(help_package_files, "package", "files")
+HELP_WRAPPER_2(help_package_link, "package", "link")
+HELP_WRAPPER_2(help_package_unlink, "package", "unlink")
+HELP_WRAPPER_2(help_package_upload, "package", "upload")
+HELP_WRAPPER_2(help_package_download, "package", "download")
 
 /* ===== Machine-readable help spec (--help-spec) ===== */
 
@@ -3476,6 +3556,108 @@ static void print_wikipage_list(const WikiPage *arr, size_t count, int json)
     } else {
         for (size_t i = 0; i < count; i++)
             printf("%s\n", arr[i].title ? arr[i].title : "");
+    }
+}
+
+/* ===== Package output helpers ===== */
+
+static void print_package(const Package *p, int json)
+{
+    if (json) {
+        JsonValue *obj = json_object_new();
+        json_object_set_number(obj, "id", p->id);
+        if (p->name)
+            json_object_set_string(obj, "name", p->name);
+        if (p->type)
+            json_object_set_string(obj, "type", p->type);
+        if (p->version)
+            json_object_set_string(obj, "version", p->version);
+        if (p->html_url)
+            json_object_set_string(obj, "html_url", p->html_url);
+        if (p->created_at)
+            json_object_set_string(obj, "created_at", p->created_at);
+        if (p->creator_login)
+            json_object_set_string(obj, "creator", p->creator_login);
+        if (p->owner_login)
+            json_object_set_string(obj, "owner", p->owner_login);
+        if (p->repo_full_name)
+            json_object_set_string(obj, "repository", p->repo_full_name);
+        char *s = json_serialize(obj, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(obj);
+    } else {
+        printf("#%lld  %s/%s  %s  %s\n", (long long)p->id,
+               p->type ? p->type : "",
+               p->name ? p->name : "",
+               p->version ? p->version : "",
+               p->created_at ? p->created_at : "");
+        if (p->html_url)
+            printf("  %s\n", p->html_url);
+        if (p->creator_login)
+            printf("  Created by: %s\n", p->creator_login);
+        if (p->repo_full_name)
+            printf("  Linked to:  %s\n", p->repo_full_name);
+    }
+}
+
+static void print_package_list(const Package *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", arr[i].id);
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            if (arr[i].type)
+                json_object_set_string(obj, "type", arr[i].type);
+            if (arr[i].version)
+                json_object_set_string(obj, "version", arr[i].version);
+            if (arr[i].created_at)
+                json_object_set_string(obj, "created_at", arr[i].created_at);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            printf("%-12s %-20s %-12s %s\n",
+                   arr[i].type ? arr[i].type : "",
+                   arr[i].name ? arr[i].name : "",
+                   arr[i].version ? arr[i].version : "",
+                   arr[i].created_at ? arr[i].created_at : "");
+        }
+    }
+}
+
+static void print_package_file_list(const PackageFile *arr, size_t count, int json)
+{
+    if (json) {
+        JsonValue *jarr = json_array_new();
+        for (size_t i = 0; i < count; i++) {
+            JsonValue *obj = json_object_new();
+            json_object_set_number(obj, "id", arr[i].id);
+            if (arr[i].name)
+                json_object_set_string(obj, "name", arr[i].name);
+            json_object_set_number(obj, "size", arr[i].size);
+            if (arr[i].sha256)
+                json_object_set_string(obj, "sha256", arr[i].sha256);
+            json_array_push(jarr, obj);
+        }
+        char *s = json_serialize(jarr, true);
+        printf("%s\n", s);
+        free(s);
+        json_free(jarr);
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            printf("%-30s %10lld  %s\n",
+                   arr[i].name ? arr[i].name : "",
+                   (long long)arr[i].size,
+                   arr[i].sha256 ? arr[i].sha256 : "");
+        }
     }
 }
 
@@ -6912,6 +7094,461 @@ static int cmd_sshkey(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     return CLI_USAGE;
 }
 
+/* ===== Package commands ===== */
+
+static int cmd_package_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_list();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, PACKAGE_LIST_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        help_package_list();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+
+    const char *type = NULL;
+    const char *q = NULL;
+    int limit = 0;
+    int idx = find_flag_idx(PACKAGE_LIST_FLAGS, "--type");
+    if (fv[idx])
+        type = fv[idx];
+    idx = find_flag_idx(PACKAGE_LIST_FLAGS, "--query");
+    if (fv[idx])
+        q = fv[idx];
+    idx = find_flag_idx(PACKAGE_LIST_FLAGS, "--limit");
+    if (fv[idx])
+        limit = atoi(fv[idx]);
+
+    Package *pkgs;
+    size_t count;
+    int rc = api_package_list(api, positional[0], type, q, limit, &pkgs, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s/%s %s\n",
+                   pkgs[i].type ? pkgs[i].type : "",
+                   pkgs[i].name ? pkgs[i].name : "",
+                   pkgs[i].version ? pkgs[i].version : "");
+    } else
+        print_package_list(pkgs, count, gf->json);
+    package_array_free(pkgs, count);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_package_show(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_show();
+            return CLI_OK;
+        }
+    }
+    if (argc < 4) {
+        fprintf(stderr, "Error: package show requires <owner> <type> <name> <version>\n");
+        help_package_show();
+        return CLI_USAGE;
+    }
+    Package pkg;
+    int rc = api_package_get(api, argv[0], argv[1], argv[2], argv[3], &pkg);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->json)
+        print_package(&pkg, 1);
+    else {
+        print_package(&pkg, 0);
+    }
+    package_free(&pkg);
+    return CLI_OK;
+}
+
+static int cmd_package_delete(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_delete();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, PACKAGE_DELETE_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 4) {
+        fprintf(stderr, "Error: package delete requires <owner> <type> <name> <version>\n");
+        help_package_delete();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    int yes_idx = find_flag_idx(PACKAGE_DELETE_FLAGS, "--yes");
+    int yes = fb[yes_idx] || gf->yes;
+    if (!yes && !confirm("Delete this package version?")) {
+        printf("Cancelled.\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_OK;
+    }
+    int rc = api_package_delete(api, positional[0], positional[1], positional[2], positional[3]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Deleted package %s/%s/%s version %s\n",
+               positional[0], positional[1], positional[2], positional[3]);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_package_files(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_files();
+            return CLI_OK;
+        }
+    }
+    if (argc < 4) {
+        fprintf(stderr, "Error: package files requires <owner> <type> <name> <version>\n");
+        help_package_files();
+        return CLI_USAGE;
+    }
+    PackageFile *files;
+    size_t count;
+    int rc = api_package_files(api, argv[0], argv[1], argv[2], argv[3], &files, &count);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (gf->quiet && !gf->json) {
+        for (size_t i = 0; i < count; i++)
+            printf("%s\n", files[i].name ? files[i].name : "");
+    } else
+        print_package_file_list(files, count, gf->json);
+    package_file_array_free(files, count);
+    return CLI_OK;
+}
+
+static int cmd_package_link(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_link();
+            return CLI_OK;
+        }
+    }
+    if (argc < 4) {
+        fprintf(stderr, "Error: package link requires <owner> <type> <name> <repo>\n");
+        help_package_link();
+        return CLI_USAGE;
+    }
+    int rc = api_package_link(api, argv[0], argv[1], argv[2], argv[3]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Linked package %s/%s/%s to repository %s\n",
+               argv[0], argv[1], argv[2], argv[3]);
+    return CLI_OK;
+}
+
+static int cmd_package_unlink(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_unlink();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, PACKAGE_UNLINK_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 3) {
+        fprintf(stderr, "Error: package unlink requires <owner> <type> <name>\n");
+        help_package_unlink();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+    int yes_idx = find_flag_idx(PACKAGE_UNLINK_FLAGS, "--yes");
+    int yes = fb[yes_idx] || gf->yes;
+    if (!yes && !confirm("Unlink this package from its repository?")) {
+        printf("Cancelled.\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_OK;
+    }
+    int rc = api_package_unlink(api, positional[0], positional[1], positional[2]);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Unlinked package %s/%s/%s from its repository\n",
+               positional[0], positional[1], positional[2]);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_package_upload(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_upload();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, PACKAGE_UPLOAD_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 3) {
+        fprintf(stderr, "Error: package upload requires <owner> <name> <version>\n");
+        help_package_upload();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+
+    int file_idx = find_flag_idx(PACKAGE_UPLOAD_FLAGS, "--file");
+    const char *file_path = fv[file_idx];
+    if (!file_path) {
+        fprintf(stderr, "Error: --file <path> is required (use --file - for stdin)\n");
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+
+    /* Read file contents into memory */
+    char *data = NULL;
+    size_t data_len = 0;
+    if (strcmp(file_path, "-") == 0) {
+        FILE *f = cb_open_memstream(&data, &data_len);
+        if (!f) {
+            fprintf(stderr, "Error: failed to read stdin\n");
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        char buf[4096];
+        size_t n;
+        while ((n = fread(buf, 1, sizeof(buf), stdin)) > 0)
+            fwrite(buf, 1, n, f);
+        cb_close_memstream(f);
+    } else {
+        FILE *f = fopen(file_path, "rb");
+        if (!f) {
+            fprintf(stderr, "Error: cannot open '%s': %s\n", file_path, strerror(errno));
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        fseek(f, 0, SEEK_END);
+        long sz = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (sz < 0) {
+            fprintf(stderr, "Error: cannot determine size of '%s'\n", file_path);
+            fclose(f);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        data_len = (size_t)sz;
+        data = malloc(data_len > 0 ? data_len : 1);
+        if (!data) {
+            fprintf(stderr, "Error: out of memory\n");
+            fclose(f);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        if (data_len > 0 && fread(data, 1, data_len, f) != data_len) {
+            fprintf(stderr, "Error: failed to read '%s'\n", file_path);
+            free(data);
+            fclose(f);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        fclose(f);
+    }
+
+    /* Derive filename from --file path (basename) */
+    const char *filename = strrchr(file_path, '/');
+    filename = filename ? filename + 1 : file_path;
+    if (strcmp(filename, "-") == 0)
+        filename = "stdin";
+
+    int rc = api_package_upload(api, positional[0], positional[1], positional[2],
+                                filename, data, data_len);
+    free(data);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+    if (!gf->quiet)
+        printf("Uploaded %s to %s/generic/%s/%s\n",
+               file_path, positional[0], positional[1], positional[2]);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_package_download(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    for (int i = 0; i < argc; i++) {
+        if (is_help_arg(argv[i])) {
+            help_package_download();
+            return CLI_OK;
+        }
+    }
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, PACKAGE_DOWNLOAD_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 4) {
+        fprintf(stderr, "Error: package download requires <owner> <name> <version> <filename>\n");
+        help_package_download();
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_USAGE;
+    }
+
+    int out_idx = find_flag_idx(PACKAGE_DOWNLOAD_FLAGS, "--output");
+    const char *output_path = fv[out_idx];
+
+    char *data;
+    size_t len;
+    int rc = api_package_download(api, positional[0], positional[1], positional[2],
+                                  positional[3], &data, &len);
+    if (rc != API_OK) {
+        print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
+        return CLI_ERR;
+    }
+
+    if (output_path && strcmp(output_path, "-") != 0) {
+        FILE *f = fopen(output_path, "wb");
+        if (!f) {
+            fprintf(stderr, "Error: cannot open '%s': %s\n", output_path, strerror(errno));
+            free(data);
+            free(positional);
+            free(fv);
+            free(fb);
+            return CLI_ERR;
+        }
+        if (len > 0)
+            fwrite(data, 1, len, f);
+        fclose(f);
+        if (!gf->quiet)
+            printf("Downloaded %zu bytes to %s\n", len, output_path);
+    } else {
+        if (len > 0)
+            fwrite(data, 1, len, stdout);
+    }
+
+    free(data);
+    free(positional);
+    free(fv);
+    free(fb);
+    return CLI_OK;
+}
+
+static int cmd_package(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+    if (argc < 1) {
+        help_package();
+        return CLI_USAGE;
+    }
+    const char *sub = argv[0];
+    int rest_argc = argc - 1;
+    char **rest_argv = argv + 1;
+    if (is_help_arg(sub)) {
+        help_package();
+        return CLI_OK;
+    }
+    if (strcmp(sub, "list") == 0)
+        return cmd_package_list(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "show") == 0)
+        return cmd_package_show(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "delete") == 0)
+        return cmd_package_delete(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "files") == 0)
+        return cmd_package_files(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "link") == 0)
+        return cmd_package_link(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "unlink") == 0)
+        return cmd_package_unlink(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "upload") == 0)
+        return cmd_package_upload(rest_argc, rest_argv, api, gf);
+    if (strcmp(sub, "download") == 0)
+        return cmd_package_download(rest_argc, rest_argv, api, gf);
+    fprintf(stderr, "Error: unknown package subcommand '%s'\n", sub);
+    help_package();
+    return CLI_USAGE;
+}
+
 /* ===== Org commands ===== */
 
 static int cmd_org_create(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
@@ -7220,6 +7857,8 @@ int cli_run(int argc, char **argv)
         rc = cmd_wiki(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else if (strcmp(cmd, "sshkey") == 0)
         rc = cmd_sshkey(filtered_argc - 2, filtered_argv + 2, &api, &gf);
+    else if (strcmp(cmd, "package") == 0)
+        rc = cmd_package(filtered_argc - 2, filtered_argv + 2, &api, &gf);
     else
         rc = cmd_repo(filtered_argc - 2, filtered_argv + 2, &api, &gf);
 

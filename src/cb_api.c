@@ -4737,3 +4737,288 @@ int api_user_key_delete(ApiClient *a, int64_t id)
     http_response_free(&resp);
     return err;
 }
+
+/* ===== Packages ===== */
+
+static void parse_package(const JsonValue *obj, Package *p)
+{
+    memset(p, 0, sizeof(*p));
+    p->id = json_get_int64(obj, "id", 0);
+    p->name = json_dup_string(obj, "name");
+    p->type = json_dup_string(obj, "type");
+    p->version = json_dup_string(obj, "version");
+    p->html_url = json_dup_string(obj, "html_url");
+    p->created_at = json_dup_string(obj, "created_at");
+
+    JsonValue *creator = json_object_lookup(obj, "creator");
+    if (creator && json_is_object(creator))
+        p->creator_login = json_dup_string(creator, "login");
+
+    JsonValue *owner = json_object_lookup(obj, "owner");
+    if (owner && json_is_object(owner))
+        p->owner_login = json_dup_string(owner, "login");
+
+    JsonValue *repo = json_object_lookup(obj, "repository");
+    if (repo && json_is_object(repo))
+        p->repo_full_name = json_dup_string(repo, "full_name");
+}
+
+static void parse_package_file(const JsonValue *obj, PackageFile *pf)
+{
+    memset(pf, 0, sizeof(*pf));
+    pf->id = json_get_int64(obj, "id", 0);
+    pf->size = json_get_int64(obj, "Size", 0);
+    pf->name = json_dup_string(obj, "name");
+    pf->md5 = json_dup_string(obj, "md5");
+    pf->sha1 = json_dup_string(obj, "sha1");
+    pf->sha256 = json_dup_string(obj, "sha256");
+    pf->sha512 = json_dup_string(obj, "sha512");
+}
+
+void package_free(Package *p)
+{
+    if (!p)
+        return;
+    free(p->name);
+    free(p->type);
+    free(p->version);
+    free(p->html_url);
+    free(p->created_at);
+    free(p->creator_login);
+    free(p->owner_login);
+    free(p->repo_full_name);
+    memset(p, 0, sizeof(*p));
+}
+
+void package_array_free(Package *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        package_free(&arr[i]);
+    free(arr);
+}
+
+void package_file_free(PackageFile *pf)
+{
+    if (!pf)
+        return;
+    free(pf->name);
+    free(pf->md5);
+    free(pf->sha1);
+    free(pf->sha256);
+    free(pf->sha512);
+    memset(pf, 0, sizeof(*pf));
+}
+
+void package_file_array_free(PackageFile *arr, size_t count)
+{
+    if (!arr)
+        return;
+    for (size_t i = 0; i < count; i++)
+        package_file_free(&arr[i]);
+    free(arr);
+}
+
+int api_package_list(ApiClient *a, const char *owner,
+                     const char *type, const char *q,
+                     int limit, Package **out, size_t *count)
+{
+    QueryParam params[4];
+    int pc = 0;
+    if (type)
+        params[pc++] = (QueryParam){ "type", type };
+    if (q)
+        params[pc++] = (QueryParam){ "q", q };
+    if (limit > 0) {
+        static char lim[16];
+        snprintf(lim, sizeof(lim), "%d", limit);
+        params[pc++] = (QueryParam){ "limit", lim };
+    }
+
+    char *path;
+    if (pc > 0)
+        path = build_path_q(a, "/packages/%s", params, pc, owner);
+    else
+        path = build_path(a, "/packages/%s", owner);
+
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(Package),
+                      (void (*)(const JsonValue *, void *))parse_package,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_package_get(ApiClient *a, const char *owner, const char *type,
+                    const char *name, const char *version, Package *out)
+{
+    char *path = build_path(a, "/packages/%s/%s/%s/%s", owner, type, name, version);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse(resp.body, &json_err);
+    http_response_free(&resp);
+
+    if (!parsed || !json_is_object(parsed)) {
+        json_free(parsed);
+        set_error(a, "failed to parse package response");
+        return API_ERR_UNKNOWN;
+    }
+
+    parse_package(parsed, out);
+    json_free(parsed);
+    return API_OK;
+}
+
+int api_package_delete(ApiClient *a, const char *owner, const char *type,
+                       const char *name, const char *version)
+{
+    char *path = build_path(a, "/packages/%s/%s/%s/%s", owner, type, name, version);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_DELETE, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_package_files(ApiClient *a, const char *owner, const char *type,
+                      const char *name, const char *version,
+                      PackageFile **out, size_t *count)
+{
+    char *path = build_path(a, "/packages/%s/%s/%s/%s/files",
+                            owner, type, name, version);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_GET, path, NULL, &resp);
+    free(path);
+
+    if (err != API_OK) {
+        http_response_free(&resp);
+        return err;
+    }
+
+    err = parse_array(a, resp.body, sizeof(PackageFile),
+                      (void (*)(const JsonValue *, void *))parse_package_file,
+                      (void **)out, count);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_package_link(ApiClient *a, const char *owner, const char *type,
+                     const char *name, const char *repo_name)
+{
+    char *path = build_path(a, "/packages/%s/%s/%s/-/link/%s",
+                            owner, type, name, repo_name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_package_unlink(ApiClient *a, const char *owner, const char *type,
+                       const char *name)
+{
+    char *path = build_path(a, "/packages/%s/%s/%s/-/unlink", owner, type, name);
+    HttpResponse resp;
+    ApiError err = do_request(a, HTTP_POST, path, NULL, &resp);
+    free(path);
+    http_response_free(&resp);
+    return err;
+}
+
+int api_package_upload(ApiClient *a, const char *owner, const char *name,
+                       const char *version, const char *filename,
+                       const char *file_data, size_t file_len)
+{
+    /* Package upload/download uses /api/packages/, not /api/v1/packages/ */
+    char path[512];
+    snprintf(path, sizeof(path), "/api/packages/%s/generic/%s/%s/%s",
+             owner, name, version, filename);
+
+    HttpResponse resp;
+    int rc = http_request_raw(&a->http, HTTP_PUT, path,
+                              file_data, file_len,
+                              "application/octet-stream", &resp);
+    if (rc < 0) {
+        set_error(a, "%s", resp.error);
+        http_response_free(&resp);
+        return API_ERR_NETWORK;
+    }
+
+    ApiError err = map_status(resp.status, resp.body);
+    if (err != API_OK) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed)) {
+            JsonValue *msg = json_object_lookup(parsed, "message");
+            if (msg && json_is_string(msg))
+                set_error(a, "%s", json_string(msg));
+            else
+                set_error(a, "HTTP %d", resp.status);
+        } else {
+            set_error(a, "HTTP %d", resp.status);
+        }
+        json_free(parsed);
+    }
+    http_response_free(&resp);
+    return err;
+}
+
+int api_package_download(ApiClient *a, const char *owner, const char *name,
+                         const char *version, const char *filename,
+                         char **out_data, size_t *out_len)
+{
+    char path[512];
+    snprintf(path, sizeof(path), "/api/packages/%s/generic/%s/%s/%s",
+             owner, name, version, filename);
+
+    HttpResponse resp;
+    int rc = http_request_raw(&a->http, HTTP_GET, path, NULL, 0, NULL, &resp);
+    if (rc < 0) {
+        set_error(a, "%s", resp.error);
+        http_response_free(&resp);
+        return API_ERR_NETWORK;
+    }
+
+    ApiError err = map_status(resp.status, resp.body);
+    if (err != API_OK) {
+        const char *json_err = NULL;
+        JsonValue *parsed = json_parse(resp.body, &json_err);
+        if (parsed && json_is_object(parsed)) {
+            JsonValue *msg = json_object_lookup(parsed, "message");
+            if (msg && json_is_string(msg))
+                set_error(a, "%s", json_string(msg));
+            else
+                set_error(a, "HTTP %d", resp.status);
+        } else {
+            set_error(a, "HTTP %d", resp.status);
+        }
+        json_free(parsed);
+        http_response_free(&resp);
+        return err;
+    }
+
+    /* Transfer ownership of body to caller */
+    *out_data = resp.body;
+    *out_len = resp.body_len;
+    resp.body = NULL;
+    resp.body_len = 0;
+    http_response_free(&resp);
+    return API_OK;
+}

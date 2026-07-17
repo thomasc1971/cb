@@ -115,6 +115,7 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - Client-side validation with clear error messages
 - Token scope error detection with actionable guidance
 - Manage your account's SSH public keys (`sshkey list/add/show/rm`)
+- Manage packages in the Forgejo Package Registry (`package list/show/delete/files/link/unlink/upload/download`)
 - Cross-platform: Linux, macOS, and Windows (MSYS2 UCRT64)
 
 ## Download
@@ -681,6 +682,24 @@ cb actions var list thomasc/cb
 cb actions var show thomasc/cb BUILD_OPTS
 cb actions var set thomasc/cb BUILD_OPTS --value "-j4"
 cb actions var rm thomasc/cb BUILD_OPTS --yes
+```
+
+#### `cb package <subcommand> <owner>`
+
+Manage packages in the Forgejo Package Registry. Unlike other commands, these are scoped to an owner (user or org), not a repository.
+
+```bash
+cb package list thomasc
+cb package list thomasc --type generic --limit 10
+cb package show thomasc generic mylib 1.0.0
+cb package files thomasc generic mylib 1.0.0
+cb package delete thomasc generic mylib 1.0.0 --yes
+cb package link thomasc generic mylib myrepo
+cb package unlink thomasc generic mylib --yes
+cb package upload thomasc mylib 1.0.0 --file ./dist.tar.gz
+cb package upload thomasc mylib 1.0.0 --file - < data.bin
+cb package download thomasc mylib 1.0.0 dist.tar.gz --output ./dist.tar.gz
+cb package download thomasc mylib 1.0.0 dist.tar.gz > dist.tar.gz
 ```
 
 ## CI/CD

@@ -104,6 +104,7 @@ API functions exist but have no CLI dispatch:
 
 - [x] ~~Fill in `owner` default with current user in `require_owner_repo()` — added `api_user_get_current()`, auto-fill owner when omitted~~
 - [x] ~~Add `cb sshkey` command for user SSH public key management (list/add/show/rm) — uses `/user/keys` API endpoints~~
+- [x] ~~Add `cb package` command for Forgejo Package Registry management (list/show/delete/files/link/unlink) — uses `/packages/{owner}/...` API endpoints~~
 
 ## 8. CI release notes
 

@@ -1646,6 +1646,383 @@ static void test_user_key_get_404(void)
     teardown_server();
 }
 
+/* ===== Package tests ===== */
+
+static const char *PACKAGE_JSON =
+    "{\"id\":1,\"name\":\"mylib\",\"type\":\"generic\","
+    "\"version\":\"1.0.0\","
+    "\"html_url\":\"https://codeberg.org/thomasc/-/packages/generic/mylib/1.0.0\","
+    "\"created_at\":\"2024-01-01T00:00:00Z\","
+    "\"creator\":{\"login\":\"thomasc\"},"
+    "\"owner\":{\"login\":\"thomasc\"},"
+    "\"repository\":{\"full_name\":\"thomasc/myrepo\"}}";
+
+static const char *PACKAGE_FILE_JSON =
+    "{\"id\":2,\"Size\":1024,\"name\":\"mylib-1.0.0.tar.gz\","
+    "\"md5\":\"abc123\",\"sha1\":\"def456\","
+    "\"sha256\":\"789abc\",\"sha512\":\"xyz\"}";
+
+static void test_package_list_success(void)
+{
+    char body[4096];
+    snprintf(body, sizeof(body), "[%s]", PACKAGE_JSON);
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/thomasc",
+        .status = 200
+    };
+    set_body(&resp, body);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Package *pkgs;
+    size_t count;
+    int rc = api_package_list(&a, "thomasc", NULL, NULL, 0, &pkgs, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(count, 1);
+    ASSERT_STR_EQ(pkgs[0].name, "mylib");
+    ASSERT_STR_EQ(pkgs[0].type, "generic");
+    ASSERT_STR_EQ(pkgs[0].version, "1.0.0");
+    ASSERT_STR_EQ(pkgs[0].creator_login, "thomasc");
+    ASSERT_STR_EQ(pkgs[0].owner_login, "thomasc");
+    ASSERT_STR_EQ(pkgs[0].repo_full_name, "thomasc/myrepo");
+    ASSERT_EQ(pkgs[0].id, 1);
+
+    package_array_free(pkgs, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_list_empty(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/thomasc",
+        .status = 200,
+        .body = "[]"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Package *pkgs;
+    size_t count;
+    int rc = api_package_list(&a, "thomasc", NULL, NULL, 0, &pkgs, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(count, 0);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_list_with_type_filter(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/thomasc?type=generic",
+        .status = 200,
+        .body = "[]"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Package *pkgs;
+    size_t count;
+    int rc = api_package_list(&a, "thomasc", "generic", NULL, 0, &pkgs, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_list_404(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/missing",
+        .status = 404,
+        .body = "{\"message\":\"user not found\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Package *pkgs;
+    size_t count;
+    int rc = api_package_list(&a, "missing", NULL, NULL, 0, &pkgs, &count);
+    ASSERT_EQ(rc, API_ERR_NOT_FOUND);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_get_success(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/thomasc/generic/mylib/1.0.0",
+        .status = 200
+    };
+    set_body(&resp, PACKAGE_JSON);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Package pkg;
+    int rc = api_package_get(&a, "thomasc", "generic", "mylib", "1.0.0", &pkg);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_STR_EQ(pkg.name, "mylib");
+    ASSERT_STR_EQ(pkg.type, "generic");
+    ASSERT_STR_EQ(pkg.version, "1.0.0");
+    ASSERT_STR_EQ(pkg.creator_login, "thomasc");
+    ASSERT_STR_EQ(pkg.owner_login, "thomasc");
+    ASSERT_STR_EQ(pkg.repo_full_name, "thomasc/myrepo");
+
+    package_free(&pkg);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_get_404(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/thomasc/generic/notfound/1.0.0",
+        .status = 404,
+        .body = "{\"message\":\"package not found\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    Package pkg;
+    int rc = api_package_get(&a, "thomasc", "generic", "notfound", "1.0.0", &pkg);
+    ASSERT_EQ(rc, API_ERR_NOT_FOUND);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_delete_success(void)
+{
+    MockResponse resp = {
+        .method = "DELETE",
+        .path = "/api/v1/packages/thomasc/generic/mylib/1.0.0",
+        .status = 204
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    int rc = api_package_delete(&a, "thomasc", "generic", "mylib", "1.0.0");
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_delete_404(void)
+{
+    MockResponse resp = {
+        .method = "DELETE",
+        .path = "/api/v1/packages/thomasc/generic/notfound/1.0.0",
+        .status = 404,
+        .body = "{\"message\":\"package not found\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    int rc = api_package_delete(&a, "thomasc", "generic", "notfound", "1.0.0");
+    ASSERT_EQ(rc, API_ERR_NOT_FOUND);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_files_success(void)
+{
+    char body[4096];
+    snprintf(body, sizeof(body), "[%s]", PACKAGE_FILE_JSON);
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/thomasc/generic/mylib/1.0.0/files",
+        .status = 200
+    };
+    set_body(&resp, body);
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PackageFile *files;
+    size_t count;
+    int rc = api_package_files(&a, "thomasc", "generic", "mylib", "1.0.0",
+                               &files, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(count, 1);
+    ASSERT_STR_EQ(files[0].name, "mylib-1.0.0.tar.gz");
+    ASSERT_EQ(files[0].size, 1024);
+    ASSERT_STR_EQ(files[0].sha256, "789abc");
+
+    package_file_array_free(files, count);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_files_empty(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/v1/packages/thomasc/generic/mylib/1.0.0/files",
+        .status = 200,
+        .body = "[]"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    PackageFile *files;
+    size_t count;
+    int rc = api_package_files(&a, "thomasc", "generic", "mylib", "1.0.0",
+                               &files, &count);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(count, 0);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_link_success(void)
+{
+    MockResponse resp = {
+        .method = "POST",
+        .path = "/api/v1/packages/thomasc/generic/mylib/-/link/myrepo",
+        .status = 201
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    int rc = api_package_link(&a, "thomasc", "generic", "mylib", "myrepo");
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_unlink_success(void)
+{
+    MockResponse resp = {
+        .method = "POST",
+        .path = "/api/v1/packages/thomasc/generic/mylib/-/unlink",
+        .status = 201
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    int rc = api_package_unlink(&a, "thomasc", "generic", "mylib");
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_upload_success(void)
+{
+    MockResponse resp = {
+        .method = "PUT",
+        .path = "/api/packages/thomasc/generic/mylib/1.0.0/file.tar.gz",
+        .status = 201
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    const char *data = "binary file content";
+    int rc = api_package_upload(&a, "thomasc", "mylib", "1.0.0", "file.tar.gz",
+                                data, strlen(data));
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_TRUE(mock_server_all_matched(&server));
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_upload_conflict(void)
+{
+    MockResponse resp = {
+        .method = "PUT",
+        .path = "/api/packages/thomasc/generic/mylib/1.0.0/file.tar.gz",
+        .status = 409,
+        .body = "{\"message\":\"file already exists\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    const char *data = "binary file content";
+    int rc = api_package_upload(&a, "thomasc", "mylib", "1.0.0", "file.tar.gz",
+                                data, strlen(data));
+    ASSERT_EQ(rc, API_ERR_CONFLICT);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_download_success(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/packages/thomasc/generic/mylib/1.0.0/file.tar.gz",
+        .status = 200
+    };
+    set_body(&resp, "binary data!");
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    char *data;
+    size_t len;
+    int rc = api_package_download(&a, "thomasc", "mylib", "1.0.0", "file.tar.gz",
+                                  &data, &len);
+    ASSERT_EQ(rc, API_OK);
+    ASSERT_EQ(len, 12);
+    ASSERT_EQ(memcmp(data, "binary data!", 12), 0);
+
+    free(data);
+    api_client_free(&a);
+    teardown_server();
+}
+
+static void test_package_download_404(void)
+{
+    MockResponse resp = {
+        .method = "GET",
+        .path = "/api/packages/thomasc/generic/notfound/1.0.0/file.tar.gz",
+        .status = 404,
+        .body = "{\"message\":\"package not found\"}"
+    };
+    setup_server(&resp, 1);
+
+    ApiClient a;
+    make_client(&a);
+    char *data;
+    size_t len;
+    int rc = api_package_download(&a, "thomasc", "notfound", "1.0.0", "file.tar.gz",
+                                  &data, &len);
+    ASSERT_EQ(rc, API_ERR_NOT_FOUND);
+
+    api_client_free(&a);
+    teardown_server();
+}
+
 int main(void)
 {
     printf("Running new API tests:\n");
@@ -1726,6 +2103,23 @@ int main(void)
     RUN_TEST(test_user_key_delete_success);
     RUN_TEST(test_user_key_list_401);
     RUN_TEST(test_user_key_get_404);
+
+    RUN_TEST(test_package_list_success);
+    RUN_TEST(test_package_list_empty);
+    RUN_TEST(test_package_list_with_type_filter);
+    RUN_TEST(test_package_list_404);
+    RUN_TEST(test_package_get_success);
+    RUN_TEST(test_package_get_404);
+    RUN_TEST(test_package_delete_success);
+    RUN_TEST(test_package_delete_404);
+    RUN_TEST(test_package_files_success);
+    RUN_TEST(test_package_files_empty);
+    RUN_TEST(test_package_link_success);
+    RUN_TEST(test_package_unlink_success);
+    RUN_TEST(test_package_upload_success);
+    RUN_TEST(test_package_upload_conflict);
+    RUN_TEST(test_package_download_success);
+    RUN_TEST(test_package_download_404);
 
     TEST_SUMMARY();
 }

@@ -1017,4 +1017,57 @@ int api_user_key_delete(ApiClient *a, int64_t id);
 void public_key_free(PublicKey *k);
 void public_key_array_free(PublicKey *arr, size_t count);
 
+/* ===== Packages ===== */
+
+typedef struct
+{
+    int64_t id;
+    char *name;
+    char *type;
+    char *version;
+    char *html_url;
+    char *created_at;
+    char *creator_login;
+    char *owner_login;
+    char *repo_full_name;
+} Package;
+
+typedef struct
+{
+    int64_t id;
+    int64_t size;
+    char *name;
+    char *md5;
+    char *sha1;
+    char *sha256;
+    char *sha512;
+} PackageFile;
+
+int api_package_list(ApiClient *a, const char *owner,
+                     const char *type, const char *q,
+                     int limit, Package **out, size_t *count);
+int api_package_get(ApiClient *a, const char *owner, const char *type,
+                    const char *name, const char *version, Package *out);
+int api_package_delete(ApiClient *a, const char *owner, const char *type,
+                       const char *name, const char *version);
+int api_package_files(ApiClient *a, const char *owner, const char *type,
+                      const char *name, const char *version,
+                      PackageFile **out, size_t *count);
+int api_package_link(ApiClient *a, const char *owner, const char *type,
+                     const char *name, const char *repo_name);
+int api_package_unlink(ApiClient *a, const char *owner, const char *type,
+                       const char *name);
+
+void package_free(Package *p);
+void package_array_free(Package *arr, size_t count);
+void package_file_free(PackageFile *pf);
+void package_file_array_free(PackageFile *arr, size_t count);
+
+int api_package_upload(ApiClient *a, const char *owner, const char *name,
+                       const char *version, const char *filename,
+                       const char *file_data, size_t file_len);
+int api_package_download(ApiClient *a, const char *owner, const char *name,
+                         const char *version, const char *filename,
+                         char **out_data, size_t *out_len);
+
 #endif /* CB_API_H */
