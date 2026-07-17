@@ -64,6 +64,7 @@ static void help_release_create(void);
 static void help_release_edit(void);
 static void help_release_asset(void);
 static void help_tag(void);
+static void help_tag_list(void);
 static void help_branch(void);
 static void help_issue(void);
 static void help_label(void);
@@ -1947,6 +1948,12 @@ static const FlagDef TAG_CREATE_FLAGS[] = {
     { NULL, NULL, 0 }
 };
 
+static const FlagDef TAG_LIST_FLAGS[] = {
+    { "--limit", NULL, 1 },
+    { "--help", "-h", 0 },
+    { NULL, NULL, 0 }
+};
+
 static const FlagDef BRANCH_CREATE_FLAGS[] = {
     { "--name", NULL, 1 },
     { "--from", NULL, 1 },
@@ -2248,7 +2255,7 @@ static const SubCmd RELEASE_SUBS[] = {
 static const SubCmd TAG_SUBS[] = {
     { "list", "List tags",
       "cb tag list [owner/]repo [--limit N]",
-      "List tags.", NULL, NULL },
+      "List tags.", TAG_LIST_FLAGS, NULL },
     { "create", "Create a tag",
       "cb tag create [owner/]repo --tag <tag> [--message <msg>] [--target <ref>]",
       "Create a tag.", TAG_CREATE_FLAGS, NULL },
@@ -2821,6 +2828,7 @@ HELP_WRAPPER_2(help_release_list, "release", "list")
 HELP_WRAPPER_2(help_release_create, "release", "create")
 HELP_WRAPPER_2(help_release_edit, "release", "edit")
 HELP_WRAPPER_2(help_release_asset, "release", "asset")
+HELP_WRAPPER_2(help_tag_list, "tag", "list")
 
 /* ===== Machine-readable help spec (--help-spec) ===== */
 
@@ -4106,19 +4114,39 @@ static int cmd_tag_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
             return CLI_OK;
         }
     }
-    if (argc < 1) {
-        fprintf(stderr, "Error: tag list requires repo\n");
+    const char **positional;
+    const char **fv;
+    int *fb;
+    int npos = parse_flags(argc, argv, TAG_LIST_FLAGS, &positional, &fv, &fb);
+    if (npos < 0)
+        return CLI_USAGE;
+    if (npos < 1) {
+        help_tag_list();
+        free(positional);
+        free(fv);
+        free(fb);
         return CLI_USAGE;
     }
     char owner[128], repo[128];
-    if (require_owner_repo(argv[0], owner, sizeof(owner),
-                           repo, sizeof(repo), api) != 0)
+    if (require_owner_repo(positional[0], owner, sizeof(owner),
+                           repo, sizeof(repo), api) != 0) {
+        free(positional);
+        free(fv);
+        free(fb);
         return CLI_ERR;
+    }
+    int limit = 0;
+    int idx = find_flag_idx(TAG_LIST_FLAGS, "--limit");
+    if (fv[idx])
+        limit = atoi(fv[idx]);
     Tag *tags;
     size_t count;
-    int rc = api_tag_list(api, owner, repo, 0, &tags, &count);
+    int rc = api_tag_list(api, owner, repo, limit, &tags, &count);
     if (rc != API_OK) {
         print_api_error(rc, api->last_error);
+        free(positional);
+        free(fv);
+        free(fb);
         return CLI_ERR;
     }
     if (gf->quiet && !gf->json) {
@@ -4127,6 +4155,9 @@ static int cmd_tag_list(int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
     } else
         print_tag_list(tags, count, gf->json);
     tag_array_free(tags, count);
+    free(positional);
+    free(fv);
+    free(fb);
     return CLI_OK;
 }
 
