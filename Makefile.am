@@ -7,6 +7,17 @@ EXTRA_DIST = \
     build-aux/gen-completions.sh \
     version
 
+# Distribute public headers (automake doesn't auto-include headers from a
+# separate directory that aren't referenced by any _SOURCES variable).
+nobase_pkginclude_HEADERS = \
+    include/cb_api.h \
+    include/cb_cli.h \
+    include/cb_compat.h \
+    include/cb_config.h \
+    include/cb_http.h \
+    include/cb_json.h \
+    include/cb_validate.h
+
 # Regenerate the version file on every `make` so it tracks the current git
 # HEAD.  The recipe always runs, but the file is only rewritten when the
 # content changes.  This ensures that re-running ./configure (without
