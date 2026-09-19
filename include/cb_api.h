@@ -994,6 +994,58 @@ int api_repo_languages (ApiClient *a, const char *owner, const char *repo,
                         char ***langs, int64_t **bytes, size_t *count);
 int api_repo_mirror_sync (ApiClient *a, const char *owner, const char *repo);
 
+/* ===== Push mirrors =====
+ *
+ * A *push* mirror makes the repository push its commits out to a remote
+ * (e.g. Codeberg -> GitHub). It is distinct from the *pull* mirror implied
+ * by `api_repo_mirror_sync` above. The API is Forgejo's:
+ *   GET    /repos/{owner}/{repo}/push_mirrors        — list
+ *   POST   /repos/{owner}/{repo}/push_mirrors        — create
+ *   GET    /repos/{owner}/{repo}/push_mirrors/{name} — show by remote_name
+ *   DELETE /repos/{owner}/{repo}/push_mirrors/{name} — delete by remote_name
+ *   POST   /repos/{owner}/{repo}/push_mirrors-sync   — sync all
+ */
+
+typedef struct
+{
+  char *remote_name;    /* server-assigned id, e.g. "remote_mirror_Rq6gE3lX4aT" */
+  char *remote_address; /* target URL, e.g. "https://github.com/owner/repo.git" */
+  char *created;        /* ISO timestamp */
+  char *last_update;    /* ISO timestamp */
+  char *last_error;     /* last push error, "" when healthy */
+  char *interval;
+  char *public_key;
+  char *branch_filter;
+  char *repo_name;
+  int sync_on_commit;
+} PushMirror;
+
+typedef struct
+{
+  const char *remote_address;  /* required */
+  const char *remote_username; /* may be NULL */
+  const char *remote_password; /* may be NULL */
+  const char *interval;        /* may be NULL — e.g. "8h0m0s", "0s" */
+  int sync_on_commit_set;
+  int sync_on_commit_val;
+  int use_ssh_set;
+  int use_ssh_val;
+  const char *branch_filter; /* may be NULL */
+} CreatePushMirrorOpts;
+
+int api_push_mirror_list (ApiClient *a, const char *owner, const char *repo,
+                          PushMirror **out, size_t *count);
+int api_push_mirror_get (ApiClient *a, const char *owner, const char *repo,
+                         const char *name, PushMirror *out);
+int api_push_mirror_create (ApiClient *a, const char *owner, const char *repo,
+                            const CreatePushMirrorOpts *opts, PushMirror *out);
+int api_push_mirror_delete (ApiClient *a, const char *owner, const char *repo,
+                            const char *name);
+int api_push_mirror_sync (ApiClient *a, const char *owner, const char *repo);
+
+void push_mirror_free (PushMirror *m);
+void push_mirror_array_free (PushMirror *arr, size_t count);
+
 /* ===== User SSH public keys ===== */
 
 typedef struct

@@ -45,6 +45,12 @@ static void help_repo_show (void);
 static void help_repo_list (void);
 static void help_repo_transfer (void);
 static void help_repo_topic (void);
+static void help_repo_mirror (void);
+static void help_repo_mirror_add (void);
+static void help_repo_mirror_list (void);
+static void help_repo_mirror_show (void);
+static void help_repo_mirror_rm (void);
+static void help_repo_mirror_sync (void);
 static void help_topic_add (void);
 static void help_topic_rm (void);
 static void help_topic_list (void);
@@ -79,6 +85,8 @@ static void help_hook (void);
 static void help_wiki (void);
 static void help_sshkey (void);
 static void help_package (void);
+static void help_rev (void);
+static void help_rev_push (void);
 
 /* ===== Flag parsing ===== */
 
@@ -2091,6 +2099,27 @@ static const FlagDef HOOK_CREATE_FLAGS[] = {
   { NULL, NULL, 0 }
 };
 
+static const FlagDef MIRROR_ADD_FLAGS[] = {
+  { "--remote-address", NULL, 1 },
+  { "--remote-username", NULL, 1 },
+  { "--remote-password", NULL, 1 },
+  { "--interval", NULL, 1 },
+  { "--branch-filter", NULL, 1 },
+  { "--sync-on-commit", NULL, 0 },
+  { "--no-sync-on-commit", NULL, 0 },
+  { "--ssh", NULL, 0 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static const FlagDef MIRROR_PUSH_FLAGS[] = {
+  { "--url", "-u", 1 },
+  { "--dry-run", NULL, 0 },
+  { "--yes", "-y", 0 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
 static const FlagDef PACKAGE_LIST_FLAGS[] = {
   { "--type", "-t", 1 },
   { "--query", "-q", 1 },
@@ -2163,6 +2192,39 @@ static const SubCmd TOPIC_SUBS[] = {
   { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
+static const SubCmd MIRROR_SUBS[] = {
+  { "add", "Add a push mirror",
+    "cb repo mirror add [owner/]repo --remote-address <url> [flags]",
+    "Add a push mirror to a repository. Use --remote-username and\n"
+    "--remote-password for HTTPS auth, or --ssh for SSH.",
+    MIRROR_ADD_FLAGS, NULL },
+  { "list", "List push mirrors",
+    "cb repo mirror list [owner/]repo",
+    "List a repository's push mirrors.", NULL, NULL },
+  { "show", "Show a push mirror",
+    "cb repo mirror show [owner/]repo <remote-name>",
+    "Show one push mirror by its remote name.", NULL, NULL },
+  { "rm", "Remove a push mirror",
+    "cb repo mirror rm [owner/]repo <remote-name> [--yes]",
+    "Remove a push mirror. Requires --yes or interactive confirmation.",
+    NULL, NULL },
+  { "sync", "Sync all push mirrors now",
+    "cb repo mirror sync [owner/]repo",
+    "Trigger a sync of all push mirrors immediately.", NULL, NULL },
+  { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
+static const SubCmd REV_SUBS[] = {
+  { "push", "Delete push mirrors that target GitHub (or --url match)",
+    "cb rev push [owner/]repo [--url <match>] [--dry-run] [--yes]",
+    "Remove push mirrors whose remote address contains <match>\n"
+    "(default 'github.com'). With no repo argument, scans every repo\n"
+    "the authenticated user can see. Requires --yes or interactive\n"
+    "confirmation, unless --dry-run.",
+    MIRROR_PUSH_FLAGS, NULL },
+  { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
 static const SubCmd REPO_SUBS[] = {
   { "create", "Create a new repository",
     "cb repo create <name> [flags]",
@@ -2192,6 +2254,11 @@ static const SubCmd REPO_SUBS[] = {
   { "topic", "Manage topics (add, rm, list, set)",
     "cb repo topic <add|rm|list|set> ...",
     "Manage repository topics.", NULL, TOPIC_SUBS },
+  { "mirror", "Manage push mirrors (add, list, show, rm, sync)",
+    "cb repo mirror <add|list|show|rm|sync> ...",
+    "Manage push mirrors — push commits from this repository out to a\n"
+    "remote (e.g. Codeberg -> GitHub).",
+    NULL, MIRROR_SUBS },
   { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -2667,7 +2734,7 @@ static const SubCmd PACKAGE_SUBS[] = {
 };
 
 static const Cmd COMMANDS[] = {
-  { "repo", "Repository management (create, delete, rename, edit, show, list, transfer, topic)",
+  { "repo", "Repository management (create, delete, rename, edit, show, list, transfer, topic, mirror)",
     "cb repo <subcommand> [args] [flags]",
     "Repository management.\n\n"
     "Where [owner/]repo appears, the owner/ prefix is optional\n"
@@ -2712,6 +2779,10 @@ static const Cmd COMMANDS[] = {
   { "fork", "Manage forks (list, create)",
     "cb fork <subcommand> [owner/]repo [args] [flags]",
     "Manage forks.", FORK_SUBS },
+  { "rev", "Mirror maintenance (push — clean up push mirrors)",
+    "cb rev <subcommand> [args] [flags]",
+    "Mirror maintenance.",
+    REV_SUBS },
   { "hook", "Manage webhooks (list, create, show, edit, delete, test)",
     "cb hook <subcommand> [owner/]repo [args] [flags]",
     "Manage webhooks.", HOOK_SUBS },
@@ -2898,6 +2969,8 @@ HELP_WRAPPER_1 (help_hook, "hook")
 HELP_WRAPPER_1 (help_wiki, "wiki")
 HELP_WRAPPER_1 (help_sshkey, "sshkey")
 HELP_WRAPPER_1 (help_package, "package")
+HELP_WRAPPER_1 (help_rev, "rev")
+HELP_WRAPPER_2 (help_rev_push, "rev", "push")
 
 HELP_WRAPPER_2 (help_repo_create, "repo", "create")
 HELP_WRAPPER_2 (help_repo_delete, "repo", "delete")
@@ -2907,6 +2980,12 @@ HELP_WRAPPER_2 (help_repo_show, "repo", "show")
 HELP_WRAPPER_2 (help_repo_list, "repo", "list")
 HELP_WRAPPER_2 (help_repo_transfer, "repo", "transfer")
 HELP_WRAPPER_2 (help_repo_topic, "repo", "topic")
+HELP_WRAPPER_2 (help_repo_mirror, "repo", "mirror")
+HELP_WRAPPER_3 (help_repo_mirror_add, "repo", "mirror", "add")
+HELP_WRAPPER_3 (help_repo_mirror_list, "repo", "mirror", "list")
+HELP_WRAPPER_3 (help_repo_mirror_show, "repo", "mirror", "show")
+HELP_WRAPPER_3 (help_repo_mirror_rm, "repo", "mirror", "rm")
+HELP_WRAPPER_3 (help_repo_mirror_sync, "repo", "mirror", "sync")
 HELP_WRAPPER_3 (help_topic_add, "repo", "topic", "add")
 HELP_WRAPPER_3 (help_topic_rm, "repo", "topic", "rm")
 HELP_WRAPPER_3 (help_topic_list, "repo", "topic", "list")
@@ -3557,6 +3636,81 @@ static void print_hook_list (const Hook *arr, size_t count, int json)
               arr[i].type ? arr[i].type : "",
               arr[i].active ? "active" : "inactive",
               arr[i].url ? arr[i].url : "");
+  }
+}
+
+static void print_push_mirror_list (const PushMirror *arr, size_t count, int json)
+{
+  if (json) {
+    JsonValue *jarr = json_array_new ();
+    for (size_t i = 0; i < count; i++) {
+      JsonValue *obj = json_object_new ();
+      if (arr[i].remote_name)
+        json_object_set_string (obj, "remote_name", arr[i].remote_name);
+      if (arr[i].remote_address)
+        json_object_set_string (obj, "remote_address", arr[i].remote_address);
+      json_object_set_bool (obj, "sync_on_commit", arr[i].sync_on_commit);
+      if (arr[i].interval)
+        json_object_set_string (obj, "interval", arr[i].interval);
+      if (arr[i].last_update)
+        json_object_set_string (obj, "last_update", arr[i].last_update);
+      if (arr[i].last_error && arr[i].last_error[0])
+        json_object_set_string (obj, "last_error", arr[i].last_error);
+      json_array_push (jarr, obj);
+    }
+    char *s = json_serialize (jarr, true);
+    printf ("%s\n", s);
+    free (s);
+    json_free (jarr);
+  } else {
+    for (size_t i = 0; i < count; i++)
+      printf ("%-32s  %-8s  %s%s\n",
+              arr[i].remote_address ? arr[i].remote_address : "",
+              arr[i].sync_on_commit ? "on-push" : "interval",
+              arr[i].remote_name ? arr[i].remote_name : "",
+              (arr[i].last_error && arr[i].last_error[0]) ? "  [error]" : "");
+  }
+}
+
+static void print_push_mirror (const PushMirror *m, int json)
+{
+  if (json) {
+    JsonValue *obj = json_object_new ();
+    if (m->remote_name)
+      json_object_set_string (obj, "remote_name", m->remote_name);
+    if (m->remote_address)
+      json_object_set_string (obj, "remote_address", m->remote_address);
+    json_object_set_bool (obj, "sync_on_commit", m->sync_on_commit);
+    if (m->interval)
+      json_object_set_string (obj, "interval", m->interval);
+    if (m->created)
+      json_object_set_string (obj, "created", m->created);
+    if (m->last_update)
+      json_object_set_string (obj, "last_update", m->last_update);
+    if (m->last_error)
+      json_object_set_string (obj, "last_error", m->last_error);
+    if (m->branch_filter)
+      json_object_set_string (obj, "branch_filter", m->branch_filter);
+    char *s = json_serialize (obj, true);
+    printf ("%s\n", s);
+    free (s);
+    json_free (obj);
+  } else {
+    if (m->remote_name)
+      printf ("remote_name:    %s\n", m->remote_name);
+    if (m->remote_address)
+      printf ("remote_address: %s\n", m->remote_address);
+    printf ("sync_on_commit: %s\n", m->sync_on_commit ? "true" : "false");
+    if (m->interval)
+      printf ("interval:       %s\n", m->interval);
+    if (m->created)
+      printf ("created:        %s\n", m->created);
+    if (m->last_update)
+      printf ("last_update:    %s\n", m->last_update);
+    if (m->last_error && m->last_error[0])
+      printf ("last_error:     %s\n", m->last_error);
+    if (m->branch_filter)
+      printf ("branch_filter:  %s\n", m->branch_filter);
   }
 }
 
@@ -6801,6 +6955,405 @@ static int cmd_hook (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   return CLI_USAGE;
 }
 
+/* ===== Push mirror command handlers ===== */
+
+static int cmd_mirror_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_repo_mirror_list ();
+      return CLI_OK;
+    }
+  }
+  if (argc < 1) {
+    fprintf (stderr, "Error: mirror list requires repo\n");
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (argv[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0)
+    return CLI_ERR;
+  PushMirror *mirrors = NULL;
+  size_t count = 0;
+  int rc = api_push_mirror_list (api, owner, repo, &mirrors, &count);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+  if (gf->quiet && !gf->json) {
+    for (size_t i = 0; i < count; i++)
+      printf ("%s\n", mirrors[i].remote_name ? mirrors[i].remote_name : "");
+  } else
+    print_push_mirror_list (mirrors, count, gf->json);
+  push_mirror_array_free (mirrors, count);
+  return CLI_OK;
+}
+
+static int cmd_mirror_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_repo_mirror_show ();
+      return CLI_OK;
+    }
+  }
+  if (argc < 2) {
+    fprintf (stderr, "Error: mirror show requires repo and remote-name\n");
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (argv[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0)
+    return CLI_ERR;
+  PushMirror m;
+  memset (&m, 0, sizeof (m));
+  int rc = api_push_mirror_get (api, owner, repo, argv[1], &m);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+  print_push_mirror (&m, gf->json);
+  push_mirror_free (&m);
+  return CLI_OK;
+}
+
+static int cmd_mirror_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_repo_mirror_add ();
+      return CLI_OK;
+    }
+  }
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, MIRROR_ADD_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 1) {
+    fprintf (stderr, "Error: mirror add requires repo\n");
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  int idx = find_flag_idx (MIRROR_ADD_FLAGS, "--remote-address");
+  if (!fv[idx]) {
+    fprintf (stderr, "Error: --remote-address is required\n");
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+  CreatePushMirrorOpts opts = { 0 };
+  opts.remote_address = fv[idx];
+  idx = find_flag_idx (MIRROR_ADD_FLAGS, "--remote-username");
+  if (fv[idx])
+    opts.remote_username = fv[idx];
+  idx = find_flag_idx (MIRROR_ADD_FLAGS, "--remote-password");
+  if (fv[idx])
+    opts.remote_password = fv[idx];
+  idx = find_flag_idx (MIRROR_ADD_FLAGS, "--interval");
+  if (fv[idx])
+    opts.interval = fv[idx];
+  idx = find_flag_idx (MIRROR_ADD_FLAGS, "--branch-filter");
+  if (fv[idx])
+    opts.branch_filter = fv[idx];
+  idx = find_flag_idx (MIRROR_ADD_FLAGS, "--sync-on-commit");
+  if (fb[idx]) {
+    opts.sync_on_commit_set = 1;
+    opts.sync_on_commit_val = 1;
+  }
+  idx = find_flag_idx (MIRROR_ADD_FLAGS, "--no-sync-on-commit");
+  if (fb[idx]) {
+    opts.sync_on_commit_set = 1;
+    opts.sync_on_commit_val = 0;
+  }
+  idx = find_flag_idx (MIRROR_ADD_FLAGS, "--ssh");
+  if (fb[idx]) {
+    opts.use_ssh_set = 1;
+    opts.use_ssh_val = 1;
+  }
+  PushMirror m;
+  memset (&m, 0, sizeof (m));
+  int rc = api_push_mirror_create (api, owner, repo, &opts, &m);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  if (!gf->quiet)
+    printf ("Added push mirror %s -> %s\n",
+            m.remote_name ? m.remote_name : "?", opts.remote_address);
+  push_mirror_free (&m);
+  free (positional);
+  free (fv);
+  free (fb);
+  return CLI_OK;
+}
+
+static int cmd_mirror_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_repo_mirror_rm ();
+      return CLI_OK;
+    }
+  }
+  if (argc < 2) {
+    fprintf (stderr, "Error: mirror rm requires repo and remote-name\n");
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (argv[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0)
+    return CLI_ERR;
+  const char *name = argv[1];
+  if (!gf->yes && !confirm ("Delete this push mirror?")) {
+    printf ("Cancelled.\n");
+    return CLI_OK;
+  }
+  int rc = api_push_mirror_delete (api, owner, repo, name);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+  if (!gf->quiet)
+    printf ("Removed push mirror %s\n", name);
+  return CLI_OK;
+}
+
+static int cmd_mirror_sync (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_repo_mirror_sync ();
+      return CLI_OK;
+    }
+  }
+  if (argc < 1) {
+    fprintf (stderr, "Error: mirror sync requires repo\n");
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (argv[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0)
+    return CLI_ERR;
+  int rc = api_push_mirror_sync (api, owner, repo);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+  if (!gf->quiet)
+    printf ("Sync triggered.\n");
+  return CLI_OK;
+}
+
+/* ===== rev (mirror cleanup) command handlers ===== */
+
+typedef struct
+{
+  char *owner;
+  char *repo;
+  char *remote_name;
+  char *remote_address;
+} MirrorMatch;
+
+/* Delete every push mirror across the given owner that matches `match`.
+ * If owner is NULL, scans every repo the token can see. */
+static int rev_push_owner (ApiClient *api, CbGlobalFlags *gf, const char *owner,
+                           const char *match, int dry_run)
+{
+  Repo *repos = NULL;
+  size_t rcount = 0;
+  int rc;
+
+  if (owner) {
+    char o[128], r[128];
+    if (require_owner_repo (owner, o, sizeof (o), r, sizeof (r), api) != 0)
+      return CLI_ERR;
+    rc = api_repo_list (api, o, 0, &repos, &rcount);
+  } else {
+    rc = api_repo_list (api, NULL, 0, &repos, &rcount);
+  }
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+
+  MirrorMatch *matches = NULL;
+  size_t mcount = 0, mcap = 0;
+
+  for (size_t i = 0; i < rcount; i++) {
+    const char *full = repos[i].full_name;
+    if (!full)
+      continue;
+    char o[128], r[128];
+    char verr[256];
+    if (validate_owner_repo (full, o, sizeof (o), r, sizeof (r),
+                             verr, sizeof (verr))
+        != VALIDATE_OK)
+      continue;
+    if (owner && strcmp (o, owner) != 0)
+      continue;
+
+    PushMirror *mirrors = NULL;
+    size_t count = 0;
+    rc = api_push_mirror_list (api, o, r, &mirrors, &count);
+    if (rc != API_OK) {
+      /* Not all repos expose push mirrors (or we lack admin) — skip quietly. */
+      if (rc != API_ERR_NOT_FOUND)
+        fprintf (stderr, "warning: %s: %s\n", full, api->last_error);
+      continue;
+    }
+    for (size_t j = 0; j < count; j++) {
+      const char *addr = mirrors[j].remote_address;
+      if (!addr || !strstr (addr, match))
+        continue;
+      if (mcount == mcap) {
+        mcap = mcap ? mcap * 2 : 8;
+        matches = realloc (matches, mcap * sizeof (*matches));
+      }
+      matches[mcount].owner = strdup (o);
+      matches[mcount].repo = strdup (r);
+      matches[mcount].remote_name = strdup (mirrors[j].remote_name ? mirrors[j].remote_name : "");
+      matches[mcount].remote_address = strdup (addr);
+      mcount++;
+    }
+    push_mirror_array_free (mirrors, count);
+  }
+  repo_array_free (repos, rcount);
+
+  if (mcount == 0) {
+    if (!gf->quiet)
+      printf ("No push mirrors matching \"%s\" found.\n", match);
+    free (matches);
+    return CLI_OK;
+  }
+
+  for (size_t i = 0; i < mcount; i++)
+    printf ("%s/%s: %s -> %s\n", matches[i].owner, matches[i].repo,
+            matches[i].remote_name, matches[i].remote_address);
+
+  if (dry_run) {
+    printf ("%zu mirror(s) matched \"%s\" (dry run; nothing deleted).\n",
+            mcount, match);
+  } else {
+    if (!gf->yes) {
+      char prompt[128];
+      snprintf (prompt, sizeof (prompt), "Delete %zu push mirror(s)?", mcount);
+      if (!confirm (prompt)) {
+        printf ("Cancelled.\n");
+        goto done;
+      }
+    }
+    size_t deleted = 0;
+    for (size_t i = 0; i < mcount; i++) {
+      rc = api_push_mirror_delete (api, matches[i].owner, matches[i].repo,
+                                   matches[i].remote_name);
+      if (rc != API_OK) {
+        fprintf (stderr, "Error: %s/%s %s: %s\n", matches[i].owner,
+                 matches[i].repo, matches[i].remote_name, api->last_error);
+      } else {
+        deleted++;
+      }
+    }
+    printf ("Deleted %zu of %zu push mirror(s).\n", deleted, mcount);
+    if (deleted != mcount) {
+      for (size_t i = 0; i < mcount; i++) {
+        free (matches[i].owner);
+        free (matches[i].repo);
+        free (matches[i].remote_name);
+        free (matches[i].remote_address);
+      }
+      free (matches);
+      return CLI_ERR;
+    }
+  }
+
+done:
+  for (size_t i = 0; i < mcount; i++) {
+    free (matches[i].owner);
+    free (matches[i].repo);
+    free (matches[i].remote_name);
+    free (matches[i].remote_address);
+  }
+  free (matches);
+  return CLI_OK;
+}
+
+static int cmd_rev_push (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_rev_push ();
+      return CLI_OK;
+    }
+  }
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, MIRROR_PUSH_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+
+  const char *match = "github.com";
+  int idx = find_flag_idx (MIRROR_PUSH_FLAGS, "--url");
+  if (fv[idx])
+    match = fv[idx];
+  idx = find_flag_idx (MIRROR_PUSH_FLAGS, "--dry-run");
+  int dry_run = fb[idx];
+
+  int rc;
+  if (npos >= 1) {
+    rc = rev_push_owner (api, gf, positional[0], match, dry_run);
+  } else {
+    /* No repo given: scan every repo the token can see. */
+    rc = rev_push_owner (api, gf, NULL, match, dry_run);
+  }
+
+  free (positional);
+  free (fv);
+  free (fb);
+  return rc;
+}
+
+static int cmd_rev (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  if (argc < 1) {
+    help_rev ();
+    return CLI_USAGE;
+  }
+  const char *sub = argv[0];
+  int rest_argc = argc - 1;
+  char **rest_argv = argv + 1;
+  if (is_help_arg (sub)) {
+    help_rev ();
+    return CLI_OK;
+  }
+  if (strcmp (sub, "push") == 0)
+    return cmd_rev_push (rest_argc, rest_argv, api, gf);
+  fprintf (stderr, "Error: unknown rev subcommand '%s'\n", sub);
+  help_rev ();
+  return CLI_USAGE;
+}
+
 /* ===== Wiki command handlers ===== */
 
 static int cmd_wiki_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
@@ -7810,6 +8363,32 @@ static int cmd_repo (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     help_repo_topic ();
     return CLI_USAGE;
   }
+  if (strcmp (sub, "mirror") == 0) {
+    if (rest_argc < 1) {
+      help_repo_mirror ();
+      return CLI_USAGE;
+    }
+    const char *mirror_sub = rest_argv[0];
+    int mirror_argc = rest_argc - 1;
+    char **mirror_argv = rest_argv + 1;
+    if (is_help_arg (mirror_sub)) {
+      help_repo_mirror ();
+      return CLI_OK;
+    }
+    if (strcmp (mirror_sub, "add") == 0)
+      return cmd_mirror_add (mirror_argc, mirror_argv, api, gf);
+    if (strcmp (mirror_sub, "list") == 0)
+      return cmd_mirror_list (mirror_argc, mirror_argv, api, gf);
+    if (strcmp (mirror_sub, "show") == 0)
+      return cmd_mirror_show (mirror_argc, mirror_argv, api, gf);
+    if (strcmp (mirror_sub, "rm") == 0)
+      return cmd_mirror_rm (mirror_argc, mirror_argv, api, gf);
+    if (strcmp (mirror_sub, "sync") == 0)
+      return cmd_mirror_sync (mirror_argc, mirror_argv, api, gf);
+    fprintf (stderr, "Error: unknown mirror subcommand '%s'\n", mirror_sub);
+    help_repo_mirror ();
+    return CLI_USAGE;
+  }
 
   fprintf (stderr, "Error: unknown repo subcommand '%s'\n", sub);
   help_repo ();
@@ -7927,6 +8506,8 @@ int cli_run (int argc, char **argv)
     rc = cmd_fork (filtered_argc - 2, filtered_argv + 2, &api, &gf);
   else if (strcmp (cmd, "hook") == 0)
     rc = cmd_hook (filtered_argc - 2, filtered_argv + 2, &api, &gf);
+  else if (strcmp (cmd, "rev") == 0)
+    rc = cmd_rev (filtered_argc - 2, filtered_argv + 2, &api, &gf);
   else if (strcmp (cmd, "org") == 0)
     rc = cmd_org (filtered_argc - 2, filtered_argv + 2, &api, &gf);
   else if (strcmp (cmd, "wiki") == 0)

@@ -12,6 +12,8 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - List repositories (own, user, or organization)
 - Transfer repository ownership
 - Manage repository topics (add, remove, list, set)
+- Manage push mirrors (add, list, show, remove, sync) — Codeberg → GitHub etc.
+- Bulk-remove push mirrors targeting an external forge (`cb rev push`)
 
 ### Releases
 
@@ -114,6 +116,7 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 - JSON output mode for scripting (`--json`)
 - Client-side validation with clear error messages
 - Token scope error detection with actionable guidance
+- Manage push mirrors (`repo mirror add/list/show/rm/sync`, `rev push`)
 - Manage your account's SSH public keys (`sshkey list/add/show/rm`)
 - Manage packages in the Forgejo Package Registry (`package list/show/delete/files/link/unlink/upload/download`)
 - Cross-platform: Linux, macOS, and Windows (MSYS2 UCRT64)
@@ -380,6 +383,48 @@ cb repo topic rm thomasc/myproj go
 cb repo topic list thomasc/myproj
 cb repo topic set thomasc/myproj go,cli,codeberg
 ```
+
+#### `cb repo mirror <add|list|show|rm|sync> [owner/]repo`
+
+Manage **push** mirrors — remotes this repository pushes commits out to (e.g.
+Codeberg → GitHub). Distinct from the pull-mirror `mirror-sync` endpoint, which
+this CLI does not expose.
+
+```bash
+cb repo mirror list thomasc/myproj
+cb repo mirror show thomasc/myproj remote_mirror_Rq6gE3lX4aT
+
+cb repo mirror add thomasc/myproj \
+    --remote-address https://github.com/owner/repo.git \
+    --remote-username owner --remote-password "$TOKEN" \
+    --interval 8h0m0s --sync-on-commit
+cb repo mirror add thomasc/myproj --remote-address git@github.com:owner/repo.git --ssh
+
+cb repo mirror sync thomasc/myproj
+cb repo mirror rm thomasc/myproj remote_mirror_Rq6gE3lX4aT --yes
+```
+
+Flags for `add`: `--remote-address` (required), `--remote-username`,
+`--remote-password`, `--interval`, `--branch-filter`,
+`--sync-on-commit`/`--no-sync-on-commit`, `--ssh`.
+
+#### `cb rev push [owner/]repo [--url <match>] [--dry-run] [--yes]`
+
+Bulk-remove push mirrors that target an external forge — the pragmatic way to
+stop a stale Codeberg → GitHub mirror from racing your direct pushes.
+
+Scans the given repo, or (with no repo argument) **every repo the token can
+see**; deletes each push mirror whose remote address contains `<match>`
+(default `github.com`).
+
+```bash
+cb rev push --dry-run                       # preview across all repos
+cb rev push                                 # confirm, then delete
+cb rev push chestso/boba --yes              # one repo, no prompt
+cb rev push --url gitlab.com --dry-run      # different forge
+```
+
+Requires `--yes` or interactive confirmation unless `--dry-run` is given.
 
 #### `cb release <subcommand> [owner/]repo`
 

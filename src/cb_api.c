@@ -1763,6 +1763,21 @@ static void parse_hook (const JsonValue *obj, Hook *h)
   }
 }
 
+static void parse_push_mirror (const JsonValue *obj, PushMirror *m)
+{
+  memset (m, 0, sizeof (*m));
+  m->remote_name = json_dup_string (obj, "remote_name");
+  m->remote_address = json_dup_string (obj, "remote_address");
+  m->created = json_dup_string (obj, "created");
+  m->last_update = json_dup_string (obj, "last_update");
+  m->last_error = json_dup_string (obj, "last_error");
+  m->interval = json_dup_string (obj, "interval");
+  m->public_key = json_dup_string (obj, "public_key");
+  m->branch_filter = json_dup_string (obj, "branch_filter");
+  m->repo_name = json_dup_string (obj, "repo_name");
+  m->sync_on_commit = json_get_bool (obj, "sync_on_commit", 0);
+}
+
 static void parse_wikipage (const JsonValue *obj, WikiPage *w)
 {
   memset (w, 0, sizeof (*w));
@@ -4542,6 +4557,151 @@ int api_repo_languages (ApiClient *a, const char *owner, const char *repo,
 int api_repo_mirror_sync (ApiClient *a, const char *owner, const char *repo)
 {
   char *path = build_path (a, "/repos/%s/%s/mirror-sync", owner, repo);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_POST, path, NULL, &resp);
+  free (path);
+  http_response_free (&resp);
+  return err;
+}
+
+/* ===== Push mirrors ===== */
+
+void push_mirror_free (PushMirror *m)
+{
+  if (!m)
+    return;
+  free (m->remote_name);
+  free (m->remote_address);
+  free (m->created);
+  free (m->last_update);
+  free (m->last_error);
+  free (m->interval);
+  free (m->public_key);
+  free (m->branch_filter);
+  free (m->repo_name);
+  memset (m, 0, sizeof (*m));
+}
+
+void push_mirror_array_free (PushMirror *arr, size_t count)
+{
+  if (!arr)
+    return;
+  for (size_t i = 0; i < count; i++)
+    push_mirror_free (&arr[i]);
+  free (arr);
+}
+
+int api_push_mirror_list (ApiClient *a, const char *owner, const char *repo,
+                          PushMirror **out, size_t *count)
+{
+  char *path = build_path (a, "/repos/%s/%s/push_mirrors", owner, repo);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_GET, path, NULL, &resp);
+  free (path);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  err = parse_array (a, resp.body, sizeof (PushMirror),
+                     (void (*) (const JsonValue *, void *))parse_push_mirror,
+                     (void **)out, count);
+  http_response_free (&resp);
+  return err;
+}
+
+int api_push_mirror_get (ApiClient *a, const char *owner, const char *repo,
+                         const char *name, PushMirror *out)
+{
+  char *path = build_path (a, "/repos/%s/%s/push_mirrors/%s", owner, repo, name);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_GET, path, NULL, &resp);
+  free (path);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  const char *json_err = NULL;
+  JsonValue *parsed = json_parse (resp.body, &json_err);
+  http_response_free (&resp);
+
+  if (!parsed || !json_is_object (parsed)) {
+    json_free (parsed);
+    set_error (a, "failed to parse API response");
+    return API_ERR_UNKNOWN;
+  }
+
+  parse_push_mirror (parsed, out);
+  json_free (parsed);
+  return API_OK;
+}
+
+int api_push_mirror_create (ApiClient *a, const char *owner, const char *repo,
+                            const CreatePushMirrorOpts *opts, PushMirror *out)
+{
+  if (!opts || !opts->remote_address) {
+    set_error (a, "remote_address is required");
+    return API_ERR_VALIDATION;
+  }
+
+  JsonValue *body = json_object_new ();
+  json_object_set_string (body, "remote_address", opts->remote_address);
+  if (opts->remote_username)
+    json_object_set_string (body, "remote_username", opts->remote_username);
+  if (opts->remote_password)
+    json_object_set_string (body, "remote_password", opts->remote_password);
+  if (opts->interval)
+    json_object_set_string (body, "interval", opts->interval);
+  if (opts->sync_on_commit_set)
+    json_object_set_bool (body, "sync_on_commit", opts->sync_on_commit_val);
+  if (opts->use_ssh_set)
+    json_object_set_bool (body, "use_ssh", opts->use_ssh_val);
+  if (opts->branch_filter)
+    json_object_set_string (body, "branch_filter", opts->branch_filter);
+
+  char *body_str = json_serialize (body, true);
+  json_free (body);
+
+  char *path = build_path (a, "/repos/%s/%s/push_mirrors", owner, repo);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_POST, path, body_str, &resp);
+  free (path);
+  free (body_str);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  if (out) {
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse (resp.body, &json_err);
+    if (parsed && json_is_object (parsed))
+      parse_push_mirror (parsed, out);
+    json_free (parsed);
+  }
+
+  http_response_free (&resp);
+  return API_OK;
+}
+
+int api_push_mirror_delete (ApiClient *a, const char *owner, const char *repo,
+                            const char *name)
+{
+  char *path = build_path (a, "/repos/%s/%s/push_mirrors/%s", owner, repo, name);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_DELETE, path, NULL, &resp);
+  free (path);
+  http_response_free (&resp);
+  return err;
+}
+
+int api_push_mirror_sync (ApiClient *a, const char *owner, const char *repo)
+{
+  char *path = build_path (a, "/repos/%s/%s/push_mirrors-sync", owner, repo);
   HttpResponse resp;
   ApiError err = do_request (a, HTTP_POST, path, NULL, &resp);
   free (path);

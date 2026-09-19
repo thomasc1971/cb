@@ -799,6 +799,175 @@ static void test_help_top_level_sshkey (void)
   cb_unsetenv ("CB_TOKEN");
 }
 
+/* ===== Mirror tests ===== */
+
+static const char *MIRROR_JSON_STR = "{\"remote_name\":\"remote_mirror_abc123\","
+                                     "\"remote_address\":\"https://github.com/owner/repo.git\","
+                                     "\"created\":\"2026-04-25T22:18:47+02:00\","
+                                     "\"last_update\":\"2026-09-19T11:58:31+02:00\","
+                                     "\"last_error\":\"\",\"interval\":\"8h0m0s\","
+                                     "\"public_key\":\"\",\"branch_filter\":\"\","
+                                     "\"repo_name\":\"myproj\",\"sync_on_commit\":true}";
+
+static void test_cli_mirror_list (void)
+{
+  char body[2048];
+  snprintf (body, sizeof (body), "[%s]", MIRROR_JSON_STR);
+  MockResponse resp = {
+    .method = "GET", .path = "/api/v1/repos/thomasc/myproj/push_mirrors", .status = 200
+  };
+  set_body (&resp, body);
+  setup_server (&resp, 1);
+
+  const char *args[] = { "repo", "mirror", "list", "thomasc/myproj", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+static void test_cli_mirror_list_json (void)
+{
+  char body[2048];
+  snprintf (body, sizeof (body), "[%s]", MIRROR_JSON_STR);
+  MockResponse resp = {
+    .method = "GET", .path = "/api/v1/repos/thomasc/myproj/push_mirrors", .status = 200
+  };
+  set_body (&resp, body);
+  setup_server (&resp, 1);
+
+  const char *args[] = { "repo", "mirror", "list", "thomasc/myproj", "--json", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+
+  teardown_server ();
+}
+
+static void test_cli_mirror_show (void)
+{
+  MockResponse resp = {
+    .method = "GET", .path = "/api/v1/repos/thomasc/myproj/push_mirrors/remote_mirror_abc123", .status = 200
+  };
+  set_body (&resp, MIRROR_JSON_STR);
+  setup_server (&resp, 1);
+
+  const char *args[] = { "repo", "mirror", "show", "thomasc/myproj",
+                         "remote_mirror_abc123", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+
+  teardown_server ();
+}
+
+static void test_cli_mirror_add (void)
+{
+  MockResponse resp = {
+    .method = "POST", .path = "/api/v1/repos/thomasc/myproj/push_mirrors", .status = 201
+  };
+  set_body (&resp, MIRROR_JSON_STR);
+  setup_server (&resp, 1);
+
+  const char *args[] = { "repo", "mirror", "add", "thomasc/myproj",
+                         "--remote-address", "https://github.com/owner/repo.git",
+                         "--sync-on-commit", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+static void test_cli_mirror_add_missing_address (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+
+  const char *args[] = { "repo", "mirror", "add", "thomasc/myproj", NULL };
+  int rc = run_cli (args);
+  /* Missing --remote-address must be a usage error before any network call. */
+  ASSERT_EQ (rc, CLI_USAGE);
+
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_cli_mirror_rm_yes (void)
+{
+  MockResponse resp = {
+    .method = "DELETE",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors/remote_mirror_abc123",
+    .status = 204
+  };
+  setup_server (&resp, 1);
+
+  const char *args[] = { "repo", "mirror", "rm", "thomasc/myproj",
+                         "remote_mirror_abc123", "--yes", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+static void test_cli_mirror_rm_no_name (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+
+  const char *args[] = { "repo", "mirror", "rm", "thomasc/myproj", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_USAGE);
+
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_cli_mirror_sync (void)
+{
+  MockResponse resp = {
+    .method = "POST", .path = "/api/v1/repos/thomasc/myproj/push_mirrors-sync", .status = 200
+  };
+  setup_server (&resp, 1);
+
+  const char *args[] = { "repo", "mirror", "sync", "thomasc/myproj", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+static void test_cli_mirror_unknown_sub (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+
+  const char *args[] = { "repo", "mirror", "bogus", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_USAGE);
+
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_repo_mirror (void)
+{
+  char buf[4096];
+  const char *args[] = { "repo", "mirror", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "mirror") != NULL);
+  ASSERT_TRUE (strstr (buf, "add") != NULL);
+  ASSERT_TRUE (strstr (buf, "rm") != NULL);
+}
+
+static void test_help_rev (void)
+{
+  char buf[4096];
+  const char *args[] = { "rev", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "push") != NULL);
+}
+
 int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
@@ -854,6 +1023,18 @@ int main (int argc, char *argv[])
   RUN_TEST (test_cli_sshkey_unknown_sub);
   RUN_TEST (test_help_sshkey);
   RUN_TEST (test_help_top_level_sshkey);
+
+  RUN_TEST (test_cli_mirror_list);
+  RUN_TEST (test_cli_mirror_list_json);
+  RUN_TEST (test_cli_mirror_show);
+  RUN_TEST (test_cli_mirror_add);
+  RUN_TEST (test_cli_mirror_add_missing_address);
+  RUN_TEST (test_cli_mirror_rm_yes);
+  RUN_TEST (test_cli_mirror_rm_no_name);
+  RUN_TEST (test_cli_mirror_sync);
+  RUN_TEST (test_cli_mirror_unknown_sub);
+  RUN_TEST (test_help_repo_mirror);
+  RUN_TEST (test_help_rev);
 
   TEST_SUMMARY ();
 }

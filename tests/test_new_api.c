@@ -1405,6 +1405,200 @@ static void test_repo_mirror_sync (void)
   teardown_server ();
 }
 
+/* ===== Push mirrors ===== */
+
+static const char *PUSH_MIRROR_JSON = "{\"remote_name\":\"remote_mirror_abc123\","
+                                      "\"remote_address\":\"https://github.com/owner/repo.git\","
+                                      "\"created\":\"2026-04-25T22:18:47+02:00\","
+                                      "\"last_update\":\"2026-09-19T11:58:31+02:00\","
+                                      "\"last_error\":\"\",\"interval\":\"8h0m0s\","
+                                      "\"public_key\":\"\",\"branch_filter\":\"\","
+                                      "\"repo_name\":\"boba\",\"sync_on_commit\":true}";
+
+static void test_push_mirror_list_success (void)
+{
+  char body[4096];
+  snprintf (body, sizeof (body), "[%s]", PUSH_MIRROR_JSON);
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors",
+    .status = 200
+  };
+  set_body (&resp, body);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  PushMirror *mirrors;
+  size_t count;
+  int rc = api_push_mirror_list (&a, "thomasc", "myproj", &mirrors, &count);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ (count, 1);
+  ASSERT_STR_EQ (mirrors[0].remote_name, "remote_mirror_abc123");
+  ASSERT_STR_EQ (mirrors[0].remote_address, "https://github.com/owner/repo.git");
+  ASSERT_STR_EQ (mirrors[0].interval, "8h0m0s");
+  ASSERT_STR_EQ (mirrors[0].repo_name, "boba");
+  ASSERT_TRUE (mirrors[0].sync_on_commit);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  push_mirror_array_free (mirrors, count);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_push_mirror_list_empty (void)
+{
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors",
+    .status = 200,
+    .body = "[]"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  PushMirror *mirrors;
+  size_t count;
+  int rc = api_push_mirror_list (&a, "thomasc", "myproj", &mirrors, &count);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ (count, 0);
+  ASSERT_NULL (mirrors);
+
+  push_mirror_array_free (mirrors, count);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_push_mirror_get_success (void)
+{
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors/remote_mirror_abc123",
+    .status = 200
+  };
+  set_body (&resp, PUSH_MIRROR_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  PushMirror m;
+  int rc = api_push_mirror_get (&a, "thomasc", "myproj", "remote_mirror_abc123", &m);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_STR_EQ (m.remote_name, "remote_mirror_abc123");
+  ASSERT_STR_EQ (m.remote_address, "https://github.com/owner/repo.git");
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  push_mirror_free (&m);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_push_mirror_create_success (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors",
+    .status = 201
+  };
+  set_body (&resp, PUSH_MIRROR_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  CreatePushMirrorOpts opts = { 0 };
+  opts.remote_address = "https://github.com/owner/repo.git";
+  opts.remote_username = "me";
+  opts.remote_password = "secret";
+  opts.interval = "8h0m0s";
+  opts.sync_on_commit_set = 1;
+  opts.sync_on_commit_val = 1;
+  PushMirror m;
+  int rc = api_push_mirror_create (&a, "thomasc", "myproj", &opts, &m);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_STR_EQ (m.remote_name, "remote_mirror_abc123");
+  ASSERT_TRUE (strstr (server.last_body, "\"remote_address\"") != NULL);
+  ASSERT_TRUE (strstr (server.last_body, "\"sync_on_commit\":true") != NULL);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  push_mirror_free (&m);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_push_mirror_create_missing_address (void)
+{
+  ApiClient a;
+  char url[256];
+  snprintf (url, sizeof (url), "http://127.0.0.1:1/api/v1");
+  api_client_init (&a, url, "test-token");
+
+  CreatePushMirrorOpts opts = { 0 };
+  PushMirror m;
+  int rc = api_push_mirror_create (&a, "thomasc", "myproj", &opts, &m);
+  ASSERT_EQ (rc, API_ERR_VALIDATION);
+  ASSERT_TRUE (strlen (a.last_error) > 0);
+
+  api_client_free (&a);
+}
+
+static void test_push_mirror_delete_success (void)
+{
+  MockResponse resp = {
+    .method = "DELETE",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors/remote_mirror_abc123",
+    .status = 204
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_push_mirror_delete (&a, "thomasc", "myproj", "remote_mirror_abc123");
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_push_mirror_delete_404 (void)
+{
+  MockResponse resp = {
+    .method = "DELETE",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors/missing",
+    .status = 404,
+    .body = "{\"message\":\"mirror not found\"}"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_push_mirror_delete (&a, "thomasc", "myproj", "missing");
+  ASSERT_EQ (rc, API_ERR_NOT_FOUND);
+
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_push_mirror_sync_success (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/myproj/push_mirrors-sync",
+    .status = 200
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_push_mirror_sync (&a, "thomasc", "myproj");
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  api_client_free (&a);
+  teardown_server ();
+}
+
 static void test_repo_languages (void)
 {
   MockResponse resp = {
@@ -2073,6 +2267,14 @@ int main (void)
   RUN_TEST (test_wiki_delete_success);
 
   RUN_TEST (test_repo_mirror_sync);
+  RUN_TEST (test_push_mirror_list_success);
+  RUN_TEST (test_push_mirror_list_empty);
+  RUN_TEST (test_push_mirror_get_success);
+  RUN_TEST (test_push_mirror_create_success);
+  RUN_TEST (test_push_mirror_create_missing_address);
+  RUN_TEST (test_push_mirror_delete_success);
+  RUN_TEST (test_push_mirror_delete_404);
+  RUN_TEST (test_push_mirror_sync_success);
   RUN_TEST (test_repo_languages);
 
   RUN_TEST (test_user_get_current);
