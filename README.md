@@ -30,6 +30,7 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 ### Branches
 
 - List, create, show, rename, delete branches
+- Protect branches from force push and deletion
 
 ### Issues
 
@@ -472,7 +473,16 @@ cb branch create thomasc/myproj --name feature-x --from main
 cb branch show thomasc/myproj main
 cb branch rename thomasc/myproj old-name --name new-name
 cb branch delete thomasc/myproj old-branch --yes
+
+cb branch protect thomasc/myproj main
+cb branch protect thomasc/myproj release --no-push --required-approvals 2 --status-check "ci/build,ci/test"
+cb branch protections thomasc/myproj
+cb branch unprotect thomasc/myproj release --yes
 ```
+
+A protected branch refuses force pushes and deletion; direct pushes stay allowed unless `--no-push` is given. `cb branch protect` creates the rule when the branch is unprotected and otherwise changes only the flags you pass.
+
+Flags (each has a `--no-*` counterpart for bools): `--push`/`--no-push`, `--required-approvals`, `--status-check`, `--no-status-check`, `--require-signed-commits`, `--apply-to-admins`, `--dismiss-stale-approvals`, `--block-on-outdated-branch`, `--block-on-rejected-reviews`, `--block-on-official-review-requests`, `--protected-files`, `--unprotected-files`
 
 #### `cb issue <subcommand> [owner/]repo`
 
@@ -793,7 +803,7 @@ cb/
 │   ├── cb_http.c             # plain HTTP + TLS via libtls
 │   ├── cb_config.c           # TOML-ish config + env + URL parser
 │   ├── cb_validate.c         # repo name, description, merge style, tag, branch, label color, SHA, org name, visibility validation
-│   ├── cb_api.c              # repo, topic, actions, releases, tags, branches, issues, labels, milestones,
+│   ├── cb_api.c              # repo, topic, actions, releases, tags, branches, branch protection, issues, labels, milestones,
 │   │                          # PRs, commits, content, keys, collaborators, forks, hooks, orgs, wiki API ops
 │   ├── cb_cli.c              # command parsing, flag dispatch, output (17 top-level commands)
 │   ├── cb_compat.c           # Portable wrappers (open_memstream, Winsock2, setenv, base64, URL encode)

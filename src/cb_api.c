@@ -2510,6 +2510,242 @@ int api_branch_delete (ApiClient *a, const char *owner, const char *repo,
   return err;
 }
 
+/* ===== Branch protection ===== */
+
+static void parse_branch_protection (const JsonValue *obj, BranchProtection *p)
+{
+  memset (p, 0, sizeof (*p));
+  p->id = json_get_int64 (obj, "id", 0);
+  p->rule_name = json_dup_string (obj, "rule_name");
+  p->branch_name = json_dup_string (obj, "branch_name");
+  p->enable_push = json_get_bool (obj, "enable_push", 0);
+  p->required_approvals = json_get_int (obj, "required_approvals", 0);
+  p->enable_status_check = json_get_bool (obj, "enable_status_check", 0);
+  p->require_signed_commits = json_get_bool (obj, "require_signed_commits", 0);
+  p->apply_to_admins = json_get_bool (obj, "apply_to_admins", 0);
+  p->dismiss_stale_approvals = json_get_bool (obj, "dismiss_stale_approvals", 0);
+  p->block_on_outdated_branch = json_get_bool (obj, "block_on_outdated_branch", 0);
+  p->block_on_rejected_reviews = json_get_bool (obj, "block_on_rejected_reviews", 0);
+  p->block_on_official_review_requests = json_get_bool (obj, "block_on_official_review_requests", 0);
+  p->protected_file_patterns = json_dup_string (obj, "protected_file_patterns");
+  p->unprotected_file_patterns = json_dup_string (obj, "unprotected_file_patterns");
+
+  JsonValue *contexts = json_object_lookup (obj, "status_check_contexts");
+  if (contexts && json_is_array (contexts)) {
+    size_t n = json_array_count (contexts);
+    p->status_check_contexts = calloc (n, sizeof (char *));
+    if (p->status_check_contexts) {
+      p->status_check_context_count = n;
+      for (size_t i = 0; i < n; i++) {
+        JsonValue *c = json_array_get (contexts, i);
+        p->status_check_contexts[i] = strdup (json_is_string (c) ? json_string (c) : "");
+      }
+    }
+  }
+}
+
+void branch_protection_free (BranchProtection *p)
+{
+  if (!p)
+    return;
+  free (p->rule_name);
+  free (p->branch_name);
+  for (size_t i = 0; i < p->status_check_context_count; i++)
+    free (p->status_check_contexts[i]);
+  free (p->status_check_contexts);
+  free (p->protected_file_patterns);
+  free (p->unprotected_file_patterns);
+  memset (p, 0, sizeof (*p));
+}
+
+void branch_protection_array_free (BranchProtection *arr, size_t count)
+{
+  if (!arr)
+    return;
+  for (size_t i = 0; i < count; i++)
+    branch_protection_free (&arr[i]);
+  free (arr);
+}
+
+/* Build the request body. `for_create` changes two things: POST carries the
+   rule name in the body, and it has no omitempty semantics — an omitted
+   enable_push arrives as false, leaving the branch pushable by whitelisted
+   users only. PATCH takes the name in the path and only sends set fields. */
+static JsonValue *branch_protection_body (const BranchProtectionOpts *opts, int for_create)
+{
+  JsonValue *body = json_object_new ();
+
+  if (for_create)
+    json_object_set_string (body, "rule_name", opts->rule_name);
+
+  if (opts->enable_push_set)
+    json_object_set_bool (body, "enable_push", opts->enable_push);
+  else if (for_create)
+    json_object_set_bool (body, "enable_push", true);
+
+  if (opts->required_approvals_set)
+    json_object_set_number (body, "required_approvals", opts->required_approvals);
+  if (opts->enable_status_check_set)
+    json_object_set_bool (body, "enable_status_check", opts->enable_status_check);
+  if (opts->require_signed_commits_set)
+    json_object_set_bool (body, "require_signed_commits", opts->require_signed_commits);
+  if (opts->apply_to_admins_set)
+    json_object_set_bool (body, "apply_to_admins", opts->apply_to_admins);
+  if (opts->dismiss_stale_approvals_set)
+    json_object_set_bool (body, "dismiss_stale_approvals", opts->dismiss_stale_approvals);
+  if (opts->block_on_outdated_branch_set)
+    json_object_set_bool (body, "block_on_outdated_branch", opts->block_on_outdated_branch);
+  if (opts->block_on_rejected_reviews_set)
+    json_object_set_bool (body, "block_on_rejected_reviews", opts->block_on_rejected_reviews);
+  if (opts->block_on_official_review_requests_set)
+    json_object_set_bool (body, "block_on_official_review_requests",
+                          opts->block_on_official_review_requests);
+  if (opts->status_check_context_count > 0) {
+    JsonValue *arr = json_array_new ();
+    for (size_t i = 0; i < opts->status_check_context_count; i++)
+      json_array_push (arr, json_string_new (opts->status_check_contexts[i]));
+    json_object_set (body, "status_check_contexts", arr);
+  }
+  if (opts->protected_file_patterns)
+    json_object_set_string (body, "protected_file_patterns", opts->protected_file_patterns);
+  if (opts->unprotected_file_patterns)
+    json_object_set_string (body, "unprotected_file_patterns", opts->unprotected_file_patterns);
+
+  return body;
+}
+
+int api_branch_protection_list (ApiClient *a, const char *owner, const char *repo,
+                                BranchProtection **out, size_t *count)
+{
+  char *path = build_path (a, "/repos/%s/%s/branch_protections", owner, repo);
+
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_GET, path, NULL, &resp);
+  free (path);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  err = parse_array (a, resp.body, sizeof (BranchProtection),
+                     (void (*) (const JsonValue *, void *))parse_branch_protection,
+                     (void **)out, count);
+  http_response_free (&resp);
+  return err;
+}
+
+int api_branch_protection_get (ApiClient *a, const char *owner, const char *repo,
+                               const char *name, BranchProtection *out)
+{
+  char *path = build_path (a, "/repos/%s/%s/branch_protections/%s", owner, repo, name);
+
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_GET, path, NULL, &resp);
+  free (path);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  const char *json_err = NULL;
+  JsonValue *parsed = json_parse (resp.body, &json_err);
+  if (!parsed || !json_is_object (parsed)) {
+    json_free (parsed);
+    http_response_free (&resp);
+    set_error (a, "failed to parse API response");
+    return API_ERR_UNKNOWN;
+  }
+
+  parse_branch_protection (parsed, out);
+  json_free (parsed);
+  http_response_free (&resp);
+  return API_OK;
+}
+
+int api_branch_protection_create (ApiClient *a, const char *owner, const char *repo,
+                                  const BranchProtectionOpts *opts, BranchProtection *out)
+{
+  if (!opts || !opts->rule_name || !opts->rule_name[0]) {
+    set_error (a, "rule name is required");
+    return API_ERR_VALIDATION;
+  }
+
+  JsonValue *body = branch_protection_body (opts, 1);
+  char *body_str = json_serialize (body, true);
+  json_free (body);
+
+  char *path = build_path (a, "/repos/%s/%s/branch_protections", owner, repo);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_POST, path, body_str, &resp);
+  free (path);
+  free (body_str);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  if (out) {
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse (resp.body, &json_err);
+    if (parsed && json_is_object (parsed))
+      parse_branch_protection (parsed, out);
+    json_free (parsed);
+  }
+
+  http_response_free (&resp);
+  return API_OK;
+}
+
+int api_branch_protection_edit (ApiClient *a, const char *owner, const char *repo,
+                                const char *name, const BranchProtectionOpts *opts,
+                                BranchProtection *out)
+{
+  if (!opts) {
+    set_error (a, "options are required");
+    return API_ERR_VALIDATION;
+  }
+
+  JsonValue *body = branch_protection_body (opts, 0);
+  char *body_str = json_serialize (body, true);
+  json_free (body);
+
+  char *path = build_path (a, "/repos/%s/%s/branch_protections/%s", owner, repo, name);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_PATCH, path, body_str, &resp);
+  free (path);
+  free (body_str);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  if (out) {
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse (resp.body, &json_err);
+    if (parsed && json_is_object (parsed))
+      parse_branch_protection (parsed, out);
+    json_free (parsed);
+  }
+
+  http_response_free (&resp);
+  return API_OK;
+}
+
+int api_branch_protection_delete (ApiClient *a, const char *owner, const char *repo,
+                                  const char *name)
+{
+  char *path = build_path (a, "/repos/%s/%s/branch_protections/%s", owner, repo, name);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_DELETE, path, NULL, &resp);
+  free (path);
+  http_response_free (&resp);
+  return err;
+}
+
 /* ===== Issues ===== */
 
 void issue_free (Issue *i)

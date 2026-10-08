@@ -49,7 +49,9 @@ static void set_body (MockResponse *r, const char *s)
   r->body[sizeof (r->body) - 1] = '\0';
 }
 
-/* Helper to run cli_run with given args. Returns exit code. */
+/* Helpers to run cli_run with given args. Return the exit code. */
+static int run_cli_captured (const char *args[], char *buf, size_t bufsize);
+
 static int run_cli (const char *args[])
 {
   /* Count args */
@@ -242,6 +244,117 @@ static void test_cli_topic_list (void)
   int rc = run_cli (args);
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+/* ===== Branch protection ===== */
+
+static const char *BRANCH_PROTECTION_STR = "{\"id\":7,\"rule_name\":\"main\",\"branch_name\":\"main\","
+                                           "\"enable_push\":true,\"required_approvals\":0,\"enable_status_check\":false,"
+                                           "\"status_check_contexts\":[],\"require_signed_commits\":false,"
+                                           "\"apply_to_admins\":false,\"dismiss_stale_approvals\":false,"
+                                           "\"block_on_outdated_branch\":false,\"block_on_rejected_reviews\":false,"
+                                           "\"block_on_official_review_requests\":false,"
+                                           "\"protected_file_patterns\":\"\",\"unprotected_file_patterns\":\"\"}";
+
+static void test_cli_branch_protect_creates (void)
+{
+  MockResponse resp[2] = {
+    { .method = "GET", .path = "/api/v1/repos/thomasc/myproj/branch_protections/main", .status = 404, .body = "{\"message\":\"Branch protection not found\"}" },
+    { .method = "POST", .path = "/api/v1/repos/thomasc/myproj/branch_protections", .status = 201 }
+  };
+  set_body (&resp[1], BRANCH_PROTECTION_STR);
+  setup_server (resp, 2);
+
+  char buf[4096];
+  const char *args[] = { "branch", "protect", "thomasc/myproj", "main", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  /* POST has no omitempty semantics, so the create must state enable_push. */
+  ASSERT_TRUE (strstr (server.last_body, "\"rule_name\":\"main\"") != NULL);
+  ASSERT_TRUE (strstr (server.last_body, "\"enable_push\":true") != NULL);
+  ASSERT_TRUE (strstr (buf, "force push: blocked") != NULL);
+
+  teardown_server ();
+}
+
+static void test_cli_branch_protect_edits_existing (void)
+{
+  MockResponse resp[2] = {
+    { .method = "GET", .path = "/api/v1/repos/thomasc/myproj/branch_protections/main", .status = 200 },
+    { .method = "PATCH", .path = "/api/v1/repos/thomasc/myproj/branch_protections/main", .status = 200 }
+  };
+  set_body (&resp[0], BRANCH_PROTECTION_STR);
+  set_body (&resp[1], BRANCH_PROTECTION_STR);
+  setup_server (resp, 2);
+
+  const char *args[] = { "branch", "protect", "thomasc/myproj", "main",
+                         "--require-signed-commits", "--required-approvals", "1", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  /* An existing rule is PATCHed, and only the flags given are sent. */
+  ASSERT_TRUE (strstr (server.last_body, "\"require_signed_commits\":true") != NULL);
+  ASSERT_TRUE (strstr (server.last_body, "\"required_approvals\":1") != NULL);
+  ASSERT_TRUE (strstr (server.last_body, "rule_name") == NULL);
+  ASSERT_TRUE (strstr (server.last_body, "enable_push") == NULL);
+
+  teardown_server ();
+}
+
+static void test_cli_branch_protect_bad_approvals (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  const char *args[] = { "branch", "protect", "thomasc/myproj", "main",
+                         "--required-approvals", "lots", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_USAGE);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_cli_branch_protect_needs_branch (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  const char *args[] = { "branch", "protect", "thomasc/myproj", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_USAGE);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_cli_branch_unprotect_yes (void)
+{
+  MockResponse resp = {
+    .method = "DELETE", .path = "/api/v1/repos/thomasc/myproj/branch_protections/main", .status = 204, .body = ""
+  };
+  setup_server (&resp, 1);
+
+  char buf[4096];
+  const char *args[] = { "branch", "unprotect", "thomasc/myproj", "main", "--yes", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "Removed protection from main") != NULL);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+static void test_cli_branch_protections_json (void)
+{
+  char body[2048];
+  snprintf (body, sizeof (body), "[%s]", BRANCH_PROTECTION_STR);
+  MockResponse resp = {
+    .method = "GET", .path = "/api/v1/repos/thomasc/myproj/branch_protections", .status = 200
+  };
+  set_body (&resp, body);
+  setup_server (&resp, 1);
+
+  char buf[4096];
+  const char *args[] = { "branch", "protections", "thomasc/myproj", "--json", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "\"rule_name\":\"main\"") != NULL);
 
   teardown_server ();
 }
@@ -509,6 +622,35 @@ static void test_help_topic_set (void)
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "cb repo topic set") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_branch_protect (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "branch", "protect", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "cb branch protect [owner/]repo <branch> [flags]") != NULL);
+  ASSERT_TRUE (strstr (buf, "force pushes") != NULL);
+  ASSERT_TRUE (strstr (buf, "--no-push") != NULL);
+  ASSERT_TRUE (strstr (buf, "--status-check") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_branch_lists_protection (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "branch", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "protect") != NULL);
+  ASSERT_TRUE (strstr (buf, "unprotect") != NULL);
+  ASSERT_TRUE (strstr (buf, "protections") != NULL);
   cb_unsetenv ("CB_TOKEN");
 }
 
@@ -984,6 +1126,12 @@ int main (int argc, char *argv[])
   RUN_TEST (test_cli_topic_add);
   RUN_TEST (test_cli_topic_set);
   RUN_TEST (test_cli_topic_list);
+  RUN_TEST (test_cli_branch_protect_creates);
+  RUN_TEST (test_cli_branch_protect_edits_existing);
+  RUN_TEST (test_cli_branch_protect_bad_approvals);
+  RUN_TEST (test_cli_branch_protect_needs_branch);
+  RUN_TEST (test_cli_branch_unprotect_yes);
+  RUN_TEST (test_cli_branch_protections_json);
   RUN_TEST (test_cli_unknown_command);
   RUN_TEST (test_cli_missing_args);
   RUN_TEST (test_cli_json_flag);
@@ -1002,6 +1150,8 @@ int main (int argc, char *argv[])
   RUN_TEST (test_help_repo_topic);
   RUN_TEST (test_help_topic_add);
   RUN_TEST (test_help_topic_set);
+  RUN_TEST (test_help_branch_protect);
+  RUN_TEST (test_help_branch_lists_protection);
 
   RUN_TEST (test_cli_org_create);
   RUN_TEST (test_cli_org_create_visibility);

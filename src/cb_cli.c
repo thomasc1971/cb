@@ -1992,6 +1992,30 @@ static const FlagDef BRANCH_CREATE_FLAGS[] = {
   { NULL, NULL, 0 }
 };
 
+static const FlagDef BRANCH_PROTECT_FLAGS[] = {
+  { "--push", NULL, 0 },
+  { "--no-push", NULL, 0 },
+  { "--required-approvals", NULL, 1 },
+  { "--status-check", NULL, 1 },
+  { "--no-status-check", NULL, 0 },
+  { "--require-signed-commits", NULL, 0 },
+  { "--no-require-signed-commits", NULL, 0 },
+  { "--apply-to-admins", NULL, 0 },
+  { "--no-apply-to-admins", NULL, 0 },
+  { "--dismiss-stale-approvals", NULL, 0 },
+  { "--no-dismiss-stale-approvals", NULL, 0 },
+  { "--block-on-outdated-branch", NULL, 0 },
+  { "--no-block-on-outdated-branch", NULL, 0 },
+  { "--block-on-rejected-reviews", NULL, 0 },
+  { "--no-block-on-rejected-reviews", NULL, 0 },
+  { "--block-on-official-review-requests", NULL, 0 },
+  { "--no-block-on-official-review-requests", NULL, 0 },
+  { "--protected-files", NULL, 1 },
+  { "--unprotected-files", NULL, 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
 static const FlagDef ISSUE_LIST_FLAGS[] = {
   { "--state", NULL, 1 },
   { "--labels", NULL, 1 },
@@ -2406,6 +2430,20 @@ static const SubCmd BRANCH_SUBS[] = {
   { "delete", "Delete a branch",
     "cb branch delete [owner/]repo <branch> [--yes]",
     "Delete a branch.", NULL, NULL },
+  { "protect", "Protect a branch from force push and deletion",
+    "cb branch protect [owner/]repo <branch> [flags]",
+    "Protect a branch. Forgejo refuses force pushes and deletion on a\n"
+    "protected branch; direct pushes stay allowed unless --no-push is\n"
+    "given. When the rule already exists, only the flags you pass are\n"
+    "changed.",
+    BRANCH_PROTECT_FLAGS, NULL },
+  { "unprotect", "Remove a branch protection rule",
+    "cb branch unprotect [owner/]repo <branch> [--yes]",
+    "Remove a branch protection rule, which re-allows force pushes and deletion.",
+    NULL, NULL },
+  { "protections", "List branch protection rules",
+    "cb branch protections [owner/]repo",
+    "List branch protection rules.", NULL, NULL },
   { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -2956,6 +2994,9 @@ HELP_WRAPPER_1 (help_actions, "actions")
 HELP_WRAPPER_1 (help_release, "release")
 HELP_WRAPPER_1 (help_tag, "tag")
 HELP_WRAPPER_1 (help_branch, "branch")
+HELP_WRAPPER_2 (help_branch_protect, "branch", "protect")
+HELP_WRAPPER_2 (help_branch_unprotect, "branch", "unprotect")
+HELP_WRAPPER_2 (help_branch_protections, "branch", "protections")
 HELP_WRAPPER_1 (help_issue, "issue")
 HELP_WRAPPER_1 (help_label, "label")
 HELP_WRAPPER_1 (help_milestone, "milestone")
@@ -3222,6 +3263,118 @@ static void print_branch_list (const Branch *arr, size_t count, int json)
       printf ("%-30s %s%s\n", arr[i].name ? arr[i].name : "",
               arr[i].protected ? "protected" : "",
               arr[i].commit_sha ? arr[i].commit_sha : "");
+    }
+  }
+}
+
+static void print_branch_protection (const BranchProtection *p, int json)
+{
+  if (json) {
+    JsonValue *obj = json_object_new ();
+    if (p->rule_name)
+      json_object_set_string (obj, "rule_name", p->rule_name);
+    if (p->branch_name)
+      json_object_set_string (obj, "branch_name", p->branch_name);
+    json_object_set_bool (obj, "enable_push", p->enable_push);
+    json_object_set_number (obj, "required_approvals", p->required_approvals);
+    json_object_set_bool (obj, "enable_status_check", p->enable_status_check);
+    json_object_set_bool (obj, "require_signed_commits", p->require_signed_commits);
+    json_object_set_bool (obj, "apply_to_admins", p->apply_to_admins);
+    json_object_set_bool (obj, "dismiss_stale_approvals", p->dismiss_stale_approvals);
+    json_object_set_bool (obj, "block_on_outdated_branch", p->block_on_outdated_branch);
+    json_object_set_bool (obj, "block_on_rejected_reviews", p->block_on_rejected_reviews);
+    json_object_set_bool (obj, "block_on_official_review_requests",
+                          p->block_on_official_review_requests);
+    if (p->status_check_context_count > 0) {
+      JsonValue *arr = json_array_new ();
+      for (size_t i = 0; i < p->status_check_context_count; i++)
+        json_array_push (arr, json_string_new (p->status_check_contexts[i]));
+      json_object_set (obj, "status_check_contexts", arr);
+    }
+    if (p->protected_file_patterns && p->protected_file_patterns[0])
+      json_object_set_string (obj, "protected_file_patterns", p->protected_file_patterns);
+    if (p->unprotected_file_patterns && p->unprotected_file_patterns[0])
+      json_object_set_string (obj, "unprotected_file_patterns", p->unprotected_file_patterns);
+    char *s = json_serialize (obj, true);
+    printf ("%s\n", s);
+    free (s);
+    json_free (obj);
+  } else {
+    printf ("%s\n", p->rule_name ? p->rule_name : "");
+    printf ("  direct push: %s\n", p->enable_push ? "allowed" : "blocked");
+    /* The API carries no force-push field: Forgejo refuses force pushes on any
+       protected branch, with no admin or whitelist bypass. */
+    printf ("  force push: blocked\n");
+    if (p->required_approvals > 0)
+      printf ("  required approvals: %d\n", p->required_approvals);
+    if (p->enable_status_check) {
+      printf ("  status checks:");
+      for (size_t i = 0; i < p->status_check_context_count; i++)
+        printf (" %s", p->status_check_contexts[i]);
+      printf ("\n");
+    }
+    if (p->require_signed_commits)
+      printf ("  signed commits: required\n");
+    if (p->apply_to_admins)
+      printf ("  applies to admins: yes\n");
+    if (p->dismiss_stale_approvals)
+      printf ("  dismiss stale approvals: yes\n");
+    if (p->block_on_outdated_branch)
+      printf ("  block on outdated branch: yes\n");
+    if (p->block_on_rejected_reviews)
+      printf ("  block on rejected reviews: yes\n");
+    if (p->block_on_official_review_requests)
+      printf ("  block on official review requests: yes\n");
+    if (p->protected_file_patterns && p->protected_file_patterns[0])
+      printf ("  protected files: %s\n", p->protected_file_patterns);
+    if (p->unprotected_file_patterns && p->unprotected_file_patterns[0])
+      printf ("  unprotected files: %s\n", p->unprotected_file_patterns);
+  }
+}
+
+static void print_branch_protection_list (const BranchProtection *arr, size_t count, int json)
+{
+  if (json) {
+    JsonValue *jarr = json_array_new ();
+    for (size_t i = 0; i < count; i++) {
+      JsonValue *obj = json_object_new ();
+      if (arr[i].rule_name)
+        json_object_set_string (obj, "rule_name", arr[i].rule_name);
+      if (arr[i].branch_name)
+        json_object_set_string (obj, "branch_name", arr[i].branch_name);
+      json_object_set_bool (obj, "enable_push", arr[i].enable_push);
+      json_object_set_number (obj, "required_approvals", arr[i].required_approvals);
+      json_object_set_bool (obj, "enable_status_check", arr[i].enable_status_check);
+      json_object_set_bool (obj, "require_signed_commits", arr[i].require_signed_commits);
+      json_object_set_bool (obj, "apply_to_admins", arr[i].apply_to_admins);
+      json_object_set_bool (obj, "dismiss_stale_approvals", arr[i].dismiss_stale_approvals);
+      json_object_set_bool (obj, "block_on_outdated_branch", arr[i].block_on_outdated_branch);
+      json_object_set_bool (obj, "block_on_rejected_reviews", arr[i].block_on_rejected_reviews);
+      json_object_set_bool (obj, "block_on_official_review_requests",
+                            arr[i].block_on_official_review_requests);
+      if (arr[i].status_check_context_count > 0) {
+        JsonValue *ctx = json_array_new ();
+        for (size_t j = 0; j < arr[i].status_check_context_count; j++)
+          json_array_push (ctx, json_string_new (arr[i].status_check_contexts[j]));
+        json_object_set (obj, "status_check_contexts", ctx);
+      }
+      if (arr[i].protected_file_patterns && arr[i].protected_file_patterns[0])
+        json_object_set_string (obj, "protected_file_patterns", arr[i].protected_file_patterns);
+      if (arr[i].unprotected_file_patterns && arr[i].unprotected_file_patterns[0])
+        json_object_set_string (obj, "unprotected_file_patterns",
+                                arr[i].unprotected_file_patterns);
+      json_array_push (jarr, obj);
+    }
+    char *s = json_serialize (jarr, true);
+    printf ("%s\n", s);
+    free (s);
+    json_free (jarr);
+  } else {
+    for (size_t i = 0; i < count; i++) {
+      printf ("%-32s  %-9s  %s\n",
+              arr[i].rule_name ? arr[i].rule_name : "",
+              arr[i].enable_push ? "push" : "no-push",
+              arr[i].require_signed_commits ? "signed-commits" : "");
     }
   }
 }
@@ -4946,6 +5099,240 @@ static int cmd_branch_delete (int argc, char **argv, ApiClient *api, CbGlobalFla
   return CLI_OK;
 }
 
+static int cmd_branch_protect (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_branch_protect ();
+      return CLI_OK;
+    }
+  }
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, BRANCH_PROTECT_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 2) {
+    fprintf (stderr, "Error: branch protect requires repo and branch name\n");
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  const char *branch = positional[1];
+
+  BranchProtectionOpts opts = { 0 };
+  opts.rule_name = branch;
+  int idx;
+
+#define PB_BOOL(flag_name, field, val)                   \
+  idx = find_flag_idx (BRANCH_PROTECT_FLAGS, flag_name); \
+  if (fb[idx]) {                                         \
+    opts.field##_set = 1;                                \
+    opts.field = val;                                    \
+  }
+
+  PB_BOOL ("--push", enable_push, 1);
+  PB_BOOL ("--no-push", enable_push, 0);
+  PB_BOOL ("--require-signed-commits", require_signed_commits, 1);
+  PB_BOOL ("--no-require-signed-commits", require_signed_commits, 0);
+  PB_BOOL ("--apply-to-admins", apply_to_admins, 1);
+  PB_BOOL ("--no-apply-to-admins", apply_to_admins, 0);
+  PB_BOOL ("--dismiss-stale-approvals", dismiss_stale_approvals, 1);
+  PB_BOOL ("--no-dismiss-stale-approvals", dismiss_stale_approvals, 0);
+  PB_BOOL ("--block-on-outdated-branch", block_on_outdated_branch, 1);
+  PB_BOOL ("--no-block-on-outdated-branch", block_on_outdated_branch, 0);
+  PB_BOOL ("--block-on-rejected-reviews", block_on_rejected_reviews, 1);
+  PB_BOOL ("--no-block-on-rejected-reviews", block_on_rejected_reviews, 0);
+  PB_BOOL ("--block-on-official-review-requests", block_on_official_review_requests, 1);
+  PB_BOOL ("--no-block-on-official-review-requests", block_on_official_review_requests, 0);
+  PB_BOOL ("--no-status-check", enable_status_check, 0);
+
+#undef PB_BOOL
+
+  idx = find_flag_idx (BRANCH_PROTECT_FLAGS, "--required-approvals");
+  if (fv[idx]) {
+    char *end = NULL;
+    errno = 0;
+    long approvals = strtol (fv[idx], &end, 10);
+    if (errno || !end || *end || approvals < 0 || approvals > 100) {
+      fprintf (stderr, "Error: --required-approvals takes a number from 0 to 100\n");
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_USAGE;
+    }
+    opts.required_approvals_set = 1;
+    opts.required_approvals = (int)approvals;
+  }
+
+  idx = find_flag_idx (BRANCH_PROTECT_FLAGS, "--protected-files");
+  if (fv[idx])
+    opts.protected_file_patterns = fv[idx];
+  idx = find_flag_idx (BRANCH_PROTECT_FLAGS, "--unprotected-files");
+  if (fv[idx])
+    opts.unprotected_file_patterns = fv[idx];
+
+  /* --status-check carries the contexts and turns the check on, as the web
+     form does. Split into a list the API layer can serialize. */
+  char *contexts_buf = NULL;
+  const char **contexts = NULL;
+  size_t context_count = 0;
+  idx = find_flag_idx (BRANCH_PROTECT_FLAGS, "--status-check");
+  if (fv[idx]) {
+    contexts_buf = strdup (fv[idx]);
+    if (!contexts_buf) {
+      fprintf (stderr, "Error: out of memory\n");
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_ERR;
+    }
+    size_t slots = 1;
+    for (const char *p = contexts_buf; *p; p++)
+      if (*p == ',')
+        slots++;
+    contexts = malloc (slots * sizeof (char *));
+    if (!contexts) {
+      fprintf (stderr, "Error: out of memory\n");
+      free (contexts_buf);
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_ERR;
+    }
+    char *tok = strtok (contexts_buf, ",");
+    while (tok) {
+      while (*tok == ' ')
+        tok++;
+      if (*tok)
+        contexts[context_count++] = tok;
+      tok = strtok (NULL, ",");
+    }
+    if (context_count == 0) {
+      fprintf (stderr, "Error: --status-check needs at least one context\n");
+      free (contexts);
+      free (contexts_buf);
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_USAGE;
+    }
+    opts.enable_status_check_set = 1;
+    opts.enable_status_check = 1;
+    opts.status_check_contexts = contexts;
+    opts.status_check_context_count = context_count;
+  }
+
+  /* Create the rule when the branch is unprotected, otherwise change only the
+     flags that were passed. */
+  BranchProtection result;
+  int rc = api_branch_protection_get (api, owner, repo, branch, &result);
+  if (rc == API_OK) {
+    branch_protection_free (&result);
+    rc = api_branch_protection_edit (api, owner, repo, branch, &opts, &result);
+  } else if (rc == API_ERR_NOT_FOUND) {
+    rc = api_branch_protection_create (api, owner, repo, &opts, &result);
+  }
+
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    free (contexts);
+    free (contexts_buf);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+
+  if (gf->quiet && !gf->json)
+    printf ("%s\n", result.rule_name ? result.rule_name : branch);
+  else
+    print_branch_protection (&result, gf->json);
+
+  branch_protection_free (&result);
+  free (contexts);
+  free (contexts_buf);
+  free (positional);
+  free (fv);
+  free (fb);
+  return CLI_OK;
+}
+
+static int cmd_branch_unprotect (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_branch_unprotect ();
+      return CLI_OK;
+    }
+  }
+  if (argc < 2) {
+    fprintf (stderr, "Error: branch unprotect requires repo and branch name\n");
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (argv[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0)
+    return CLI_ERR;
+  if (!gf->yes && !confirm ("Remove this branch protection rule?")) {
+    printf ("Cancelled.\n");
+    return CLI_OK;
+  }
+  int rc = api_branch_protection_delete (api, owner, repo, argv[1]);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+  if (!gf->quiet)
+    printf ("Removed protection from %s\n", argv[1]);
+  return CLI_OK;
+}
+
+static int cmd_branch_protections (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  for (int i = 0; i < argc; i++) {
+    if (is_help_arg (argv[i])) {
+      help_branch_protections ();
+      return CLI_OK;
+    }
+  }
+  if (argc < 1) {
+    fprintf (stderr, "Error: branch protections requires repo\n");
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (argv[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0)
+    return CLI_ERR;
+  BranchProtection *rules;
+  size_t count;
+  int rc = api_branch_protection_list (api, owner, repo, &rules, &count);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+  if (gf->quiet && !gf->json) {
+    for (size_t i = 0; i < count; i++)
+      printf ("%s\n", rules[i].rule_name ? rules[i].rule_name : "");
+  } else
+    print_branch_protection_list (rules, count, gf->json);
+  branch_protection_array_free (rules, count);
+  return CLI_OK;
+}
+
 static int cmd_branch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
@@ -4969,6 +5356,12 @@ static int cmd_branch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     return cmd_branch_rename (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "delete") == 0)
     return cmd_branch_delete (rest_argc, rest_argv, api, gf);
+  if (strcmp (sub, "protect") == 0)
+    return cmd_branch_protect (rest_argc, rest_argv, api, gf);
+  if (strcmp (sub, "unprotect") == 0)
+    return cmd_branch_unprotect (rest_argc, rest_argv, api, gf);
+  if (strcmp (sub, "protections") == 0)
+    return cmd_branch_protections (rest_argc, rest_argv, api, gf);
   fprintf (stderr, "Error: unknown branch subcommand '%s'\n", sub);
   help_branch ();
   return CLI_USAGE;

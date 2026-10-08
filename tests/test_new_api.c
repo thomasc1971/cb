@@ -591,6 +591,192 @@ static void test_branch_delete_success (void)
   teardown_server ();
 }
 
+/* ===== Branch protection ===== */
+
+static const char *BRANCH_PROTECTION_JSON = "{\"id\":7,\"rule_name\":\"master\",\"branch_name\":\"master\","
+                                            "\"enable_push\":true,\"required_approvals\":1,\"enable_status_check\":true,"
+                                            "\"status_check_contexts\":[\"ci/build\",\"ci/test\"],"
+                                            "\"require_signed_commits\":false,\"apply_to_admins\":true,"
+                                            "\"dismiss_stale_approvals\":false,\"block_on_outdated_branch\":false,"
+                                            "\"block_on_rejected_reviews\":false,\"block_on_official_review_requests\":false,"
+                                            "\"protected_file_patterns\":\"*.toml\",\"unprotected_file_patterns\":\"\"}";
+
+static void test_branch_protection_list_success (void)
+{
+  char body[4096];
+  snprintf (body, sizeof (body), "[%s]", BRANCH_PROTECTION_JSON);
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/myproj/branch_protections",
+    .status = 200
+  };
+  set_body (&resp, body);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  BranchProtection *rules;
+  size_t count;
+  int rc = api_branch_protection_list (&a, "thomasc", "myproj", &rules, &count);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ (count, 1);
+  ASSERT_STR_EQ (rules[0].rule_name, "master");
+  ASSERT_STR_EQ (rules[0].branch_name, "master");
+  ASSERT_TRUE (rules[0].enable_push);
+  ASSERT_EQ (rules[0].required_approvals, 1);
+  ASSERT_TRUE (rules[0].enable_status_check);
+  ASSERT_EQ (rules[0].status_check_context_count, (size_t)2);
+  ASSERT_STR_EQ (rules[0].status_check_contexts[0], "ci/build");
+  ASSERT_STR_EQ (rules[0].status_check_contexts[1], "ci/test");
+  ASSERT_FALSE (rules[0].require_signed_commits);
+  ASSERT_TRUE (rules[0].apply_to_admins);
+  ASSERT_STR_EQ (rules[0].protected_file_patterns, "*.toml");
+
+  branch_protection_array_free (rules, count);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_branch_protection_get_success (void)
+{
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/myproj/branch_protections/master",
+    .status = 200
+  };
+  set_body (&resp, BRANCH_PROTECTION_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  BranchProtection p;
+  int rc = api_branch_protection_get (&a, "thomasc", "myproj", "master", &p);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_STR_EQ (p.rule_name, "master");
+  ASSERT_TRUE (p.enable_push);
+
+  branch_protection_free (&p);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_branch_protection_get_not_found (void)
+{
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/myproj/branch_protections/master",
+    .status = 404
+  };
+  set_body (&resp, "{\"message\":\"Branch protection not found\"}");
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  BranchProtection p;
+  int rc = api_branch_protection_get (&a, "thomasc", "myproj", "master", &p);
+  ASSERT_EQ (rc, API_ERR_NOT_FOUND);
+
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_branch_protection_create_states_push (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/myproj/branch_protections",
+    .status = 201
+  };
+  set_body (&resp, BRANCH_PROTECTION_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  BranchProtectionOpts opts = { .rule_name = "master" };
+  BranchProtection p;
+  int rc = api_branch_protection_create (&a, "thomasc", "myproj", &opts, &p);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_STR_EQ (p.rule_name, "master");
+  /* POST has no omitempty semantics: an omitted enable_push would arrive as
+     false and leave the branch pushable by whitelisted users only. */
+  ASSERT_NOT_NULL (strstr (server.last_body, "\"rule_name\":\"master\""));
+  ASSERT_NOT_NULL (strstr (server.last_body, "\"enable_push\":true"));
+  ASSERT_NULL (strstr (server.last_body, "required_approvals"));
+  ASSERT_NULL (strstr (server.last_body, "protected_file_patterns"));
+
+  branch_protection_free (&p);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_branch_protection_create_requires_rule_name (void)
+{
+  ApiClient a;
+  api_client_init (&a, "http://127.0.0.1:1/api/v1", "test-token");
+
+  BranchProtectionOpts opts = { 0 };
+  BranchProtection p;
+  int rc = api_branch_protection_create (&a, "thomasc", "myproj", &opts, &p);
+  ASSERT_EQ (rc, API_ERR_VALIDATION);
+  ASSERT_TRUE (strlen (a.last_error) > 0);
+
+  api_client_free (&a);
+}
+
+static void test_branch_protection_edit_sends_only_set_fields (void)
+{
+  MockResponse resp = {
+    .method = "PATCH",
+    .path = "/api/v1/repos/thomasc/myproj/branch_protections/master",
+    .status = 200
+  };
+  set_body (&resp, BRANCH_PROTECTION_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  const char *contexts[] = { "ci/build", "ci/test" };
+  BranchProtectionOpts opts = {
+    .require_signed_commits_set = 1,
+    .require_signed_commits = 1,
+    .status_check_contexts = contexts,
+    .status_check_context_count = 2
+  };
+  BranchProtection p;
+  int rc = api_branch_protection_edit (&a, "thomasc", "myproj", "master", &opts, &p);
+  ASSERT_EQ (rc, API_OK);
+  /* PATCH addresses the rule in the path and leaves everything else alone. */
+  ASSERT_NULL (strstr (server.last_body, "rule_name"));
+  ASSERT_NOT_NULL (strstr (server.last_body, "\"require_signed_commits\":true"));
+  ASSERT_NOT_NULL (strstr (server.last_body,
+                           "\"status_check_contexts\":[\"ci/build\",\"ci/test\"]"));
+  ASSERT_NULL (strstr (server.last_body, "enable_push"));
+  ASSERT_NULL (strstr (server.last_body, "required_approvals"));
+  ASSERT_NULL (strstr (server.last_body, "apply_to_admins"));
+
+  branch_protection_free (&p);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_branch_protection_delete_success (void)
+{
+  MockResponse resp = {
+    .method = "DELETE",
+    .path = "/api/v1/repos/thomasc/myproj/branch_protections/master",
+    .status = 204
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_branch_protection_delete (&a, "thomasc", "myproj", "master");
+  ASSERT_EQ (rc, API_OK);
+
+  api_client_free (&a);
+  teardown_server ();
+}
+
 /* ===== Issues ===== */
 
 static const char *ISSUE_JSON = "{\"id\":42,\"number\":1,\"title\":\"Bug report\","
@@ -2226,6 +2412,14 @@ int main (void)
   RUN_TEST (test_branch_create_success);
   RUN_TEST (test_branch_get_success);
   RUN_TEST (test_branch_delete_success);
+
+  RUN_TEST (test_branch_protection_list_success);
+  RUN_TEST (test_branch_protection_get_success);
+  RUN_TEST (test_branch_protection_get_not_found);
+  RUN_TEST (test_branch_protection_create_states_push);
+  RUN_TEST (test_branch_protection_create_requires_rule_name);
+  RUN_TEST (test_branch_protection_edit_sends_only_set_fields);
+  RUN_TEST (test_branch_protection_delete_success);
 
   RUN_TEST (test_issue_list_success);
   RUN_TEST (test_issue_create_success);

@@ -519,6 +519,72 @@ int api_branch_delete (ApiClient *a, const char *owner, const char *repo,
 void branch_free (Branch *b);
 void branch_array_free (Branch *arr, size_t count);
 
+/* ===== Branch protection ===== */
+
+typedef struct
+{
+  int64_t id;
+  char *rule_name;
+  char *branch_name;
+  int enable_push;
+  int required_approvals;
+  int enable_status_check;
+  int require_signed_commits;
+  int apply_to_admins;
+  int dismiss_stale_approvals;
+  int block_on_outdated_branch;
+  int block_on_rejected_reviews;
+  int block_on_official_review_requests;
+  char **status_check_contexts;
+  size_t status_check_context_count;
+  char *protected_file_patterns;
+  char *unprotected_file_patterns;
+} BranchProtection;
+
+/* *_set flags follow the EditRepoOpts convention: only fields the caller
+   marked are sent, so an edit never resets anything it did not mention. */
+typedef struct
+{
+  const char *rule_name;
+  int enable_push_set;
+  int enable_push;
+  int required_approvals_set;
+  int required_approvals;
+  int enable_status_check_set;
+  int enable_status_check;
+  int require_signed_commits_set;
+  int require_signed_commits;
+  int apply_to_admins_set;
+  int apply_to_admins;
+  int dismiss_stale_approvals_set;
+  int dismiss_stale_approvals;
+  int block_on_outdated_branch_set;
+  int block_on_outdated_branch;
+  int block_on_rejected_reviews_set;
+  int block_on_rejected_reviews;
+  int block_on_official_review_requests_set;
+  int block_on_official_review_requests;
+  const char *const *status_check_contexts;
+  size_t status_check_context_count;
+  const char *protected_file_patterns;
+  const char *unprotected_file_patterns;
+} BranchProtectionOpts;
+
+int api_branch_protection_list (ApiClient *a, const char *owner, const char *repo,
+                                BranchProtection **out, size_t *count);
+int api_branch_protection_get (ApiClient *a, const char *owner, const char *repo,
+                               const char *name, BranchProtection *out);
+int api_branch_protection_create (ApiClient *a, const char *owner, const char *repo,
+                                  const BranchProtectionOpts *opts, BranchProtection *out);
+int api_branch_protection_edit (ApiClient *a, const char *owner, const char *repo,
+                                const char *name, const BranchProtectionOpts *opts,
+                                BranchProtection *out);
+int api_branch_protection_delete (ApiClient *a, const char *owner, const char *repo,
+                                  const char *name);
+
+void branch_protection_free (BranchProtection *p);
+void branch_protection_array_free (BranchProtection *arr, size_t count);
+
 /* ===== Issues ===== */
 
 typedef struct
