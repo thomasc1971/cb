@@ -42,15 +42,9 @@ static void help_repo_delete (void);
 static void help_repo_rename (void);
 static void help_repo_edit (void);
 static void help_repo_show (void);
-static void help_repo_list (void);
 static void help_repo_transfer (void);
 static void help_repo_topic (void);
 static void help_repo_mirror (void);
-static void help_repo_mirror_add (void);
-static void help_repo_mirror_list (void);
-static void help_repo_mirror_show (void);
-static void help_repo_mirror_rm (void);
-static void help_repo_mirror_sync (void);
 static void help_topic_add (void);
 static void help_topic_rm (void);
 static void help_topic_list (void);
@@ -86,7 +80,6 @@ static void help_wiki (void);
 static void help_sshkey (void);
 static void help_package (void);
 static void help_rev (void);
-static void help_rev_push (void);
 
 /* ===== Flag parsing ===== */
 
@@ -481,12 +474,6 @@ static int find_flag_idx (const FlagDef *table, const char *name)
 
 static int cmd_repo_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_create ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -583,12 +570,6 @@ static int cmd_repo_create (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_repo_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_delete ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -644,12 +625,6 @@ static int cmd_repo_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_repo_rename (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_rename ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     help_repo_rename ();
     return CLI_USAGE;
@@ -686,12 +661,6 @@ static int cmd_repo_rename (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_repo_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_edit ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -820,12 +789,6 @@ static int cmd_repo_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_repo_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_show ();
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     help_repo_show ();
     return CLI_USAGE;
@@ -856,10 +819,6 @@ static int cmd_repo_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *
   int is_org = 0;
 
   for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_list ();
-      return CLI_OK;
-    }
     if (strcmp (argv[i], "--org") == 0) {
       if (i + 1 >= argc) {
         fprintf (stderr, "Error: --org requires a value\n");
@@ -901,12 +860,6 @@ static int cmd_repo_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_repo_transfer (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_transfer ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     help_repo_transfer ();
     return CLI_USAGE;
@@ -944,12 +897,6 @@ static int cmd_repo_transfer (int argc, char **argv, ApiClient *api, CbGlobalFla
 
 static int cmd_topic_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_topic_add ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     help_topic_add ();
     return CLI_USAGE;
@@ -971,12 +918,6 @@ static int cmd_topic_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_topic_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_topic_rm ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     help_topic_rm ();
     return CLI_USAGE;
@@ -998,12 +939,6 @@ static int cmd_topic_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 
 static int cmd_topic_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_topic_list ();
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     help_topic_list ();
     return CLI_USAGE;
@@ -1031,12 +966,6 @@ static int cmd_topic_list (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_topic_set (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_topic_set ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     help_topic_set ();
     return CLI_USAGE;
@@ -1288,12 +1217,6 @@ static void print_action_secret_list (const ActionSecret *arr, size_t count, int
 
 static int cmd_actions_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_actions_list ();
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     help_actions_list ();
     return CLI_USAGE;
@@ -1322,12 +1245,6 @@ static int cmd_actions_list (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_actions_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_actions_show ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     help_actions_show ();
     return CLI_USAGE;
@@ -1357,12 +1274,6 @@ static int cmd_actions_show (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_actions_runners (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_actions_runners ();
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     help_actions_runners ();
     return CLI_USAGE;
@@ -1391,12 +1302,6 @@ static int cmd_actions_runners (int argc, char **argv, ApiClient *api, CbGlobalF
 
 static int cmd_actions_dispatch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_actions_dispatch ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     help_actions_dispatch ();
     return CLI_USAGE;
@@ -1428,15 +1333,6 @@ static int cmd_actions_dispatch (int argc, char **argv, ApiClient *api, CbGlobal
 
 static int cmd_actions_secret_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions secret list [owner/]repo\n\n");
-      printf ("List action secrets (names only).\n");
-      printf ("  --json                  Output raw JSON\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     printf ("Usage: cb actions secret list [owner/]repo\n\n");
     return CLI_USAGE;
@@ -1466,15 +1362,6 @@ static int cmd_actions_secret_list (int argc, char **argv, ApiClient *api, CbGlo
 static int cmd_actions_secret_set (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   (void)gf;
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions secret set [owner/]repo <name> --value V\n\n");
-      printf ("Create or update a secret.\n");
-      printf ("  --value V               Secret value\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     printf ("Usage: cb actions secret set [owner/]repo <name> --value V\n\n");
     return CLI_USAGE;
@@ -1506,15 +1393,6 @@ static int cmd_actions_secret_set (int argc, char **argv, ApiClient *api, CbGlob
 
 static int cmd_actions_secret_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions secret rm [owner/]repo <name> [--yes]\n\n");
-      printf ("Delete a secret.\n");
-      printf ("  --yes                   Skip confirmation\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     printf ("Usage: cb actions secret rm [owner/]repo <name> [--yes]\n\n");
     return CLI_USAGE;
@@ -1548,15 +1426,6 @@ static int cmd_actions_secret_rm (int argc, char **argv, ApiClient *api, CbGloba
 
 static int cmd_actions_var_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions var list [owner/]repo\n\n");
-      printf ("List action variables.\n");
-      printf ("  --json                  Output raw JSON\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     printf ("Usage: cb actions var list [owner/]repo\n\n");
     return CLI_USAGE;
@@ -1585,15 +1454,6 @@ static int cmd_actions_var_list (int argc, char **argv, ApiClient *api, CbGlobal
 
 static int cmd_actions_var_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions var show [owner/]repo <name>\n\n");
-      printf ("Show a variable's value.\n");
-      printf ("  --json                  Output raw JSON\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     printf ("Usage: cb actions var show [owner/]repo <name>\n\n");
     return CLI_USAGE;
@@ -1620,15 +1480,6 @@ static int cmd_actions_var_show (int argc, char **argv, ApiClient *api, CbGlobal
 static int cmd_actions_var_set (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   (void)gf;
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions var set [owner/]repo <name> --value V\n\n");
-      printf ("Create or update a variable.\n");
-      printf ("  --value V               Variable value\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     printf ("Usage: cb actions var set [owner/]repo <name> --value V\n\n");
     return CLI_USAGE;
@@ -1660,15 +1511,6 @@ static int cmd_actions_var_set (int argc, char **argv, ApiClient *api, CbGlobalF
 
 static int cmd_actions_var_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions var rm [owner/]repo <name> [--yes]\n\n");
-      printf ("Delete a variable.\n");
-      printf ("  --yes                   Skip confirmation\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     printf ("Usage: cb actions var rm [owner/]repo <name> [--yes]\n\n");
     return CLI_USAGE;
@@ -1704,16 +1546,6 @@ static int cmd_actions_var_rm (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_actions_jobs (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions jobs [owner/]repo <run-id>\n\n");
-      printf ("List jobs in a workflow run.\n\n");
-      printf ("Flags:\n");
-      printf ("  --json                  Output raw JSON\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     printf ("Usage: cb actions jobs [owner/]repo <run-id>\n\n");
     return CLI_USAGE;
@@ -1775,16 +1607,6 @@ static int cmd_actions_jobs (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_actions_log (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb actions log [owner/]repo <run-id> [job-index] [step-index]\n\n");
-      printf ("Show log output for a workflow run.\n");
-      printf ("If job-index is omitted, shows logs for job 0.\n");
-      printf ("If step-index is omitted, shows logs for all steps.\n");
-      printf ("  --help, -h              Show this help\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     printf ("Usage: cb actions log [owner/]repo <run-id> [job-index] [step-index]\n\n");
     return CLI_USAGE;
@@ -1866,10 +1688,6 @@ static int cmd_actions (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
 
-  if (is_help_arg (sub)) {
-    help_actions ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_actions_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0)
@@ -1890,10 +1708,6 @@ static int cmd_actions (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
     const char *sec_sub = rest_argv[0];
     int sec_argc = rest_argc - 1;
     char **sec_argv = rest_argv + 1;
-    if (is_help_arg (sec_sub)) {
-      help_actions_secret ();
-      return CLI_OK;
-    }
     if (strcmp (sec_sub, "list") == 0)
       return cmd_actions_secret_list (sec_argc, sec_argv, api, gf);
     if (strcmp (sec_sub, "set") == 0)
@@ -1912,10 +1726,6 @@ static int cmd_actions (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
     const char *var_sub = rest_argv[0];
     int var_argc = rest_argc - 1;
     char **var_argv = rest_argv + 1;
-    if (is_help_arg (var_sub)) {
-      help_actions_var ();
-      return CLI_OK;
-    }
     if (strcmp (var_sub, "list") == 0)
       return cmd_actions_var_list (var_argc, var_argv, api, gf);
     if (strcmp (var_sub, "show") == 0)
@@ -2176,6 +1986,30 @@ static const FlagDef PACKAGE_DOWNLOAD_FLAGS[] = {
   { NULL, NULL, 0 }
 };
 
+static const FlagDef ACTIONS_SECRET_SET_FLAGS[] = {
+  { "--value", NULL, 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static const FlagDef ACTIONS_SECRET_RM_FLAGS[] = {
+  { "--yes", NULL, 0 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static const FlagDef ACTIONS_VAR_SET_FLAGS[] = {
+  { "--value", NULL, 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static const FlagDef ACTIONS_VAR_RM_FLAGS[] = {
+  { "--yes", NULL, 0 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
 /* ===== Command tree (single source of truth for --help and --help-spec) ===== */
 
 typedef struct Cmd Cmd;
@@ -2292,10 +2126,10 @@ static const SubCmd ACTIONS_SECRET_SUBS[] = {
     "List action secrets (names only).", NULL, NULL },
   { "set", "Create or update a secret",
     "cb actions secret set [owner/]repo <name> --value V",
-    "Create or update a secret.", NULL, NULL },
+    "Create or update a secret.", ACTIONS_SECRET_SET_FLAGS, NULL },
   { "rm", "Delete a secret",
     "cb actions secret rm [owner/]repo <name> [--yes]",
-    "Delete a secret.", NULL, NULL },
+    "Delete a secret.", ACTIONS_SECRET_RM_FLAGS, NULL },
   { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -2308,10 +2142,10 @@ static const SubCmd ACTIONS_VAR_SUBS[] = {
     "Show a variable's value.", NULL, NULL },
   { "set", "Create or update a variable",
     "cb actions var set [owner/]repo <name> --value V",
-    "Create or update a variable.", NULL, NULL },
+    "Create or update a variable.", ACTIONS_VAR_SET_FLAGS, NULL },
   { "rm", "Delete a variable",
     "cb actions var rm [owner/]repo <name> [--yes]",
-    "Delete a variable.", NULL, NULL },
+    "Delete a variable.", ACTIONS_VAR_RM_FLAGS, NULL },
   { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
@@ -2994,9 +2828,6 @@ HELP_WRAPPER_1 (help_actions, "actions")
 HELP_WRAPPER_1 (help_release, "release")
 HELP_WRAPPER_1 (help_tag, "tag")
 HELP_WRAPPER_1 (help_branch, "branch")
-HELP_WRAPPER_2 (help_branch_protect, "branch", "protect")
-HELP_WRAPPER_2 (help_branch_unprotect, "branch", "unprotect")
-HELP_WRAPPER_2 (help_branch_protections, "branch", "protections")
 HELP_WRAPPER_1 (help_issue, "issue")
 HELP_WRAPPER_1 (help_label, "label")
 HELP_WRAPPER_1 (help_milestone, "milestone")
@@ -3011,22 +2842,15 @@ HELP_WRAPPER_1 (help_wiki, "wiki")
 HELP_WRAPPER_1 (help_sshkey, "sshkey")
 HELP_WRAPPER_1 (help_package, "package")
 HELP_WRAPPER_1 (help_rev, "rev")
-HELP_WRAPPER_2 (help_rev_push, "rev", "push")
 
 HELP_WRAPPER_2 (help_repo_create, "repo", "create")
 HELP_WRAPPER_2 (help_repo_delete, "repo", "delete")
 HELP_WRAPPER_2 (help_repo_rename, "repo", "rename")
 HELP_WRAPPER_2 (help_repo_edit, "repo", "edit")
 HELP_WRAPPER_2 (help_repo_show, "repo", "show")
-HELP_WRAPPER_2 (help_repo_list, "repo", "list")
 HELP_WRAPPER_2 (help_repo_transfer, "repo", "transfer")
 HELP_WRAPPER_2 (help_repo_topic, "repo", "topic")
 HELP_WRAPPER_2 (help_repo_mirror, "repo", "mirror")
-HELP_WRAPPER_3 (help_repo_mirror_add, "repo", "mirror", "add")
-HELP_WRAPPER_3 (help_repo_mirror_list, "repo", "mirror", "list")
-HELP_WRAPPER_3 (help_repo_mirror_show, "repo", "mirror", "show")
-HELP_WRAPPER_3 (help_repo_mirror_rm, "repo", "mirror", "rm")
-HELP_WRAPPER_3 (help_repo_mirror_sync, "repo", "mirror", "sync")
 HELP_WRAPPER_3 (help_topic_add, "repo", "topic", "add")
 HELP_WRAPPER_3 (help_topic_rm, "repo", "topic", "rm")
 HELP_WRAPPER_3 (help_topic_list, "repo", "topic", "list")
@@ -3995,12 +3819,6 @@ static void print_package_file_list (const PackageFile *arr, size_t count, int j
 
 static int cmd_release_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_release_list ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -4059,12 +3877,6 @@ static int cmd_release_list (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_release_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_release_create ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -4142,12 +3954,6 @@ static int cmd_release_create (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_release_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release show [owner/]repo <id>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: release show requires repo and id\n");
     return CLI_USAGE;
@@ -4172,12 +3978,6 @@ static int cmd_release_show (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_release_latest (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release latest [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: release latest requires repo\n");
     return CLI_USAGE;
@@ -4201,12 +4001,6 @@ static int cmd_release_latest (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_release_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_release_edit ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -4302,12 +4096,6 @@ static int cmd_release_edit (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_release_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release delete [owner/]repo <id> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: release delete requires repo and id\n");
     return CLI_USAGE;
@@ -4334,12 +4122,6 @@ static int cmd_release_delete (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_release_by_tag (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release by-tag [owner/]repo <tag>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: release by-tag requires repo and tag\n");
     return CLI_USAGE;
@@ -4363,12 +4145,6 @@ static int cmd_release_by_tag (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_release_delete_by_tag (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release delete-tag [owner/]repo <tag> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: release delete-tag requires repo and tag\n");
     return CLI_USAGE;
@@ -4394,12 +4170,6 @@ static int cmd_release_delete_by_tag (int argc, char **argv, ApiClient *api, CbG
 
 static int cmd_release_asset_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release asset list [owner/]repo <release-id>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: asset list requires repo and release-id\n");
     return CLI_USAGE;
@@ -4449,12 +4219,6 @@ static int cmd_release_asset_list (int argc, char **argv, ApiClient *api, CbGlob
 
 static int cmd_release_asset_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release asset edit [owner/]repo <release-id> <asset-id> --name <name>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 3) {
     fprintf (stderr, "Error: asset edit requires repo, release-id, and asset-id\n");
     return CLI_USAGE;
@@ -4505,12 +4269,6 @@ static int cmd_release_asset_edit (int argc, char **argv, ApiClient *api, CbGlob
 
 static int cmd_release_asset_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release asset delete [owner/]repo <release-id> <asset-id> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 3) {
     fprintf (stderr, "Error: asset delete requires repo, release-id, and asset-id\n");
     return CLI_USAGE;
@@ -4538,12 +4296,6 @@ static int cmd_release_asset_delete (int argc, char **argv, ApiClient *api, CbGl
 
 static int cmd_release_asset_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb release asset show [owner/]repo <release-id> <asset-id>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 3) {
     fprintf (stderr, "Error: asset show requires repo, release-id, and asset-id\n");
     return CLI_USAGE;
@@ -4579,10 +4331,6 @@ static int cmd_release (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
 
-  if (is_help_arg (sub)) {
-    help_release ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_release_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "create") == 0)
@@ -4607,10 +4355,6 @@ static int cmd_release (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
     const char *asub = rest_argv[0];
     int a_argc = rest_argc - 1;
     char **a_argv = rest_argv + 1;
-    if (is_help_arg (asub)) {
-      help_release_asset ();
-      return CLI_OK;
-    }
     if (strcmp (asub, "list") == 0)
       return cmd_release_asset_list (a_argc, a_argv, api, gf);
     if (strcmp (asub, "show") == 0)
@@ -4632,12 +4376,6 @@ static int cmd_release (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 
 static int cmd_tag_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb tag list [owner/]repo [--limit N]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -4688,12 +4426,6 @@ static int cmd_tag_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 
 static int cmd_tag_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb tag create [owner/]repo --tag <tag> [--message <msg>] [--target <ref>]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -4764,12 +4496,6 @@ static int cmd_tag_create (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_tag_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb tag show [owner/]repo <tag>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: tag show requires repo and tag name\n");
     return CLI_USAGE;
@@ -4808,12 +4534,6 @@ static int cmd_tag_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 
 static int cmd_tag_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb tag delete [owner/]repo <tag> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: tag delete requires repo and tag name\n");
     return CLI_USAGE;
@@ -4846,10 +4566,6 @@ static int cmd_tag (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_tag ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_tag_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "create") == 0)
@@ -4867,12 +4583,6 @@ static int cmd_tag (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_branch_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb branch list [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: branch list requires repo\n");
     return CLI_USAGE;
@@ -4900,12 +4610,6 @@ static int cmd_branch_list (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_branch_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb branch create [owner/]repo --name <name> [--from <ref>]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -4971,12 +4675,6 @@ static int cmd_branch_create (int argc, char **argv, ApiClient *api, CbGlobalFla
 
 static int cmd_branch_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb branch show [owner/]repo <branch>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: branch show requires repo and branch name\n");
     return CLI_USAGE;
@@ -5014,12 +4712,6 @@ static int cmd_branch_show (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_branch_rename (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb branch rename [owner/]repo <branch> --name <new-name>\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -5070,12 +4762,6 @@ static int cmd_branch_rename (int argc, char **argv, ApiClient *api, CbGlobalFla
 
 static int cmd_branch_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb branch delete [owner/]repo <branch> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: branch delete requires repo and branch name\n");
     return CLI_USAGE;
@@ -5101,12 +4787,6 @@ static int cmd_branch_delete (int argc, char **argv, ApiClient *api, CbGlobalFla
 
 static int cmd_branch_protect (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_branch_protect ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -5271,12 +4951,6 @@ static int cmd_branch_protect (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_branch_unprotect (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_branch_unprotect ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: branch unprotect requires repo and branch name\n");
     return CLI_USAGE;
@@ -5302,12 +4976,6 @@ static int cmd_branch_unprotect (int argc, char **argv, ApiClient *api, CbGlobal
 
 static int cmd_branch_protections (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_branch_protections ();
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: branch protections requires repo\n");
     return CLI_USAGE;
@@ -5342,10 +5010,6 @@ static int cmd_branch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_branch ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_branch_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "create") == 0)
@@ -5371,12 +5035,6 @@ static int cmd_branch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_issue_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue list [owner/]repo [--state open|closed|all] [--labels l1,l2] [--limit N]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -5439,12 +5097,6 @@ static int cmd_issue_list (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_issue_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue create [owner/]repo --title <title> [--body <body>] [--label <id>]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -5507,12 +5159,6 @@ static int cmd_issue_create (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_issue_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue show [owner/]repo <number>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: issue show requires repo and issue number\n");
     return CLI_USAGE;
@@ -5537,12 +5183,6 @@ static int cmd_issue_show (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_issue_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue edit [owner/]repo <number> [--title <title>] [--body <body>] [--state open|closed]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -5608,12 +5248,6 @@ static int cmd_issue_edit (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_issue_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue delete [owner/]repo <number> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: issue delete requires repo and issue number\n");
     return CLI_USAGE;
@@ -5640,12 +5274,6 @@ static int cmd_issue_delete (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_issue_close (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue close [owner/]repo <number>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: issue close requires repo and issue number\n");
     return CLI_USAGE;
@@ -5673,12 +5301,6 @@ static int cmd_issue_close (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_issue_reopen (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue reopen [owner/]repo <number>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: issue reopen requires repo and issue number\n");
     return CLI_USAGE;
@@ -5706,12 +5328,6 @@ static int cmd_issue_reopen (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_issue_comment (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue comment [owner/]repo <number> --body <text>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: issue comment requires repo and issue number\n");
     return CLI_USAGE;
@@ -5743,12 +5359,6 @@ static int cmd_issue_comment (int argc, char **argv, ApiClient *api, CbGlobalFla
 
 static int cmd_issue_label_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue label add [owner/]repo <number> <label_id> [<label_id>...]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 3) {
     fprintf (stderr, "Error: issue label add requires repo, issue number, and label IDs\n");
     return CLI_USAGE;
@@ -5776,12 +5386,6 @@ static int cmd_issue_label_add (int argc, char **argv, ApiClient *api, CbGlobalF
 
 static int cmd_issue_label_clear (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb issue label clear [owner/]repo <number>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: issue label clear requires repo and issue number\n");
     return CLI_USAGE;
@@ -5811,10 +5415,6 @@ static int cmd_issue (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_issue ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_issue_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "create") == 0)
@@ -5851,10 +5451,6 @@ static int cmd_issue (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     const char *lsub = rest_argv[0];
     int l_argc = rest_argc - 1;
     char **l_argv = rest_argv + 1;
-    if (is_help_arg (lsub)) {
-      printf ("Usage: cb issue label [owner/]repo <add|set|rm|clear> ...\n");
-      return CLI_OK;
-    }
     if (strcmp (lsub, "add") == 0)
       return cmd_issue_label_add (l_argc, l_argv, api, gf);
     if (strcmp (lsub, "clear") == 0)
@@ -5871,12 +5467,6 @@ static int cmd_issue (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_label_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb label list [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: label list requires repo\n");
     return CLI_USAGE;
@@ -5904,12 +5494,6 @@ static int cmd_label_list (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_label_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb label create [owner/]repo --name <name> --color <hex> [--description <desc>]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -5977,12 +5561,6 @@ static int cmd_label_create (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_label_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb label delete [owner/]repo <id> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: label delete requires repo and label id\n");
     return CLI_USAGE;
@@ -6009,12 +5587,6 @@ static int cmd_label_delete (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_label_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb label show [owner/]repo <id>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: label show requires repo and id\n");
     return CLI_USAGE;
@@ -6046,10 +5618,6 @@ static int cmd_label (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_label ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_label_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0)
@@ -6067,12 +5635,6 @@ static int cmd_label (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_milestone_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb milestone list [owner/]repo [--state open|closed|all]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: milestone list requires repo\n");
     return CLI_USAGE;
@@ -6105,12 +5667,6 @@ static int cmd_milestone_list (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_milestone_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb milestone create [owner/]repo --title <title> [--description <desc>] [--due <date>]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -6173,12 +5729,6 @@ static int cmd_milestone_create (int argc, char **argv, ApiClient *api, CbGlobal
 
 static int cmd_milestone_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb milestone delete [owner/]repo <id> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: milestone delete requires repo and milestone id\n");
     return CLI_USAGE;
@@ -6205,12 +5755,6 @@ static int cmd_milestone_delete (int argc, char **argv, ApiClient *api, CbGlobal
 
 static int cmd_milestone_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb milestone show [owner/]repo <id>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: milestone show requires repo and id\n");
     return CLI_USAGE;
@@ -6242,10 +5786,6 @@ static int cmd_milestone (int argc, char **argv, ApiClient *api, CbGlobalFlags *
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_milestone ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_milestone_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0)
@@ -6263,12 +5803,6 @@ static int cmd_milestone (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_pr_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb pr list [owner/]repo [--state open|closed|all] [--limit N]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: pr list requires repo\n");
     return CLI_USAGE;
@@ -6304,12 +5838,6 @@ static int cmd_pr_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 
 static int cmd_pr_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb pr create [owner/]repo --title <title> --head <branch> [--base <branch>] [--body <body>]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -6380,12 +5908,6 @@ static int cmd_pr_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_pr_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb pr show [owner/]repo <number>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: pr show requires repo and PR number\n");
     return CLI_USAGE;
@@ -6410,12 +5932,6 @@ static int cmd_pr_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 
 static int cmd_pr_close (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb pr close [owner/]repo <number>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: pr close requires repo and PR number\n");
     return CLI_USAGE;
@@ -6443,12 +5959,6 @@ static int cmd_pr_close (int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 
 static int cmd_pr_reopen (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb pr reopen [owner/]repo <number>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: pr reopen requires repo and PR number\n");
     return CLI_USAGE;
@@ -6476,12 +5986,6 @@ static int cmd_pr_reopen (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_pr_merge (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb pr merge [owner/]repo <number> [--style merge|rebase|squash|rebase-merge] [--delete-branch] [--auto]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: pr merge requires repo and PR number\n");
     return CLI_USAGE;
@@ -6525,10 +6029,6 @@ static int cmd_pr (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_pr ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_pr_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "create") == 0)
@@ -6554,12 +6054,6 @@ static int cmd_pr (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_commit_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb commit list [owner/]repo [--sha <ref>] [--path <path>] [--limit N]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -6625,10 +6119,6 @@ static int cmd_commit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_commit ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_commit_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0 || strcmp (sub, "status") == 0 || strcmp (sub, "diff") == 0 || strcmp (sub, "compare") == 0 || strcmp (sub, "note") == 0) {
@@ -6644,12 +6134,6 @@ static int cmd_commit (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_content_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb content list [owner/]repo [--ref <ref>]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: content list requires repo\n");
     return CLI_USAGE;
@@ -6689,10 +6173,6 @@ static int cmd_content (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_content ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_content_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0 || strcmp (sub, "create") == 0 || strcmp (sub, "update") == 0 || strcmp (sub, "delete") == 0 || strcmp (sub, "raw") == 0 || strcmp (sub, "archive") == 0) {
@@ -6708,12 +6188,6 @@ static int cmd_content (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 
 static int cmd_key_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb key list [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: key list requires repo\n");
     return CLI_USAGE;
@@ -6741,12 +6215,6 @@ static int cmd_key_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *g
 
 static int cmd_key_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb key add [owner/]repo --title <title> --key <key> [--read-only]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -6813,12 +6281,6 @@ static int cmd_key_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 
 static int cmd_key_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb key delete [owner/]repo <id> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: key delete requires repo and key id\n");
     return CLI_USAGE;
@@ -6845,12 +6307,6 @@ static int cmd_key_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_key_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb key show [owner/]repo <id>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: key show requires repo and id\n");
     return CLI_USAGE;
@@ -6882,10 +6338,6 @@ static int cmd_key (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_key ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_key_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0)
@@ -6903,12 +6355,6 @@ static int cmd_key (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_collaborator_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb collaborator list [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: collaborator list requires repo\n");
     return CLI_USAGE;
@@ -6948,12 +6394,6 @@ static int cmd_collaborator_list (int argc, char **argv, ApiClient *api, CbGloba
 
 static int cmd_collaborator_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb collaborator add [owner/]repo <username> [--permission read|write|admin]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -6998,12 +6438,6 @@ static int cmd_collaborator_add (int argc, char **argv, ApiClient *api, CbGlobal
 
 static int cmd_collaborator_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb collaborator rm [owner/]repo <username> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: collaborator rm requires repo and username\n");
     return CLI_USAGE;
@@ -7036,10 +6470,6 @@ static int cmd_collaborator (int argc, char **argv, ApiClient *api, CbGlobalFlag
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_collaborator ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_collaborator_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "add") == 0)
@@ -7059,12 +6489,6 @@ static int cmd_collaborator (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_fork_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb fork list [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: fork list requires repo\n");
     return CLI_USAGE;
@@ -7092,12 +6516,6 @@ static int cmd_fork_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_fork_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb fork create [owner/]repo [--name <repo-name>] [--org <organization>]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -7155,10 +6573,6 @@ static int cmd_fork (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_fork ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_fork_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "create") == 0)
@@ -7172,12 +6586,6 @@ static int cmd_fork (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_hook_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb hook list [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: hook list requires repo\n");
     return CLI_USAGE;
@@ -7205,12 +6613,6 @@ static int cmd_hook_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_hook_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb hook create [owner/]repo --type <type> --url <url> [--event <event>] [--active]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -7290,12 +6692,6 @@ static int cmd_hook_create (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_hook_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb hook delete [owner/]repo <id> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: hook delete requires repo and hook id\n");
     return CLI_USAGE;
@@ -7329,10 +6725,6 @@ static int cmd_hook (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_hook ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_hook_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "create") == 0)
@@ -7352,12 +6744,6 @@ static int cmd_hook (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_mirror_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_mirror_list ();
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: mirror list requires repo\n");
     return CLI_USAGE;
@@ -7385,12 +6771,6 @@ static int cmd_mirror_list (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_mirror_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_mirror_show ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: mirror show requires repo and remote-name\n");
     return CLI_USAGE;
@@ -7414,12 +6794,6 @@ static int cmd_mirror_show (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_mirror_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_mirror_add ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -7501,12 +6875,6 @@ static int cmd_mirror_add (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_mirror_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_mirror_rm ();
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: mirror rm requires repo and remote-name\n");
     return CLI_USAGE;
@@ -7533,12 +6901,6 @@ static int cmd_mirror_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_mirror_sync (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_repo_mirror_sync ();
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: mirror sync requires repo\n");
     return CLI_USAGE;
@@ -7693,12 +7055,6 @@ done:
 
 static int cmd_rev_push (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_rev_push ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -7736,10 +7092,6 @@ static int cmd_rev (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_rev ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "push") == 0)
     return cmd_rev_push (rest_argc, rest_argv, api, gf);
   fprintf (stderr, "Error: unknown rev subcommand '%s'\n", sub);
@@ -7751,12 +7103,6 @@ static int cmd_rev (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_wiki_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb wiki list [owner/]repo\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: wiki list requires repo\n");
     return CLI_USAGE;
@@ -7784,12 +7130,6 @@ static int cmd_wiki_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *
 
 static int cmd_wiki_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb wiki delete [owner/]repo <pageName> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 2) {
     fprintf (stderr, "Error: wiki delete requires repo and page name\n");
     return CLI_USAGE;
@@ -7822,10 +7162,6 @@ static int cmd_wiki (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_wiki ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_wiki_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "delete") == 0)
@@ -7843,12 +7179,8 @@ static int cmd_wiki (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_sshkey_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb sshkey list\n");
-      return CLI_OK;
-    }
-  }
+  (void)argc;
+  (void)argv;
   PublicKey *keys;
   size_t count;
   int rc = api_user_key_list (api, &keys, &count);
@@ -7892,13 +7224,6 @@ static int cmd_sshkey_list (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_sshkey_add (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb sshkey add --title <title> --key <key> [--read-only]\n");
-      printf ("       cb sshkey add --title <title> --file <path> [--read-only]\n");
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -8000,12 +7325,6 @@ static int cmd_sshkey_add (int argc, char **argv, ApiClient *api, CbGlobalFlags 
 
 static int cmd_sshkey_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb sshkey show <id>\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: sshkey show requires <id>\n");
     return CLI_USAGE;
@@ -8060,12 +7379,6 @@ static int cmd_sshkey_show (int argc, char **argv, ApiClient *api, CbGlobalFlags
 
 static int cmd_sshkey_rm (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      printf ("Usage: cb sshkey rm <id> [--yes]\n");
-      return CLI_OK;
-    }
-  }
   if (argc < 1) {
     fprintf (stderr, "Error: sshkey rm requires <id>\n");
     return CLI_USAGE;
@@ -8099,10 +7412,6 @@ static int cmd_sshkey (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_sshkey ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_sshkey_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "add") == 0)
@@ -8120,12 +7429,6 @@ static int cmd_sshkey (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 
 static int cmd_package_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_list ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -8180,12 +7483,6 @@ static int cmd_package_list (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_package_show (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_show ();
-      return CLI_OK;
-    }
-  }
   if (argc < 4) {
     fprintf (stderr, "Error: package show requires <owner> <type> <name> <version>\n");
     help_package_show ();
@@ -8208,12 +7505,6 @@ static int cmd_package_show (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_package_delete (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_delete ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -8256,12 +7547,6 @@ static int cmd_package_delete (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_package_files (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_files ();
-      return CLI_OK;
-    }
-  }
   if (argc < 4) {
     fprintf (stderr, "Error: package files requires <owner> <type> <name> <version>\n");
     help_package_files ();
@@ -8285,12 +7570,6 @@ static int cmd_package_files (int argc, char **argv, ApiClient *api, CbGlobalFla
 
 static int cmd_package_link (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_link ();
-      return CLI_OK;
-    }
-  }
   if (argc < 4) {
     fprintf (stderr, "Error: package link requires <owner> <type> <name> <repo>\n");
     help_package_link ();
@@ -8309,12 +7588,6 @@ static int cmd_package_link (int argc, char **argv, ApiClient *api, CbGlobalFlag
 
 static int cmd_package_unlink (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_unlink ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -8357,12 +7630,6 @@ static int cmd_package_unlink (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_package_upload (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_upload ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -8474,12 +7741,6 @@ static int cmd_package_upload (int argc, char **argv, ApiClient *api, CbGlobalFl
 
 static int cmd_package_download (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_package_download ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -8546,10 +7807,6 @@ static int cmd_package (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
   const char *sub = argv[0];
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
-  if (is_help_arg (sub)) {
-    help_package ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "list") == 0)
     return cmd_package_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0)
@@ -8575,12 +7832,6 @@ static int cmd_package (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
 
 static int cmd_org_create (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  for (int i = 0; i < argc; i++) {
-    if (is_help_arg (argv[i])) {
-      help_org_create ();
-      return CLI_OK;
-    }
-  }
   const char **positional;
   const char **fv;
   int *fb;
@@ -8689,10 +7940,6 @@ static int cmd_org (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
 
-  if (is_help_arg (sub)) {
-    help_org ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "create") == 0)
     return cmd_org_create (rest_argc, rest_argv, api, gf);
 
@@ -8714,10 +7961,6 @@ static int cmd_repo (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
   int rest_argc = argc - 1;
   char **rest_argv = argv + 1;
 
-  if (is_help_arg (sub)) {
-    help_repo ();
-    return CLI_OK;
-  }
   if (strcmp (sub, "create") == 0)
     return cmd_repo_create (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "delete") == 0)
@@ -8740,10 +7983,6 @@ static int cmd_repo (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     const char *topic_sub = rest_argv[0];
     int topic_argc = rest_argc - 1;
     char **topic_argv = rest_argv + 1;
-    if (is_help_arg (topic_sub)) {
-      help_repo_topic ();
-      return CLI_OK;
-    }
     if (strcmp (topic_sub, "add") == 0)
       return cmd_topic_add (topic_argc, topic_argv, api, gf);
     if (strcmp (topic_sub, "rm") == 0)
@@ -8764,10 +8003,6 @@ static int cmd_repo (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
     const char *mirror_sub = rest_argv[0];
     int mirror_argc = rest_argc - 1;
     char **mirror_argv = rest_argv + 1;
-    if (is_help_arg (mirror_sub)) {
-      help_repo_mirror ();
-      return CLI_OK;
-    }
     if (strcmp (mirror_sub, "add") == 0)
       return cmd_mirror_add (mirror_argc, mirror_argv, api, gf);
     if (strcmp (mirror_sub, "list") == 0)
@@ -8837,6 +8072,17 @@ int cli_run (int argc, char **argv)
     fprintf (stderr, "Error: unknown command '%s'\n", cmd);
     free (filtered_argv);
     return CLI_USAGE;
+  }
+
+  /* Answer help from the command tree before touching the config: asking for
+     help must not require a token. Every level of the tree is covered here, so
+     the handlers never see a help flag. */
+  for (int i = 2; i < filtered_argc; i++) {
+    if (is_help_arg (filtered_argv[i])) {
+      print_help_human (i, filtered_argv + 1);
+      free (filtered_argv);
+      return CLI_OK;
+    }
   }
 
   /* Load config */

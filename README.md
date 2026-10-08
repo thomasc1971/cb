@@ -294,7 +294,8 @@ cb [global flags] <command> [subcommand] [args] [flags]
 
 ### Getting help
 
-`--help` / `-h` works at every level of the command tree:
+`--help` / `-h` works at every level of the command tree, and needs no token:
+help is answered from the command tree before the config is loaded.
 
 ```bash
 cb --help                    # top-level help

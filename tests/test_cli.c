@@ -654,6 +654,32 @@ static void test_help_branch_lists_protection (void)
   cb_unsetenv ("CB_TOKEN");
 }
 
+static void test_help_without_token (void)
+{
+  /* Help comes from the command tree and is answered before the config is
+     loaded, so --help needs neither a token nor a config file. */
+  cb_unsetenv ("CB_TOKEN");
+  cb_unsetenv ("CB_BASE_URL");
+  cb_setenv ("XDG_CONFIG_HOME", "cb-test-no-config", 1);
+
+  const char *paths[][5] = {
+    { "repo", "show", "--help", NULL },
+    { "branch", "--help", NULL },
+    { "branch", "protect", "--help", NULL },
+    { "repo", "mirror", "add", "--help", NULL },
+    { "actions", "secret", "set", "--help", NULL },
+    { "pr", "edit", "--help", NULL },
+  };
+  for (size_t i = 0; i < sizeof (paths) / sizeof (paths[0]); i++) {
+    char buf[8192];
+    int rc = run_cli_captured (paths[i], buf, sizeof (buf));
+    ASSERT_EQ (rc, CLI_OK);
+    ASSERT_TRUE (strstr (buf, "Usage:") != NULL);
+  }
+
+  cb_unsetenv ("XDG_CONFIG_HOME");
+}
+
 static void test_cli_org_create (void)
 {
   MockResponse resp = {
@@ -1092,8 +1118,6 @@ static void test_cli_mirror_unknown_sub (void)
 
 static void test_help_repo_mirror (void)
 {
-  cb_setenv ("CB_TOKEN", "tok", 1);
-  cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
   const char *args[] = { "repo", "mirror", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
@@ -1101,19 +1125,15 @@ static void test_help_repo_mirror (void)
   ASSERT_TRUE (strstr (buf, "mirror") != NULL);
   ASSERT_TRUE (strstr (buf, "add") != NULL);
   ASSERT_TRUE (strstr (buf, "rm") != NULL);
-  cb_unsetenv ("CB_TOKEN");
 }
 
 static void test_help_rev (void)
 {
-  cb_setenv ("CB_TOKEN", "tok", 1);
-  cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
   const char *args[] = { "rev", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "push") != NULL);
-  cb_unsetenv ("CB_TOKEN");
 }
 
 int main (int argc, char *argv[])
@@ -1158,6 +1178,7 @@ int main (int argc, char *argv[])
   RUN_TEST (test_help_topic_set);
   RUN_TEST (test_help_branch_protect);
   RUN_TEST (test_help_branch_lists_protection);
+  RUN_TEST (test_help_without_token);
 
   RUN_TEST (test_cli_org_create);
   RUN_TEST (test_cli_org_create_visibility);
