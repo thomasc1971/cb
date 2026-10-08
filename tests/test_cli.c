@@ -1092,6 +1092,8 @@ static void test_cli_mirror_unknown_sub (void)
 
 static void test_help_repo_mirror (void)
 {
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
   const char *args[] = { "repo", "mirror", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
@@ -1099,15 +1101,19 @@ static void test_help_repo_mirror (void)
   ASSERT_TRUE (strstr (buf, "mirror") != NULL);
   ASSERT_TRUE (strstr (buf, "add") != NULL);
   ASSERT_TRUE (strstr (buf, "rm") != NULL);
+  cb_unsetenv ("CB_TOKEN");
 }
 
 static void test_help_rev (void)
 {
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
   char buf[4096];
   const char *args[] = { "rev", "--help", NULL };
   int rc = run_cli_captured (args, buf, sizeof (buf));
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "push") != NULL);
+  cb_unsetenv ("CB_TOKEN");
 }
 
 int main (int argc, char *argv[])
