@@ -1,5 +1,5 @@
 AC_INIT([cb],
-        m4_esyscmd_s([cat version 2>/dev/null || echo "0.0.0-unknown"]))
+        m4_esyscmd_s([build-aux/git-version.sh . 2>/dev/null || echo "0.0.0-unknown"]))
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIRS([m4])
 AC_CANONICAL_HOST
