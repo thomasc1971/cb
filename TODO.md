@@ -41,6 +41,29 @@ GET /repos/{owner}/{repo}/actions/runs/{id}/artifacts  → run-scoped list; {id}
 - [ ] Watch the id trap: `cb` displays `index_in_repo` (`#108`) but the run-scoped endpoints want the database id (`7718398`); `parse_action_run()` already keeps it in `ActionRun.id` (`src/cb_api.c:693`).
 - [ ] Register the new subcommands in `ACTIONS_SUBS` so `--help` and completions pick them up, and document them in the README.
 
+### C. `cb release asset upload` is documented but not wired up
+
+Hit while attaching the arm64 binary to the v0.10.0 release:
+
+```console
+$ cb release asset upload thomasc/cb 12781740 --file cb-v0.10.0-darwin-arm64.tar.gz
+Error: unknown asset subcommand 'upload'
+```
+
+`RELEASE_ASSET_SUBS` (`src/cb_cli.c:2189`) advertises `upload` and `--help` prints
+its usage (help is answered from the command tree), but the `asset` dispatch in
+`cmd_release()` (`src/cb_cli.c:4358`) only branches on `list`, `show`, `edit` and
+`delete` — there is no `cmd_release_asset_upload()` at all. So the CLI tells you
+the command exists and then rejects it. Same class as item A: the command tree
+and the dispatch disagree.
+
+Worked around with `curl -X POST .../releases/{id}/assets?name=<file>
+--data-binary @<file>`.
+
+- [ ] Implement `api_release_asset_upload()` (multipart, see section 4) and `cmd_release_asset_upload()`, then add the dispatch branch.
+- [ ] Until then, either drop the `upload` entry from `RELEASE_ASSET_SUBS` or mark it as unimplemented, so `--help` stops promising it.
+- [ ] Same audit as item A: check every `SubCmd` entry against the dispatch chain for commands that are advertised but unreachable.
+
 ## 1. Implement stubbed CLI subcommands
 
 These subcommands appear in help output but print "not yet implemented":
