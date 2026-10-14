@@ -197,10 +197,19 @@ jobs:
         run: |
           cd release
           V=${{ github.ref_name }}
-          mv cb-linux-amd64.tar.gz cb-${V}-linux-amd64.tar.gz
+          # The build jobs pack the tarballs with an unversioned top-level
+          # directory (cb-linux-amd64/, cb-darwin-arm64/). Repack them so the
+          # directory matches the versioned asset name, which is what users
+          # expect to land in when they extract the archive.
+          for plat in linux-amd64 darwin-amd64 darwin-arm64; do
+            mkdir -p "cb-${V}-${plat}"
+            tar xzf "cb-${plat}.tar.gz" -C "cb-${V}-${plat}" --strip-components=1
+            tar czf "cb-${V}-${plat}.tar.gz" "cb-${V}-${plat}"
+            rm -rf "cb-${V}-${plat}" "cb-${plat}.tar.gz"
+          done
+          # The Windows zip is flat (cb-windows-amd64.exe, the DLLs and the docs
+          # all sit at the root), so it only needs the rename.
           mv cb-windows-amd64.zip cb-${V}-windows-amd64.zip
-          mv cb-darwin-amd64.tar.gz cb-${V}-darwin-amd64.tar.gz
-          mv cb-darwin-arm64.tar.gz cb-${V}-darwin-arm64.tar.gz
           mv cb-source-dist.tar.gz cb-${V}-source.tar.gz
           sha256sum cb-${V}-linux-amd64.tar.gz > cb-${V}-linux-amd64.tar.gz.sha256
           sha256sum cb-${V}-windows-amd64.zip > cb-${V}-windows-amd64.zip.sha256
