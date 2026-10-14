@@ -177,5 +177,23 @@ genuinely require `multipart/form-data`.
       This would let the release notes be maintained in a file in the repo
       (e.g. `RELEASE_NOTES.md`) and attached automatically on tag pushes,
       instead of creating releases manually with `cb release create`.~~
-      Reverted — release notes are now created directly with `cb release create`
-      at release time, not from a file in the repo.
+      Reverted — notes are drafted per release and approved by a human, so they
+      do not belong in a file in the repo. CI still owns _creating_ the release;
+      `cb release edit` fills in the body afterwards. The release flow is:
+      `cb tag create` → CI's `release` job creates the release (as a draft),
+      uploads the assets and publishes it → `cb release by-tag` for the id →
+      `cb release edit <id> --body ...` with the approved notes.
+
+- [x] ~~Document why the release must not be created before CI runs.~~
+      `forgejo-release` (upload) runs `ensure_tag` and then POSTs
+      `/repos/{owner}/{repo}/releases` unconditionally, and its `api()` helper
+      calls `curl --fail`, so an existing release for the tag is fatal: the
+      `release` job dies with HTTP 409 before it uploads anything. `override: true`
+      is not a workaround: `maybe_override()` DELETEs the release first, taking
+      its assets with it. Because the action creates the release as
+      `draft: true` and only PATCHes it to published at the very end, a job that
+      fails after creation leaves a release behind that makes every retry 409 as
+      well. Recovery is to delete the release but keep the tag —
+      `cb release delete-tag <owner/repo> <tag> --yes` maps to
+      `DELETE /releases/tags/{tag}`, which does not touch the tag — and re-run
+      the job. Same flow is documented in the `codeberg-release` skill.
