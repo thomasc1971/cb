@@ -10,6 +10,12 @@ jobs:
     runs-on: codeberg-small
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
+        with:
+          # Full history + tags. build-aux/git-version.sh needs `git describe`
+          # to report the real version; the default depth-1 fetch is --no-tags,
+          # so a branch build falls back to a bogus 0.0.1-<sha>.
+          fetch-depth: 0
+          fetch-tags: true
       - name: Install dependencies
         run: |
           apt-get update
@@ -46,6 +52,12 @@ jobs:
     runs-on: codeberg-small
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
+        with:
+          # Full history + tags. build-aux/git-version.sh needs `git describe`
+          # to report the real version; the default depth-1 fetch is --no-tags,
+          # so a branch build falls back to a bogus 0.0.1-<sha>.
+          fetch-depth: 0
+          fetch-tags: true
       - name: Install dependencies
         run: |
           apt-get update
@@ -106,6 +118,12 @@ jobs:
     runs-on: codeberg-small
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
+        with:
+          # Full history + tags. build-aux/git-version.sh needs `git describe`
+          # to report the real version; the default depth-1 fetch is --no-tags,
+          # so a branch build falls back to a bogus 0.0.1-<sha>.
+          fetch-depth: 0
+          fetch-tags: true
       - name: Install dependencies
         run: |
           apt-get update
