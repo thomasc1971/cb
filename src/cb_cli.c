@@ -54,6 +54,8 @@ static void help_org_create (void);
 static void help_actions (void);
 static void help_actions_list (void);
 static void help_actions_show (void);
+static void help_actions_cancel (void);
+static void help_actions_rerun (void);
 static void help_actions_runners (void);
 static void help_actions_artifact (void);
 static void help_actions_artifacts (void);
@@ -1567,6 +1569,155 @@ static int cmd_actions_show (int argc, char **argv, ApiClient *api, CbGlobalFlag
   return CLI_OK;
 }
 
+/* Resolve the run number shown by `actions list` (#N, index_in_repo) to the
+ * run's database id, which is what the cancel/rerun endpoints take. */
+static int resolve_action_run_id (ApiClient *api, const char *owner, const char *repo,
+                                  const char *arg, int64_t *run_number_out,
+                                  int64_t *run_id_out)
+{
+  char *end = NULL;
+  int64_t run_number = strtoll (arg, &end, 10);
+  if (end == arg || run_number <= 0) {
+    fprintf (stderr, "Error: invalid run number '%s'\n", arg);
+    return CLI_ERR;
+  }
+
+  ActionRun run;
+  int rc = api_action_run_show (api, owner, repo, run_number, &run);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    return CLI_ERR;
+  }
+  *run_number_out = run_number;
+  *run_id_out = run.id;
+  action_run_free (&run);
+  return CLI_OK;
+}
+
+static const FlagDef ACTIONS_CANCEL_FLAGS[] = {
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static int cmd_actions_cancel (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, ACTIONS_CANCEL_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 2) {
+    help_actions_cancel ();
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+
+  int64_t run_number = 0, run_id = 0;
+  int rc = resolve_action_run_id (api, owner, repo, positional[1],
+                                  &run_number, &run_id);
+  if (rc != CLI_OK) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return rc;
+  }
+
+  rc = api_action_run_cancel (api, owner, repo, run_id);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  if (!gf->quiet)
+    printf ("Cancelled run #%lld.\n", (long long)run_number);
+  free (positional);
+  free (fv);
+  free (fb);
+  return CLI_OK;
+}
+
+static const FlagDef ACTIONS_RERUN_FLAGS[] = {
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static int cmd_actions_rerun (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, ACTIONS_RERUN_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 2) {
+    help_actions_rerun ();
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+
+  int64_t run_number = 0, run_id = 0;
+  int rc = resolve_action_run_id (api, owner, repo, positional[1],
+                                  &run_number, &run_id);
+  if (rc != CLI_OK) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return rc;
+  }
+
+  rc = api_action_run_rerun (api, owner, repo, run_id);
+  if (rc == API_ERR_NOT_FOUND) {
+    /* The endpoint only exists on Forgejo v17 and newer; on older servers the
+     * route is missing and the request comes back as a 404. */
+    fprintf (stderr, "Error: this server has no rerun endpoint (HTTP 404).\n");
+    fprintf (stderr, "Rerunning over the API requires Forgejo v17 or newer; on an older server use the "
+                     "\"Re-run all jobs\" button in the web UI, or re-trigger the workflow with "
+                     "'cb actions dispatch'.\n");
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  if (!gf->quiet)
+    printf ("Re-running run #%lld.\n", (long long)run_number);
+  free (positional);
+  free (fv);
+  free (fb);
+  return CLI_OK;
+}
+
 static int cmd_actions_runners (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 1) {
@@ -1595,34 +1746,57 @@ static int cmd_actions_runners (int argc, char **argv, ApiClient *api, CbGlobalF
   return CLI_OK;
 }
 
+static const FlagDef ACTIONS_DISPATCH_FLAGS[] = {
+  { "--ref", NULL, 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
 static int cmd_actions_dispatch (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  if (argc < 2) {
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, ACTIONS_DISPATCH_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 2) {
     help_actions_dispatch ();
+    free (positional);
+    free (fv);
+    free (fb);
     return CLI_USAGE;
   }
   char owner[128], repo[128];
-  if (require_owner_repo (argv[0], owner, sizeof (owner),
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
                           repo, sizeof (repo), api)
-      != 0)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
     return CLI_ERR;
-  const char *workflowfile = argv[1];
+  }
+  const char *workflowfile = positional[1];
 
   const char *ref = NULL;
-  for (int i = 2; i < argc; i++) {
-    if (strcmp (argv[i], "--ref") == 0 && i + 1 < argc) {
-      ref = argv[++i];
-    }
-  }
+  int idx = find_flag_idx (ACTIONS_DISPATCH_FLAGS, "--ref");
+  if (fv[idx])
+    ref = fv[idx];
 
   int rc = api_action_dispatch (api, owner, repo, workflowfile, ref);
   if (rc != API_OK) {
     print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
     return CLI_ERR;
   }
   if (!gf->quiet)
     printf ("Dispatched workflow '%s' on %s/%s (ref: %s)\n",
             workflowfile, owner, repo, ref ? ref : "master");
+  free (positional);
+  free (fv);
+  free (fb);
   return CLI_OK;
 }
 
@@ -1987,6 +2161,10 @@ static int cmd_actions (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
     return cmd_actions_list (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "show") == 0)
     return cmd_actions_show (rest_argc, rest_argv, api, gf);
+  if (strcmp (sub, "cancel") == 0)
+    return cmd_actions_cancel (rest_argc, rest_argv, api, gf);
+  if (strcmp (sub, "rerun") == 0)
+    return cmd_actions_rerun (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "runners") == 0)
     return cmd_actions_runners (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "artifacts") == 0)
@@ -2481,6 +2659,20 @@ static const SubCmd ACTIONS_SUBS[] = {
     "Show details of a specific workflow run.\n"
     "<run-id> is the run number shown as #N in 'actions list'.",
     NULL, NULL },
+  { "cancel", "Cancel a pending or running run",
+    "cb actions cancel [owner/]repo <run-id>",
+    "Cancel a pending or running workflow run.\n"
+    "<run-id> is the run number shown as #N in 'actions list'.\n"
+    "A run that already finished is left unchanged.",
+    ACTIONS_CANCEL_FLAGS, NULL },
+  { "rerun", "Re-run all jobs of a finished run",
+    "cb actions rerun [owner/]repo <run-id>",
+    "Re-run every job of a finished workflow run.\n"
+    "<run-id> is the run number shown as #N in 'actions list'.\n"
+    "The run must have finished (success, failure, cancelled or skipped).\n"
+    "Requires Forgejo v17 or newer: older servers have no API rerun endpoint,\n"
+    "so use the web UI's \"Re-run all jobs\" button there instead.",
+    ACTIONS_RERUN_FLAGS, NULL },
   { "runners", "List available runners",
     "cb actions runners [owner/]repo",
     "List CI runners available to this repository.", NULL, NULL },
@@ -2493,8 +2685,11 @@ static const SubCmd ACTIONS_SUBS[] = {
     "cb actions artifact <download> [owner/]repo [args]",
     "Download artifacts produced by workflow runs.", NULL, ACTIONS_ARTIFACT_SUBS },
   { "dispatch", "Trigger a workflow",
-    "cb actions dispatch [owner/]repo <workflow-file>",
-    "Trigger a workflow run.", NULL, NULL },
+    "cb actions dispatch [owner/]repo <workflow-file> [--ref <ref>]",
+    "Trigger a workflow run.\n"
+    "--ref <ref> is the git ref to run on (default: master).\n"
+    "The workflow must declare the workflow_dispatch trigger.",
+    ACTIONS_DISPATCH_FLAGS, NULL },
   { "jobs", "List jobs in a run",
     "cb actions jobs [owner/]repo <run-id>",
     "List jobs in a workflow run.", NULL, NULL },
@@ -2953,7 +3148,7 @@ static const Cmd COMMANDS[] = {
     "Where [owner/]repo appears, the owner/ prefix is optional\n"
     "and defaults to the authenticated user.",
     REPO_SUBS },
-  { "actions", "CI/CD actions (list runs, show run, runners, dispatch, secrets, variables)",
+  { "actions", "CI/CD actions (list runs, show run, cancel, rerun, runners, dispatch, secrets, variables)",
     "cb actions <subcommand> [owner/]repo [args] [flags]",
     "Manage CI/CD actions for a repository.", ACTIONS_SUBS },
   { "release", "Manage releases (list, create, show, edit, delete, assets)",
@@ -3199,6 +3394,8 @@ HELP_WRAPPER_3 (help_topic_set, "repo", "topic", "set")
 HELP_WRAPPER_2 (help_org_create, "org", "create")
 HELP_WRAPPER_2 (help_actions_list, "actions", "list")
 HELP_WRAPPER_2 (help_actions_show, "actions", "show")
+HELP_WRAPPER_2 (help_actions_cancel, "actions", "cancel")
+HELP_WRAPPER_2 (help_actions_rerun, "actions", "rerun")
 HELP_WRAPPER_2 (help_actions_runners, "actions", "runners")
 HELP_WRAPPER_2 (help_actions_artifacts, "actions", "artifacts")
 HELP_WRAPPER_2 (help_actions_artifact, "actions", "artifact")

@@ -497,6 +497,91 @@ static void test_help_repo_short (void)
   cb_unsetenv ("CB_TOKEN");
 }
 
+/* ===== actions cancel / rerun ===== */
+
+static const char *RUN_JSON_STR = "{\"total_count\":1,\"workflow_runs\":[{"
+                                  "\"id\":5218403,\"index_in_repo\":5,\"title\":\"Add CI\","
+                                  "\"status\":\"success\",\"event\":\"push\",\"workflow_id\":\"build.yml\","
+                                  "\"prettyref\":\"master\",\"commit_sha\":\"86920ea\","
+                                  "\"html_url\":\"https://codeberg.org/thomasc/cb/actions/runs/5\"}]}";
+
+/* `actions cancel <run>` resolves the run number from `actions list` to the
+   database id the cancel endpoint wants, then POSTs to it. */
+static void test_cli_actions_cancel (void)
+{
+  MockResponse resps[2] = {
+    { .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs?run_number=5", .status = 200 },
+    { .method = "POST", .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403/cancel", .status = 204, .body = "" }
+  };
+  set_body (&resps[0], RUN_JSON_STR);
+  setup_server (resps, 2);
+
+  const char *args[] = { "actions", "cancel", "thomasc/cb", "5", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+static void test_cli_actions_rerun (void)
+{
+  MockResponse resps[2] = {
+    { .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs?run_number=5", .status = 200 },
+    { .method = "POST", .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403/rerun", .status = 204, .body = "" }
+  };
+  set_body (&resps[0], RUN_JSON_STR);
+  setup_server (resps, 2);
+
+  const char *args[] = { "actions", "rerun", "thomasc/cb", "5", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+/* Forgejo before v17 has no rerun route, which surfaces as a 404. The command
+   must fail rather than claim success. */
+static void test_cli_actions_rerun_old_server (void)
+{
+  MockResponse resps[2] = {
+    { .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/runs?run_number=5", .status = 200 },
+    { .method = "POST", .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403/rerun", .status = 404, .body = "Not found." }
+  };
+  set_body (&resps[0], RUN_JSON_STR);
+  setup_server (resps, 2);
+
+  const char *args[] = { "actions", "rerun", "thomasc/cb", "5", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_ERR);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  teardown_server ();
+}
+
+static void test_cli_actions_cancel_missing_run (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  const char *args[] = { "actions", "cancel", "thomasc/cb", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_USAGE);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+/* dispatch parses its flags now, so an unknown flag is a usage error instead of
+   being silently ignored. */
+static void test_cli_actions_dispatch_unknown_flag (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  const char *args[] = { "actions", "dispatch", "thomasc/cb", "build.yml", "--bogus", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_USAGE);
+  cb_unsetenv ("CB_TOKEN");
+}
+
 static void test_help_repo_create (void)
 {
   cb_setenv ("CB_TOKEN", "tok", 1);
@@ -690,6 +775,45 @@ static void test_help_actions_lists_artifacts (void)
   ASSERT_EQ (rc, CLI_OK);
   ASSERT_TRUE (strstr (buf, "artifacts") != NULL);
   ASSERT_TRUE (strstr (buf, "artifact") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_actions_cancel (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "actions", "cancel", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "cb actions cancel [owner/]repo <run-id>") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_actions_rerun (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "actions", "rerun", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "cb actions rerun [owner/]repo <run-id>") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+/* --ref is a real flag of `actions dispatch`; it used to be missing from the
+   command tree, so --help (and the completions generated from it) omitted it. */
+static void test_help_actions_dispatch_ref (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "actions", "dispatch", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "cb actions dispatch [owner/]repo <workflow-file> [--ref <ref>]") != NULL);
+  ASSERT_TRUE (strstr (buf, "--ref") != NULL);
   cb_unsetenv ("CB_TOKEN");
 }
 
@@ -1256,6 +1380,11 @@ int main (int argc, char *argv[])
   RUN_TEST (test_cli_unknown_command);
   RUN_TEST (test_cli_missing_args);
   RUN_TEST (test_cli_json_flag);
+  RUN_TEST (test_cli_actions_cancel);
+  RUN_TEST (test_cli_actions_rerun);
+  RUN_TEST (test_cli_actions_rerun_old_server);
+  RUN_TEST (test_cli_actions_cancel_missing_run);
+  RUN_TEST (test_cli_actions_dispatch_unknown_flag);
 
   RUN_TEST (test_help_top_level);
   RUN_TEST (test_help_top_level_short);
@@ -1276,6 +1405,9 @@ int main (int argc, char *argv[])
   RUN_TEST (test_help_actions_artifacts);
   RUN_TEST (test_help_actions_artifact_download);
   RUN_TEST (test_help_actions_lists_artifacts);
+  RUN_TEST (test_help_actions_cancel);
+  RUN_TEST (test_help_actions_rerun);
+  RUN_TEST (test_help_actions_dispatch_ref);
   RUN_TEST (test_help_without_token);
 
   RUN_TEST (test_cli_org_create);

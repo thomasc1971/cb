@@ -994,6 +994,30 @@ int api_action_run_show (ApiClient *a, const char *owner, const char *repo,
   return API_OK;
 }
 
+int api_action_run_cancel (ApiClient *a, const char *owner, const char *repo,
+                           int64_t run_id)
+{
+  char *path = build_path (a, "/repos/%s/%s/actions/runs/%lld/cancel",
+                           owner, repo, (long long)run_id);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_POST, path, NULL, &resp);
+  free (path);
+  http_response_free (&resp);
+  return err;
+}
+
+int api_action_run_rerun (ApiClient *a, const char *owner, const char *repo,
+                          int64_t run_id)
+{
+  char *path = build_path (a, "/repos/%s/%s/actions/runs/%lld/rerun",
+                           owner, repo, (long long)run_id);
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_POST, path, NULL, &resp);
+  free (path);
+  http_response_free (&resp);
+  return err;
+}
+
 /* ===== Action artifacts ===== */
 
 static void parse_action_artifact (const JsonValue *obj, ActionArtifact *art)

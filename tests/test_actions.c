@@ -216,6 +216,106 @@ static void test_action_run_show_404 (void)
   teardown_server ();
 }
 
+/* ===== Run cancel / rerun ===== */
+
+static void test_action_run_cancel_success (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403/cancel",
+    .status = 204,
+    .body = ""
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_action_run_cancel (&a, "thomasc", "cb", 5218403);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_action_run_cancel_404 (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/cb/actions/runs/42/cancel",
+    .status = 404,
+    .body = "{\"message\":\"GetRunById\"}"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_action_run_cancel (&a, "thomasc", "cb", 42);
+  ASSERT_EQ (rc, API_ERR_NOT_FOUND);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_action_run_rerun_success (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403/rerun",
+    .status = 204,
+    .body = ""
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_action_run_rerun (&a, "thomasc", "cb", 5218403);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+  api_client_free (&a);
+  teardown_server ();
+}
+
+/* Forgejo answers 400 when the run has not finished yet. */
+static void test_action_run_rerun_still_running (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403/rerun",
+    .status = 400,
+    .body = "{\"message\":\"RerunAllJobs\"}"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_action_run_rerun (&a, "thomasc", "cb", 5218403);
+  ASSERT_NEQ (rc, API_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+  api_client_free (&a);
+  teardown_server ();
+}
+
+/* Servers older than Forgejo v17 have no rerun route at all, so the request
+ * comes back as a 404 even though the run exists. */
+static void test_action_run_rerun_no_endpoint (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/cb/actions/runs/5218403/rerun",
+    .status = 404,
+    .body = "Not found."
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_action_run_rerun (&a, "thomasc", "cb", 5218403);
+  ASSERT_EQ (rc, API_ERR_NOT_FOUND);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+  api_client_free (&a);
+  teardown_server ();
+}
+
 /* ===== Runner list ===== */
 
 static void test_action_runner_list_success (void)
@@ -756,6 +856,11 @@ int main (int argc, char *argv[])
   RUN_TEST (test_action_run_show_success);
   RUN_TEST (test_action_run_show_404);
   RUN_TEST (test_action_run_show_not_found);
+  RUN_TEST (test_action_run_cancel_success);
+  RUN_TEST (test_action_run_cancel_404);
+  RUN_TEST (test_action_run_rerun_success);
+  RUN_TEST (test_action_run_rerun_still_running);
+  RUN_TEST (test_action_run_rerun_no_endpoint);
   RUN_TEST (test_action_runner_list_success);
   RUN_TEST (test_action_artifact_list_success);
   RUN_TEST (test_action_artifact_list_with_limit);

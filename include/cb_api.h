@@ -275,6 +275,23 @@ int api_action_run_list (ApiClient *a, const char *owner, const char *repo,
 int api_action_run_show (ApiClient *a, const char *owner, const char *repo,
                          int64_t run_number, ActionRun *out);
 
+/* Cancel a workflow run. run_id is the run's database id (ActionRun.id), not the
+ * run number shown in `actions list`. Pending and running jobs are cancelled; a
+ * run that already finished is left unchanged. The API answers 204 in both
+ * cases, so success does not imply the run was still running. */
+int api_action_run_cancel (ApiClient *a, const char *owner, const char *repo,
+                           int64_t run_id);
+
+/* Rerun every job of a workflow run. run_id is the run's database id
+ * (ActionRun.id). The run must have finished (success, failure, cancelled or
+ * skipped); a running one is a validation error.
+ *
+ * This endpoint ships with Forgejo v17: v16 (including the 16.0.0-dev builds
+ * Codeberg ran in October 2026) has no API route for it and answers 404, even
+ * though the web UI's "Re-run all jobs" button works there. */
+int api_action_run_rerun (ApiClient *a, const char *owner, const char *repo,
+                          int64_t run_id);
+
 /* List artifacts uploaded by the repository's workflow runs. limit <= 0 uses
  * the server default. Caller frees with action_artifact_array_free. */
 int api_action_artifact_list (ApiClient *a, const char *owner, const char *repo,

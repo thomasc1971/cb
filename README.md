@@ -663,6 +663,35 @@ Show details of a specific workflow run.
 cb actions show thomasc/cb 69
 ```
 
+#### `cb actions cancel [owner/]repo <run-id>`
+
+Cancel a pending or running workflow run. `run-id` is the run number shown as
+`#N` in `actions list`. Pending and running jobs are cancelled; a run that has
+already finished is left unchanged (the API answers `204` either way, so a
+successful exit means "the run is no longer running", not necessarily "it was
+running when you asked").
+
+```bash
+cb actions cancel thomasc/cb 69
+```
+
+#### `cb actions rerun [owner/]repo <run-id>`
+
+Re-run every job of a finished workflow run. The run must have finished
+(success, failure, cancelled or skipped) — Forgejo rejects a run that is still
+running with `400`.
+
+```bash
+cb actions rerun thomasc/cb 69
+```
+
+> **Note:** the API rerun endpoint ships with **Forgejo v17**. Older servers
+> (including the `16.0.0-dev` builds Codeberg ran in October 2026) have no route
+> for it and answer `404`, even though the web UI's "Re-run all jobs" button
+> works there — that button is a session-only web route, so it cannot be driven
+> with an API token. On such a server, re-trigger the workflow with
+> `cb actions dispatch` (see below) instead.
+
 #### `cb actions jobs [owner/]repo <run-id>`
 
 List jobs in a workflow run with status and duration.
@@ -741,9 +770,15 @@ Trigger a workflow run.
 ```bash
 cb actions dispatch thomasc/cb build.yml
 cb actions dispatch thomasc/cb build.yml --ref master
+cb actions dispatch thomasc/cb build.yml --ref v0.11.1
 ```
 
 Flags: `--ref REF` (git ref to dispatch on, default: master)
+
+The workflow must declare the `workflow_dispatch` trigger. Dispatching on a tag
+ref runs the tag's jobs too, so this is the token-friendly way to retry a
+release whose `release` job failed before it created the release (the alternative
+would be deleting and recreating the tag).
 
 #### `cb actions secret [owner/]repo <list|set|rm>`
 
