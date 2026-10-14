@@ -64,6 +64,44 @@ did not exist. Same class as item A: the command tree and the dispatch disagreed
 - [x] ~~Stop `--help` promising a command that does not exist~~ — the command exists now.
 - [ ] Same audit as item A: check every `SubCmd` entry against the dispatch chain for commands that are advertised but unreachable.
 
+### D. Rerunning a workflow run: what a token can and cannot do
+
+Chasing how to retry a cancelled tag run (v0.11.1's first run, #118). Three
+different things are called "rerun" and only one of them works with a token:
+
+| Route                                                                                  | Auth                                       | Works with `cb`'s token?        |
+| -------------------------------------------------------------------------------------- | ------------------------------------------ | ------------------------------- |
+| `POST /{owner}/{repo}/actions/runs/{run}/rerun` (the web UI button, run and job level) | `webAuth(buildAuthGroup())` — session only | no, answered as 404             |
+| `POST /api/v1/repos/{owner}/{repo}/actions/runs/{run_id}/rerun`                        | `reqToken()`                               | not yet — merged for v17        |
+| `POST /api/v1/repos/{owner}/{repo}/actions/workflows/{file}/dispatches`                | `reqToken()`                               | yes (needs `workflow_dispatch`) |
+
+- The web button is real: `routers/web/web.go:1670`/`:1683` register
+  `m.Post("/rerun", reqRepoActionsWriter, actions.Rerun)` for
+  `/actions/runs/{run}/jobs/{job}/rerun` and `/actions/runs/{run}/rerun`, handler
+  `Rerun` in `routers/web/repo/actions/view.go:526`, wired in the UI through
+  `link-action` with `data-url="${run.link}/rerun"`. Those routes live in
+  `registerRoutes`, mounted with `webAuth(buildAuthGroup())` (`web.go:108-118`,
+  `:431`), which offers only ReverseProxy/Session — token auth is confined to the
+  _mixed_ group (`buildMixedAuthGroup()`, `:122-129`, `:437`) and that group has
+  no actions routes.
+- Probing agrees: unauthenticated `POST` on `/cancel` and `/dispatches` answers
+  **401** (route exists, needs a token) while `/rerun` answers **404** on the
+  deployed instance, and both `Authorization: token …` and basic auth still get
+  404 on the web route. The button is browser-only.
+- The API rerun endpoint does exist upstream: PR forgejo/forgejo#13924 ("feat(api):
+  add action API endpoints to rerun workflows and specific jobs"), merged
+  2026-08-23, milestone **v17.0.0** — `POST .../runs/{run_id}/rerun` and
+  `POST .../jobs/{job_id}/rerun`, both `reqToken()` + repo-writer, both taking the
+  **database id** and answering 204 (`400` when the run has not finished).
+  Codeberg's `16.0.0-dev-785` predates it, hence the 404.
+
+- [x] ~~Add `cb actions cancel [owner/]repo <run-id>`~~ — `api_action_run_cancel()`; the API cancel route does exist on v16 (`POST .../runs/{run_id}/cancel`, 204).
+- [x] ~~Add `cb actions rerun [owner/]repo <run-id>`~~ — `api_action_run_rerun()`, with a 404 turned into a "this server has no rerun endpoint" hint naming v17 and the alternatives. Both commands resolve the `#N` run number to `ActionRun.id` first (`resolve_action_run_id()`), because the endpoints take the database id.
+- [x] ~~Give `actions dispatch` a flag table~~ — `ACTIONS_DISPATCH_FLAGS` with `--ref`. It was parsed by hand, so `--help`, `--help-spec` and the generated completions omitted the flag (only the README documented it) and unknown flags were dropped silently. Closes one instance of the audit in item A.
+- [x] ~~`workflow_dispatch:` in `.forgejo/workflows/build.yml`~~ — so a release run can be retried with `cb actions dispatch thomasc/cb build.yml --ref <tag>` instead of deleting and recreating the tag.
+- [ ] When Codeberg reaches v17, verify `cb actions rerun` against the live instance (the mock tests only pin the request shape) and consider a `--job <job-id>` variant for `POST .../jobs/{job_id}/rerun`.
+- [ ] Still open from item A: `show`, `runners`, `jobs`, `log`, `artifact download`, `secret`, `var` and most non-actions commands still read `argv[]` directly, so unknown flags there are ignored instead of being a `CLI_USAGE` error.
+
 ## 1. Implement stubbed CLI subcommands
 
 These subcommands appear in help output but print "not yet implemented":

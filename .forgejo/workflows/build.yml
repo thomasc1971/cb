@@ -4,6 +4,13 @@ on:
       - master
     tags:
       - 'v*'
+  # Lets a run be re-triggered over the API, e.g. to retry a release whose
+  # `release` job died before it created the release:
+  #   cb actions dispatch thomasc/cb build.yml --ref v0.11.1
+  # Dispatching on a tag ref runs the release job too (github.ref is the tag);
+  # dispatching on master only rebuilds. Forgejo's web "Re-run all jobs" button
+  # is session-only, so a token cannot drive it (see TODO.md).
+  workflow_dispatch:
 
 jobs:
   build-linux:
