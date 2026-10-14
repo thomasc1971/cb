@@ -175,6 +175,85 @@ static char *build_path (ApiClient *a, const char *fmt, ...)
   return full;
 }
 
+/* ===== Query string helper ===== */
+
+typedef struct
+{
+  const char *key;
+  const char *value;
+} QueryParam;
+
+/* Like build_path, but appends "?key=value&..." for the given params.
+ * Values are not percent-encoded; pass pre-encoded strings if needed. */
+static char *build_path_q (ApiClient *a, const char *fmt, const QueryParam *params,
+                           size_t param_count, ...)
+{
+  va_list args;
+  va_start (args, param_count);
+
+  char path[1024];
+  vsnprintf (path, sizeof (path), fmt, args);
+  va_end (args);
+
+  if (param_count > 0) {
+    size_t off = strlen (path);
+    path[off++] = '?';
+    for (size_t i = 0; i < param_count; i++) {
+      if (i > 0 && off < sizeof (path) - 1)
+        path[off++] = '&';
+      size_t room = sizeof (path) - off;
+      if (room <= 1)
+        break;
+      snprintf (path + off, room, "%s=%s", params[i].key, params[i].value);
+      off = strlen (path);
+    }
+  }
+
+  size_t total = strlen (a->path_prefix) + strlen (path) + 1;
+  char *full = malloc (total);
+  if (!full)
+    return NULL;
+  snprintf (full, total, "%s%s", a->path_prefix, path);
+  return full;
+}
+
+/* ===== Generic array parse helper ===== */
+
+/* Parse a JSON array body into a calloc'd array of elem_size elements, calling
+ * parse_fn on each element. Caller frees the array. */
+static ApiError parse_array (ApiClient *a, const char *body, size_t elem_size,
+                             void (*parse_fn) (const JsonValue *, void *),
+                             void **out, size_t *count)
+{
+  const char *json_err = NULL;
+  JsonValue *parsed = json_parse (body, &json_err);
+
+  if (!parsed || !json_is_array (parsed)) {
+    json_free (parsed);
+    set_error (a, "failed to parse API response");
+    return API_ERR_UNKNOWN;
+  }
+
+  size_t n = json_array_count (parsed);
+  char *arr = NULL;
+  if (n > 0) {
+    arr = calloc (n, elem_size);
+    if (!arr) {
+      json_free (parsed);
+      set_error (a, "out of memory");
+      return API_ERR_UNKNOWN;
+    }
+  }
+
+  for (size_t i = 0; i < n; i++)
+    parse_fn (json_array_get (parsed, i), arr + i * elem_size);
+
+  *out = arr;
+  *count = n;
+  json_free (parsed);
+  return API_OK;
+}
+
 /* ===== Client init/free ===== */
 
 int api_client_init (ApiClient *a, const char *base_url, const char *token)
@@ -809,9 +888,20 @@ void action_secret_array_free (ActionSecret *arr, size_t count)
 }
 
 int api_action_run_list (ApiClient *a, const char *owner, const char *repo,
-                         ActionRun **out, size_t *count)
+                         int limit, ActionRun **out, size_t *count)
 {
-  char *path = build_path (a, "/repos/%s/%s/actions/runs", owner, repo);
+  char limit_str[16];
+  char *path;
+  if (limit > 0) {
+    /* Forgejo ignores `limit` on this endpoint unless `page` is also given
+     * (page defaults to 0, which makes the offset negative and the limit is
+     * dropped), so always ask for the first page. */
+    snprintf (limit_str, sizeof (limit_str), "%d", limit);
+    QueryParam params[] = { { "page", "1" }, { "limit", limit_str } };
+    path = build_path_q (a, "/repos/%s/%s/actions/runs", params, 2, owner, repo);
+  } else {
+    path = build_path (a, "/repos/%s/%s/actions/runs", owner, repo);
+  }
   HttpResponse resp;
   ApiError err = do_request (a, HTTP_GET, path, NULL, &resp);
   free (path);
@@ -901,6 +991,110 @@ int api_action_run_show (ApiClient *a, const char *owner, const char *repo,
 
   parse_action_run (json_array_get (runs_arr, 0), out);
   json_free (parsed);
+  return API_OK;
+}
+
+/* ===== Action artifacts ===== */
+
+static void parse_action_artifact (const JsonValue *obj, ActionArtifact *art)
+{
+  memset (art, 0, sizeof (*art));
+  art->id = json_get_int64 (obj, "id", 0);
+  art->run_id = json_get_int64 (obj, "run_id", 0);
+  art->name = json_dup_string (obj, "name");
+  art->size_in_bytes = json_get_int64 (obj, "size_in_bytes", 0);
+  art->created_at = json_dup_string (obj, "created_at");
+  art->expires_at = json_dup_string (obj, "expires_at");
+  const JsonValue *expired = json_object_lookup (obj, "expired");
+  art->expired = (expired && json_is_bool (expired)) ? (json_bool (expired) ? 1 : 0) : 0;
+}
+
+void action_artifact_free (ActionArtifact *art)
+{
+  if (!art)
+    return;
+  free (art->name);
+  free (art->created_at);
+  free (art->expires_at);
+  memset (art, 0, sizeof (*art));
+}
+
+void action_artifact_array_free (ActionArtifact *arr, size_t count)
+{
+  if (!arr)
+    return;
+  for (size_t i = 0; i < count; i++)
+    action_artifact_free (&arr[i]);
+  free (arr);
+}
+
+int api_action_artifact_list (ApiClient *a, const char *owner, const char *repo,
+                              int limit, ActionArtifact **out, size_t *count)
+{
+  char limit_str[16];
+  char *path;
+  if (limit > 0) {
+    snprintf (limit_str, sizeof (limit_str), "%d", limit);
+    QueryParam params[] = { { "limit", limit_str } };
+    path = build_path_q (a, "/repos/%s/%s/actions/artifacts", params, 1, owner, repo);
+  } else {
+    path = build_path (a, "/repos/%s/%s/actions/artifacts", owner, repo);
+  }
+
+  HttpResponse resp;
+  ApiError err = do_request (a, HTTP_GET, path, NULL, &resp);
+  free (path);
+
+  if (err != API_OK) {
+    http_response_free (&resp);
+    return err;
+  }
+
+  err = parse_array (a, resp.body, sizeof (ActionArtifact),
+                     (void (*) (const JsonValue *, void *))parse_action_artifact,
+                     (void **)out, count);
+  http_response_free (&resp);
+  return err;
+}
+
+int api_action_artifact_download (ApiClient *a, const char *owner, const char *repo,
+                                  int64_t artifact_id, char **out, size_t *out_len)
+{
+  char path[512];
+  snprintf (path, sizeof (path),
+            "%s/repos/%s/%s/actions/artifacts/%lld/zip",
+            a->path_prefix, owner, repo, (long long)artifact_id);
+
+  HttpResponse resp;
+  int rc = http_request_raw (&a->http, HTTP_GET, path, NULL, 0, NULL, &resp);
+  if (rc < 0) {
+    set_error (a, "%s", resp.error);
+    http_response_free (&resp);
+    return API_ERR_NETWORK;
+  }
+
+  ApiError err = map_status (resp.status, resp.body);
+  if (err != API_OK) {
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse (resp.body, &json_err);
+    if (parsed && json_is_object (parsed)) {
+      JsonValue *msg = json_object_lookup (parsed, "message");
+      if (msg && json_is_string (msg))
+        set_error (a, "%s", json_string (msg));
+      else
+        set_error (a, "HTTP %d", resp.status);
+    } else {
+      set_error (a, "HTTP %d", resp.status);
+    }
+    json_free (parsed);
+    http_response_free (&resp);
+    return err;
+  }
+
+  *out = resp.body;
+  *out_len = resp.body_len;
+  resp.body = NULL;
+  http_response_free (&resp);
   return API_OK;
 }
 
@@ -1496,46 +1690,6 @@ int api_action_log_fetch (ApiClient *a, const char *owner, const char *repo,
 /* New API endpoints — appended to cb_api.c */
 /* This file is concatenated during build. See Makefile.am. */
 
-/* ===== Query string helper ===== */
-
-typedef struct
-{
-  const char *key;
-  const char *value;
-} QueryParam;
-
-static char *build_path_q (ApiClient *a, const char *fmt, const QueryParam *params,
-                           size_t param_count, ...)
-{
-  va_list args;
-  va_start (args, param_count);
-
-  char path[1024];
-  vsnprintf (path, sizeof (path), fmt, args);
-  va_end (args);
-
-  if (param_count > 0) {
-    size_t off = strlen (path);
-    path[off++] = '?';
-    for (size_t i = 0; i < param_count; i++) {
-      if (i > 0 && off < sizeof (path) - 1)
-        path[off++] = '&';
-      size_t room = sizeof (path) - off;
-      if (room <= 1)
-        break;
-      snprintf (path + off, room, "%s=%s", params[i].key, params[i].value);
-      off = strlen (path);
-    }
-  }
-
-  size_t total = strlen (a->path_prefix) + strlen (path) + 1;
-  char *full = malloc (total);
-  if (!full)
-    return NULL;
-  snprintf (full, total, "%s%s", a->path_prefix, path);
-  return full;
-}
-
 /* ===== Parse helpers for new types ===== */
 
 static void parse_release (const JsonValue *obj, Release *r)
@@ -1789,41 +1943,6 @@ static void parse_wikipage (const JsonValue *obj, WikiPage *w)
   JsonValue *lc = json_object_lookup (obj, "last_commit");
   if (lc && json_is_object (lc))
     w->last_commit_sha = json_dup_string (lc, "sha");
-}
-
-/* ===== Generic array parse helper ===== */
-
-static ApiError parse_array (ApiClient *a, const char *body, size_t elem_size,
-                             void (*parse_fn) (const JsonValue *, void *),
-                             void **out, size_t *count)
-{
-  const char *json_err = NULL;
-  JsonValue *parsed = json_parse (body, &json_err);
-
-  if (!parsed || !json_is_array (parsed)) {
-    json_free (parsed);
-    set_error (a, "failed to parse API response");
-    return API_ERR_UNKNOWN;
-  }
-
-  size_t n = json_array_count (parsed);
-  char *arr = NULL;
-  if (n > 0) {
-    arr = calloc (n, elem_size);
-    if (!arr) {
-      json_free (parsed);
-      set_error (a, "out of memory");
-      return API_ERR_UNKNOWN;
-    }
-  }
-
-  for (size_t i = 0; i < n; i++)
-    parse_fn (json_array_get (parsed, i), arr + i * elem_size);
-
-  *out = arr;
-  *count = n;
-  json_free (parsed);
-  return API_OK;
 }
 
 /* ===== Releases ===== */
@@ -2130,6 +2249,59 @@ int api_release_asset_list (ApiClient *a, const char *owner, const char *repo,
                      (void **)out, count);
   http_response_free (&resp);
   return err;
+}
+
+/* Upload an asset to a release. The file body is sent raw (Forgejo accepts
+ * this for the attachment endpoint); the asset name comes from the `name`
+ * query parameter. `out` may be NULL. */
+int api_release_asset_upload (ApiClient *a, const char *owner, const char *repo,
+                              int64_t release_id, const char *filename,
+                              const char *data, size_t len, Attachment *out)
+{
+  char path[512];
+  snprintf (path, sizeof (path),
+            "%s/repos/%s/%s/releases/%lld/assets?name=%s",
+            a->path_prefix, owner, repo, (long long)release_id, filename);
+
+  HttpResponse resp;
+  int rc = http_request_raw (&a->http, HTTP_POST, path,
+                             data, len, "application/octet-stream", &resp);
+  if (rc < 0) {
+    set_error (a, "%s", resp.error);
+    http_response_free (&resp);
+    return API_ERR_NETWORK;
+  }
+
+  ApiError err = map_status (resp.status, resp.body);
+  if (err != API_OK) {
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse (resp.body, &json_err);
+    if (parsed && json_is_object (parsed)) {
+      JsonValue *msg = json_object_lookup (parsed, "message");
+      if (msg && json_is_string (msg))
+        set_error (a, "%s", json_string (msg));
+      else
+        set_error (a, "HTTP %d", resp.status);
+    } else {
+      set_error (a, "HTTP %d", resp.status);
+    }
+    json_free (parsed);
+    http_response_free (&resp);
+    return err;
+  }
+
+  if (out) {
+    const char *json_err = NULL;
+    JsonValue *parsed = json_parse (resp.body, &json_err);
+    if (parsed && json_is_object (parsed))
+      parse_attachment (parsed, out);
+    else
+      memset (out, 0, sizeof (*out));
+    json_free (parsed);
+  }
+
+  http_response_free (&resp);
+  return API_OK;
 }
 
 int api_release_asset_get (ApiClient *a, const char *owner, const char *repo,

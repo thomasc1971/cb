@@ -370,6 +370,76 @@ static void test_release_asset_get (void)
   teardown_server ();
 }
 
+static void test_release_asset_upload (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/myproj/releases/1/assets?name=cb.tar.gz",
+    .status = 201
+  };
+  set_body (&resp, ATTACHMENT_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  const char *payload = "fake tarball bytes";
+  Attachment asset;
+  int rc = api_release_asset_upload (&a, "thomasc", "myproj", 1, "cb.tar.gz",
+                                     payload, strlen (payload), &asset);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ (asset.id, 10);
+  ASSERT_STR_EQ (asset.name, "binary.tar.gz");
+  ASSERT_EQ (asset.size, 1024);
+  ASSERT_STR_EQ (server.last_method, "POST");
+  ASSERT_STR_EQ (server.last_body, payload);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  attachment_free (&asset);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_release_asset_upload_null_out (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/myproj/releases/1/assets?name=cb.tar.gz",
+    .status = 201
+  };
+  set_body (&resp, ATTACHMENT_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_release_asset_upload (&a, "thomasc", "myproj", 1, "cb.tar.gz",
+                                     "x", 1, NULL);
+  ASSERT_EQ (rc, API_OK);
+
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_release_asset_upload_error (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/myproj/releases/1/assets?name=cb.tar.gz",
+    .status = 404,
+    .body = "{\"message\":\"release not found\"}"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  int rc = api_release_asset_upload (&a, "thomasc", "myproj", 1, "cb.tar.gz",
+                                     "x", 1, NULL);
+  ASSERT_EQ (rc, API_ERR_NOT_FOUND);
+  ASSERT_STR_EQ (a.last_error, "release not found");
+
+  api_client_free (&a);
+  teardown_server ();
+}
+
 static void test_release_asset_delete (void)
 {
   MockResponse resp = {
@@ -2401,6 +2471,9 @@ int main (void)
   RUN_TEST (test_release_delete_by_tag);
   RUN_TEST (test_release_asset_list);
   RUN_TEST (test_release_asset_get);
+  RUN_TEST (test_release_asset_upload);
+  RUN_TEST (test_release_asset_upload_null_out);
+  RUN_TEST (test_release_asset_upload_error);
   RUN_TEST (test_release_asset_delete);
 
   RUN_TEST (test_tag_list_success);

@@ -5,30 +5,34 @@ commands with help text and core subcommands implemented. The remaining work is:
 
 ## Next session (2026-10-14)
 
-Found while adding the macOS arm64 CI job.
+Found while adding the macOS arm64 CI job. A, B and C were all fixed later the
+same session; the unchecked bullets are what is still open.
 
-### A. `--limit` is accepted and silently ignored by `cb actions list`
+### A. `--limit` was accepted and silently ignored by `cb actions list`
 
 ```bash
-cb actions list thomasc/cb --limit 1   # prints all 108 runs, exit 0
+cb actions list thomasc/cb --limit 1   # printed all 108 runs, exit 0
 cb actions list thomasc/cb --bogus     # no error, exit 0
 ```
 
-Root cause: the `list` entry in `ACTIONS_SUBS` (`src/cb_cli.c:2153`) passes `NULL`
-for its flag table, and `cmd_actions_list()` (`src/cb_cli.c:1218`) never calls
-`parse_flags()` — it only reads `argv[0]`, so every extra argument is dropped.
-`api_action_run_list()` (`src/cb_api.c:811`) also builds
+Root cause: the `list` entry in `ACTIONS_SUBS` passed `NULL` for its flag table,
+and `cmd_actions_list()` never called `parse_flags()` — it only read `argv[0]`,
+so every extra argument was dropped. `api_action_run_list()` also built
 `/repos/{owner}/{repo}/actions/runs` with no query string at all.
 
-- [ ] Give `actions list` a `--limit` flag table like `ISSUE_LIST_FLAGS` (`src/cb_cli.c:1752`) and thread an `int limit` through `api_action_run_list()`, using the `QueryParam` pattern from `api_issue_list()` (`src/cb_api.c:2775`).
+- [x] ~~Give `actions list` a `--limit` flag table and thread an `int limit` through `api_action_run_list()`~~ — added `ACTIONS_LIST_FLAGS` and the `limit` parameter, using the `QueryParam` pattern from `api_issue_list()`.
+- [x] ~~Regression tests~~ — `test_action_run_list_with_limit` asserts the `?page=1&limit=2` request.
 - [ ] Audit every other subcommand whose `SubCmd` has `NULL` flags for the same silent-drop behaviour.
-- [ ] Decide the general rule: unknown flag / extra positional → `CLI_USAGE` (exit 2) with `Error: unknown flag '--bogus'`, instead of being ignored.
-- [ ] Regression tests: `tests/test_cli.c` (captured stdout, bad-flag exit code) and `tests/test_api.c` (mock server asserts the `limit=` query param).
+- [ ] Decide the general rule: for a command that never calls `parse_flags()`, unknown flag / extra positional should still be a `CLI_USAGE` (exit 2) error instead of being ignored.
 
-### B. `cb` cannot list or download CI run artifacts (had to use curl)
+> Gotcha found while fixing this: Forgejo **ignores `limit` on `/actions/runs`
+> unless `page` is also sent** (`?limit=3` → 112 runs, `?page=1&limit=3` → 3
+> runs), because a missing page makes the offset negative. `api_action_run_list()`
+> therefore always sends `page=1`.
 
-Verifying the arm64 build on run #108 meant hand-rolling API calls that `cb`
-should wrap:
+### B. `cb` could not list or download CI run artifacts (had to use curl)
+
+Verifying the arm64 build on run #108 meant hand-rolling API calls:
 
 ```text
 GET /repos/{owner}/{repo}/actions/artifacts            → list: id, name, size_in_bytes, expired, run_id, archive_download_url
@@ -36,12 +40,13 @@ GET /repos/{owner}/{repo}/actions/artifacts/{id}/zip   → ZIP download (needs a
 GET /repos/{owner}/{repo}/actions/runs/{id}/artifacts  → run-scoped list; {id} is the DB id, NOT the index
 ```
 
-- [ ] `cb actions artifacts [owner/]repo` — list artifacts (table + `--json`), with an optional `--run <run-id>` filter.
-- [ ] `cb actions artifact download [owner/]repo <artifact-id|name> [-o file]` — needs a binary response path, like `cb package download` / `api_content_raw`.
-- [ ] Watch the id trap: `cb` displays `index_in_repo` (`#108`) but the run-scoped endpoints want the database id (`7718398`); `parse_action_run()` already keeps it in `ActionRun.id` (`src/cb_api.c:693`).
-- [ ] Register the new subcommands in `ACTIONS_SUBS` so `--help` and completions pick them up, and document them in the README.
+- [x] ~~`cb actions artifacts [owner/]repo` — list artifacts (table + `--json`)~~ — `ActionArtifact`, `api_action_artifact_list()`, `--limit N`.
+- [x] ~~`cb actions artifact download [owner/]repo <artifact-id|name> [-o file]`~~ — `api_action_artifact_download()`, writes to stdout or `--output`; resolves names via the list endpoint.
+- [x] ~~Watch the id trap~~ — `ActionArtifact.run_id` holds the database id, and `parse_action_run()` keeps it in `ActionRun.id`.
+- [x] ~~Register the new subcommands in `ACTIONS_SUBS` and document them~~ — help text, help tests and README entries added.
+- [ ] Follow-up: a `--run <run-id>` filter on `actions artifacts`, mapping `index_in_repo` → `ActionRun.id` and using `/actions/runs/{db-id}/artifacts`.
 
-### C. `cb release asset upload` is documented but not wired up
+### C. `cb release asset upload` was documented but not wired up
 
 Hit while attaching the arm64 binary to the v0.10.0 release:
 
@@ -50,18 +55,13 @@ $ cb release asset upload thomasc/cb 12781740 --file cb-v0.10.0-darwin-arm64.tar
 Error: unknown asset subcommand 'upload'
 ```
 
-`RELEASE_ASSET_SUBS` (`src/cb_cli.c:2189`) advertises `upload` and `--help` prints
-its usage (help is answered from the command tree), but the `asset` dispatch in
-`cmd_release()` (`src/cb_cli.c:4358`) only branches on `list`, `show`, `edit` and
-`delete` — there is no `cmd_release_asset_upload()` at all. So the CLI tells you
-the command exists and then rejects it. Same class as item A: the command tree
-and the dispatch disagree.
+`RELEASE_ASSET_SUBS` advertised `upload` and `--help` printed its usage (help is
+answered from the command tree), but the `asset` dispatch in `cmd_release()`
+only branched on `list`, `show`, `edit` and `delete` — `cmd_release_asset_upload()`
+did not exist. Same class as item A: the command tree and the dispatch disagreed.
 
-Worked around with `curl -X POST .../releases/{id}/assets?name=<file>
---data-binary @<file>`.
-
-- [ ] Implement `api_release_asset_upload()` (multipart, see section 4) and `cmd_release_asset_upload()`, then add the dispatch branch.
-- [ ] Until then, either drop the `upload` entry from `RELEASE_ASSET_SUBS` or mark it as unimplemented, so `--help` stops promising it.
+- [x] ~~Implement `api_release_asset_upload()` and `cmd_release_asset_upload()`, then add the dispatch branch~~ — no multipart needed after all: Forgejo accepts a raw-body `POST /releases/{id}/assets?name=<file>`, so this reuses `http_request_raw()` like `api_package_upload()`.
+- [x] ~~Stop `--help` promising a command that does not exist~~ — the command exists now.
 - [ ] Same audit as item A: check every `SubCmd` entry against the dispatch chain for commands that are advertised but unreachable.
 
 ## 1. Implement stubbed CLI subcommands
@@ -123,7 +123,7 @@ These endpoints from the design doc have no API function yet:
 - [ ] **`api_commit_diff`** — `GET /repos/{owner}/{repo}/git/commits/{sha}.*` (diff/patch)
 - [ ] **`api_commit_note_list/set/delete`** — git notes endpoints
 - [ ] **`api_content_archive`** — `GET /repos/{owner}/{repo}/archive/*.{tar,zip}`
-- [ ] **`api_release_asset_upload`** — `POST /repos/{owner}/{repo}/releases/{id}/assets` (multipart)
+- [x] ~~**`api_release_asset_upload`** — `POST /repos/{owner}/{repo}/releases/{id}/assets`~~ — implemented; Forgejo accepts a raw body with `?name=<file>`, no multipart required.
 - [ ] **`api_hook_edit`** — `PATCH /repos/{owner}/{repo}/hooks/{id}`
 - [ ] **`api_wiki_revisions`** — `GET /repos/{owner}/{repo}/wiki/revisions/{page}`
 
@@ -142,9 +142,12 @@ API functions exist but have no CLI dispatch:
 
 ## 4. Multipart upload support
 
+Not needed for release assets after all — Forgejo accepts a raw body for
+`/releases/{id}/assets` (see the Next session section). Kept for endpoints that
+genuinely require `multipart/form-data`.
+
 - [ ] Implement `http_request_multipart()` convenience function (or build multipart body in `cb_api.c`)
 - [ ] Construct multipart/form-data body with boundary, parts, and file content
-- [ ] Use for `api_release_asset_upload` to upload release attachments
 
 ## 5. Base64 integration in CLI
 

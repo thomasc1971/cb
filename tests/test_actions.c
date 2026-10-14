@@ -80,7 +80,7 @@ static void test_action_run_list_success (void)
   make_client (&a);
   ActionRun *runs = NULL;
   size_t count = 0;
-  int rc = api_action_run_list (&a, "thomasc", "cb", &runs, &count);
+  int rc = api_action_run_list (&a, "thomasc", "cb", 0, &runs, &count);
   ASSERT_EQ (rc, API_OK);
   ASSERT_EQ ((int)count, 2);
   ASSERT_EQ ((long long)runs[0].id, 5218403LL);
@@ -109,10 +109,33 @@ static void test_action_run_list_empty (void)
   make_client (&a);
   ActionRun *runs = NULL;
   size_t count = 0;
-  int rc = api_action_run_list (&a, "thomasc", "cb", &runs, &count);
+  int rc = api_action_run_list (&a, "thomasc", "cb", 0, &runs, &count);
   ASSERT_EQ (rc, API_OK);
   ASSERT_EQ ((int)count, 0);
   ASSERT_NULL (runs);
+  action_run_array_free (runs, count);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_action_run_list_with_limit (void)
+{
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/cb/actions/runs?page=1&limit=2",
+    .status = 200
+  };
+  set_body (&resp, RUN_LIST_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  ActionRun *runs = NULL;
+  size_t count = 0;
+  int rc = api_action_run_list (&a, "thomasc", "cb", 2, &runs, &count);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ ((int)count, 2);
+  ASSERT_TRUE (mock_server_all_matched (&server));
   action_run_array_free (runs, count);
   api_client_free (&a);
   teardown_server ();
@@ -129,7 +152,7 @@ static void test_action_run_list_404 (void)
   make_client (&a);
   ActionRun *runs = NULL;
   size_t count = 0;
-  int rc = api_action_run_list (&a, "thomasc", "missing", &runs, &count);
+  int rc = api_action_run_list (&a, "thomasc", "missing", 0, &runs, &count);
   ASSERT_EQ (rc, API_ERR_NOT_FOUND);
   api_client_free (&a);
   teardown_server ();
@@ -597,6 +620,130 @@ static void test_action_log_fetch_success (void)
   teardown_server ();
 }
 
+/* ===== Artifacts ===== */
+
+static const char *ARTIFACT_LIST_JSON = "[{\"id\":8446522,\"name\":\"cb-darwin-arm64\",\"size_in_bytes\":790539,"
+                                        "\"archive_download_url\":\"https://codeberg.org/api/v1/repos/thomasc/cb/actions/artifacts/8446522/zip\","
+                                        "\"expired\":false,\"run_id\":7719337,\"created_at\":\"2026-10-14T14:47:59+02:00\","
+                                        "\"expires_at\":\"2026-11-13T13:47:59+01:00\"},"
+                                        "{\"id\":8446519,\"name\":\"cb-darwin-amd64\",\"size_in_bytes\":804215,"
+                                        "\"expired\":true,\"run_id\":7719337,\"created_at\":\"2026-10-14T14:46:54+02:00\"}]";
+
+static void test_action_artifact_list_success (void)
+{
+  MockResponse resp = {
+    .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/artifacts", .status = 200
+  };
+  set_body (&resp, ARTIFACT_LIST_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  ActionArtifact *arts = NULL;
+  size_t count = 0;
+  int rc = api_action_artifact_list (&a, "thomasc", "cb", 0, &arts, &count);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ ((int)count, 2);
+  ASSERT_EQ ((long long)arts[0].id, 8446522LL);
+  ASSERT_EQ ((long long)arts[0].run_id, 7719337LL);
+  ASSERT_STR_EQ (arts[0].name, "cb-darwin-arm64");
+  ASSERT_EQ ((long long)arts[0].size_in_bytes, 790539LL);
+  ASSERT_EQ (arts[0].expired, 0);
+  ASSERT_STR_EQ (arts[0].expires_at, "2026-11-13T13:47:59+01:00");
+  ASSERT_STR_EQ (arts[1].name, "cb-darwin-amd64");
+  ASSERT_EQ (arts[1].expired, 1);
+  ASSERT_NULL (arts[1].expires_at);
+  action_artifact_array_free (arts, count);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_action_artifact_list_with_limit (void)
+{
+  MockResponse resp = {
+    .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/artifacts?limit=2", .status = 200
+  };
+  set_body (&resp, ARTIFACT_LIST_JSON);
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  ActionArtifact *arts = NULL;
+  size_t count = 0;
+  int rc = api_action_artifact_list (&a, "thomasc", "cb", 2, &arts, &count);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ ((int)count, 2);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+  action_artifact_array_free (arts, count);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_action_artifact_list_empty (void)
+{
+  MockResponse resp = {
+    .method = "GET", .path = "/api/v1/repos/thomasc/cb/actions/artifacts", .status = 200, .body = "[]"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  ActionArtifact *arts = NULL;
+  size_t count = 0;
+  int rc = api_action_artifact_list (&a, "thomasc", "cb", 0, &arts, &count);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_EQ ((int)count, 0);
+  ASSERT_NULL (arts);
+  action_artifact_array_free (arts, count);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_action_artifact_download_success (void)
+{
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/cb/actions/artifacts/8446522/zip",
+    .status = 200,
+    .body = "PK\003\004zip-bytes"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  char *data = NULL;
+  size_t len = 0;
+  int rc = api_action_artifact_download (&a, "thomasc", "cb", 8446522, &data, &len);
+  ASSERT_EQ (rc, API_OK);
+  ASSERT_NOT_NULL (data);
+  ASSERT_EQ ((int)len, 13);
+  ASSERT_EQ (memcmp (data, "PK\003\004", 4), 0);
+  free (data);
+  api_client_free (&a);
+  teardown_server ();
+}
+
+static void test_action_artifact_download_404 (void)
+{
+  MockResponse resp = {
+    .method = "GET",
+    .path = "/api/v1/repos/thomasc/cb/actions/artifacts/999/zip",
+    .status = 404,
+    .body = "{\"message\":\"artifact not found\"}"
+  };
+  setup_server (&resp, 1);
+
+  ApiClient a;
+  make_client (&a);
+  char *data = NULL;
+  size_t len = 0;
+  int rc = api_action_artifact_download (&a, "thomasc", "cb", 999, &data, &len);
+  ASSERT_EQ (rc, API_ERR_NOT_FOUND);
+  ASSERT_STR_EQ (a.last_error, "artifact not found");
+  api_client_free (&a);
+  teardown_server ();
+}
+
 int main (int argc, char *argv[])
 {
   test_parse_args (argc, argv);
@@ -604,11 +751,17 @@ int main (int argc, char *argv[])
 
   RUN_TEST (test_action_run_list_success);
   RUN_TEST (test_action_run_list_empty);
+  RUN_TEST (test_action_run_list_with_limit);
   RUN_TEST (test_action_run_list_404);
   RUN_TEST (test_action_run_show_success);
   RUN_TEST (test_action_run_show_404);
   RUN_TEST (test_action_run_show_not_found);
   RUN_TEST (test_action_runner_list_success);
+  RUN_TEST (test_action_artifact_list_success);
+  RUN_TEST (test_action_artifact_list_with_limit);
+  RUN_TEST (test_action_artifact_list_empty);
+  RUN_TEST (test_action_artifact_download_success);
+  RUN_TEST (test_action_artifact_download_404);
   RUN_TEST (test_action_dispatch_success);
   RUN_TEST (test_action_dispatch_null_ref);
   RUN_TEST (test_action_secret_list_success);

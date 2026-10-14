@@ -55,6 +55,9 @@ static void help_actions (void);
 static void help_actions_list (void);
 static void help_actions_show (void);
 static void help_actions_runners (void);
+static void help_actions_artifact (void);
+static void help_actions_artifacts (void);
+static void help_actions_artifact_download (void);
 static void help_actions_dispatch (void);
 static void help_actions_secret (void);
 static void help_actions_var (void);
@@ -63,6 +66,7 @@ static void help_release_list (void);
 static void help_release_create (void);
 static void help_release_edit (void);
 static void help_release_asset (void);
+static void help_release_asset_upload (void);
 static void help_tag (void);
 static void help_tag_list (void);
 static void help_branch (void);
@@ -468,6 +472,60 @@ static int find_flag_idx (const FlagDef *table, const char *name)
       return i;
   }
   return -1;
+}
+
+/* Read a file (or stdin when path is "-") into memory. On success *out_data
+ * holds a malloc'd buffer (never NULL, even for an empty file) and *out_len its
+ * length; the caller frees. Returns 0 on success, -1 after printing an error. */
+static int read_input_file (const char *path, char **out_data, size_t *out_len)
+{
+  char *data = NULL;
+  size_t len = 0;
+
+  if (strcmp (path, "-") == 0) {
+    FILE *f = cb_open_memstream (&data, &len);
+    if (!f) {
+      fprintf (stderr, "Error: failed to read stdin\n");
+      return -1;
+    }
+    char buf[4096];
+    size_t n;
+    while ((n = fread (buf, 1, sizeof (buf), stdin)) > 0)
+      fwrite (buf, 1, n, f);
+    cb_close_memstream (f);
+  } else {
+    FILE *f = fopen (path, "rb");
+    if (!f) {
+      fprintf (stderr, "Error: cannot open '%s': %s\n", path, strerror (errno));
+      return -1;
+    }
+    fseek (f, 0, SEEK_END);
+    long sz = ftell (f);
+    fseek (f, 0, SEEK_SET);
+    if (sz < 0) {
+      fprintf (stderr, "Error: cannot determine size of '%s'\n", path);
+      fclose (f);
+      return -1;
+    }
+    len = (size_t)sz;
+    data = malloc (len > 0 ? len : 1);
+    if (!data) {
+      fprintf (stderr, "Error: out of memory\n");
+      fclose (f);
+      return -1;
+    }
+    if (len > 0 && fread (data, 1, len, f) != len) {
+      fprintf (stderr, "Error: failed to read '%s'\n", path);
+      free (data);
+      fclose (f);
+      return -1;
+    }
+    fclose (f);
+  }
+
+  *out_data = data;
+  *out_len = len;
+  return 0;
 }
 
 /* ===== Command handlers ===== */
@@ -1112,6 +1170,48 @@ static void print_action_run_list (const ActionRun *arr, size_t count, int json)
   }
 }
 
+static void print_action_artifact_list (const ActionArtifact *arr, size_t count, int json)
+{
+  if (json) {
+    JsonValue *root = json_object_new ();
+    JsonValue *arts = json_array_new ();
+    for (size_t i = 0; i < count; i++) {
+      JsonValue *obj = json_object_new ();
+      json_object_set (obj, "id", json_number_new ((double)arr[i].id));
+      json_object_set (obj, "run_id", json_number_new ((double)arr[i].run_id));
+      if (arr[i].name)
+        json_object_set_string (obj, "name", arr[i].name);
+      json_object_set (obj, "size_in_bytes", json_number_new ((double)arr[i].size_in_bytes));
+      json_object_set (obj, "expired", json_bool_new (arr[i].expired != 0));
+      if (arr[i].created_at)
+        json_object_set_string (obj, "created_at", arr[i].created_at);
+      if (arr[i].expires_at)
+        json_object_set_string (obj, "expires_at", arr[i].expires_at);
+      json_array_push (arts, obj);
+    }
+    json_object_set (root, "artifacts", arts);
+    json_object_set (root, "total_count", json_number_new ((double)count));
+    char *s = json_serialize (root, false);
+    printf ("%s\n", s);
+    free (s);
+    json_free (root);
+    return;
+  }
+  if (count == 0)
+    return;
+  printf ("%-10s %-10s %-12s %-6s %-25s %s\n",
+          "Id", "Run id", "Size", "Expired", "Name", "Created");
+  for (size_t i = 0; i < count; i++) {
+    printf ("%-10lld %-10lld %-12lld %-6s %-25s %s\n",
+            (long long)arr[i].id,
+            (long long)arr[i].run_id,
+            (long long)arr[i].size_in_bytes,
+            arr[i].expired ? "yes" : "no",
+            arr[i].name ? arr[i].name : "?",
+            arr[i].created_at ? arr[i].created_at : "?");
+  }
+}
+
 static void print_action_runner_list (const ActionRunner *arr, size_t count, int json)
 {
   if (json) {
@@ -1215,23 +1315,50 @@ static void print_action_secret_list (const ActionSecret *arr, size_t count, int
 
 /* ===== Actions handlers ===== */
 
+static const FlagDef ACTIONS_LIST_FLAGS[] = {
+  { "--limit", NULL, 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
 static int cmd_actions_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
-  if (argc < 1) {
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, ACTIONS_LIST_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 1) {
     help_actions_list ();
+    free (positional);
+    free (fv);
+    free (fb);
     return CLI_USAGE;
   }
   char owner[128], repo[128];
-  if (require_owner_repo (argv[0], owner, sizeof (owner),
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
                           repo, sizeof (repo), api)
-      != 0)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
     return CLI_ERR;
+  }
+
+  int limit = 0;
+  int idx = find_flag_idx (ACTIONS_LIST_FLAGS, "--limit");
+  if (fv[idx])
+    limit = atoi (fv[idx]);
 
   ActionRun *runs = NULL;
   size_t count = 0;
-  int rc = api_action_run_list (api, owner, repo, &runs, &count);
+  int rc = api_action_run_list (api, owner, repo, limit, &runs, &count);
   if (rc != API_OK) {
     print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
     return CLI_ERR;
   }
   if (gf->quiet && !gf->json) {
@@ -1240,6 +1367,174 @@ static int cmd_actions_list (int argc, char **argv, ApiClient *api, CbGlobalFlag
   } else
     print_action_run_list (runs, count, gf->json);
   action_run_array_free (runs, count);
+  free (positional);
+  free (fv);
+  free (fb);
+  return CLI_OK;
+}
+
+static const FlagDef ACTIONS_ARTIFACTS_FLAGS[] = {
+  { "--limit", NULL, 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static int cmd_actions_artifacts (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, ACTIONS_ARTIFACTS_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 1) {
+    help_actions_artifacts ();
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+
+  int limit = 0;
+  int idx = find_flag_idx (ACTIONS_ARTIFACTS_FLAGS, "--limit");
+  if (fv[idx])
+    limit = atoi (fv[idx]);
+
+  ActionArtifact *arts = NULL;
+  size_t count = 0;
+  int rc = api_action_artifact_list (api, owner, repo, limit, &arts, &count);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  if (gf->quiet && !gf->json) {
+    for (size_t i = 0; i < count; i++)
+      printf ("%lld\n", (long long)arts[i].id);
+  } else
+    print_action_artifact_list (arts, count, gf->json);
+  action_artifact_array_free (arts, count);
+  free (positional);
+  free (fv);
+  free (fb);
+  return CLI_OK;
+}
+
+static const FlagDef ACTIONS_ARTIFACT_DOWNLOAD_FLAGS[] = {
+  { "--output", "-o", 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
+static int cmd_actions_artifact_download (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, ACTIONS_ARTIFACT_DOWNLOAD_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 2) {
+    fprintf (stderr, "Error: artifact download requires repo and artifact id or name\n");
+    help_actions_artifact_download ();
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+  char owner[128], repo[128];
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+
+  /* The argument is either a numeric artifact id or an artifact name, in which
+   * case resolve it against the repository's artifact list (first match). */
+  const char *spec = positional[1];
+  char *end = NULL;
+  long long artifact_id = strtoll (spec, &end, 10);
+  if (!(end && end != spec && *end == '\0' && artifact_id > 0)) {
+    artifact_id = 0;
+    ActionArtifact *arts = NULL;
+    size_t count = 0;
+    int rc = api_action_artifact_list (api, owner, repo, 0, &arts, &count);
+    if (rc != API_OK) {
+      print_api_error (rc, api->last_error);
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_ERR;
+    }
+    for (size_t i = 0; i < count; i++) {
+      if (arts[i].name && strcmp (arts[i].name, spec) == 0) {
+        artifact_id = arts[i].id;
+        break;
+      }
+    }
+    action_artifact_array_free (arts, count);
+    if (artifact_id <= 0) {
+      fprintf (stderr, "Error: no artifact named '%s'\n", spec);
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_ERR;
+    }
+  }
+
+  int out_idx = find_flag_idx (ACTIONS_ARTIFACT_DOWNLOAD_FLAGS, "--output");
+  const char *output_path = fv[out_idx];
+
+  char *data = NULL;
+  size_t len = 0;
+  int rc = api_action_artifact_download (api, owner, repo, artifact_id, &data, &len);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+
+  if (output_path && strcmp (output_path, "-") != 0) {
+    FILE *f = fopen (output_path, "wb");
+    if (!f) {
+      fprintf (stderr, "Error: cannot open '%s': %s\n", output_path, strerror (errno));
+      free (data);
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_ERR;
+    }
+    if (len > 0)
+      fwrite (data, 1, len, f);
+    fclose (f);
+    if (!gf->quiet)
+      printf ("Downloaded artifact #%lld (%zu bytes) to %s\n",
+              artifact_id, len, output_path);
+  } else {
+    if (len > 0)
+      fwrite (data, 1, len, stdout);
+  }
+
+  free (data);
+  free (positional);
+  free (fv);
+  free (fb);
   return CLI_OK;
 }
 
@@ -1694,6 +1989,22 @@ static int cmd_actions (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
     return cmd_actions_show (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "runners") == 0)
     return cmd_actions_runners (rest_argc, rest_argv, api, gf);
+  if (strcmp (sub, "artifacts") == 0)
+    return cmd_actions_artifacts (rest_argc, rest_argv, api, gf);
+  if (strcmp (sub, "artifact") == 0) {
+    if (rest_argc < 1) {
+      help_actions_artifact ();
+      return CLI_USAGE;
+    }
+    const char *art_sub = rest_argv[0];
+    int art_argc = rest_argc - 1;
+    char **art_argv = rest_argv + 1;
+    if (strcmp (art_sub, "download") == 0)
+      return cmd_actions_artifact_download (art_argc, art_argv, api, gf);
+    fprintf (stderr, "Error: unknown artifact subcommand '%s'\n", art_sub);
+    help_actions_artifact ();
+    return CLI_USAGE;
+  }
   if (strcmp (sub, "dispatch") == 0)
     return cmd_actions_dispatch (rest_argc, rest_argv, api, gf);
   if (strcmp (sub, "jobs") == 0)
@@ -2149,10 +2460,22 @@ static const SubCmd ACTIONS_VAR_SUBS[] = {
   { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
+static const SubCmd ACTIONS_ARTIFACT_SUBS[] = {
+  { "download", "Download an artifact",
+    "cb actions artifact download [owner/]repo <artifact-id|name> [--output <path>]",
+    "Download a workflow artifact as a ZIP archive.\n"
+    "The artifact may be given by id or by name (first match wins).\n"
+    "Writes to stdout unless --output is given; --output - means stdout.",
+    ACTIONS_ARTIFACT_DOWNLOAD_FLAGS, NULL },
+  { NULL, NULL, NULL, NULL, NULL, NULL }
+};
+
 static const SubCmd ACTIONS_SUBS[] = {
   { "list", "List recent workflow runs",
-    "cb actions list [owner/]repo",
-    "List recent workflow runs.", NULL, NULL },
+    "cb actions list [owner/]repo [--limit N]",
+    "List recent workflow runs.\n"
+    "--limit N shows at most N runs (server default when omitted).",
+    ACTIONS_LIST_FLAGS, NULL },
   { "show", "Show details of a run",
     "cb actions show [owner/]repo <run-id>",
     "Show details of a specific workflow run.\n"
@@ -2161,6 +2484,14 @@ static const SubCmd ACTIONS_SUBS[] = {
   { "runners", "List available runners",
     "cb actions runners [owner/]repo",
     "List CI runners available to this repository.", NULL, NULL },
+  { "artifacts", "List run artifacts",
+    "cb actions artifacts [owner/]repo [--limit N]",
+    "List artifacts uploaded by workflow runs.\n"
+    "--limit N shows at most N artifacts.",
+    ACTIONS_ARTIFACTS_FLAGS, NULL },
+  { "artifact", "Manage a run artifact",
+    "cb actions artifact <download> [owner/]repo [args]",
+    "Download artifacts produced by workflow runs.", NULL, ACTIONS_ARTIFACT_SUBS },
   { "dispatch", "Trigger a workflow",
     "cb actions dispatch [owner/]repo <workflow-file>",
     "Trigger a workflow run.", NULL, NULL },
@@ -2182,13 +2513,23 @@ static const SubCmd ACTIONS_SUBS[] = {
   { NULL, NULL, NULL, NULL, NULL, NULL }
 };
 
+static const FlagDef RELEASE_ASSET_UPLOAD_FLAGS[] = {
+  { "--file", "-f", 1 },
+  { "--name", NULL, 1 },
+  { "--help", "-h", 0 },
+  { NULL, NULL, 0 }
+};
+
 static const SubCmd RELEASE_ASSET_SUBS[] = {
   { "list", "List assets",
     "cb release asset list [owner/]repo <release-id>",
     "List assets for a release.", NULL, NULL },
   { "upload", "Upload a file",
-    "cb release asset upload [owner/]repo <release-id> --file <path>",
-    "Upload a file as a release asset.", NULL, NULL },
+    "cb release asset upload [owner/]repo <release-id> --file <path> [--name <name>]",
+    "Upload a file as a release asset.\n"
+    "The asset name defaults to the basename of <path>; use --file - to read\n"
+    "stdin, which requires --name.",
+    RELEASE_ASSET_UPLOAD_FLAGS, NULL },
   { "show", "Show asset",
     "cb release asset show [owner/]repo <release-id> <asset-id>",
     "Show details of a release asset.", NULL, NULL },
@@ -2859,6 +3200,9 @@ HELP_WRAPPER_2 (help_org_create, "org", "create")
 HELP_WRAPPER_2 (help_actions_list, "actions", "list")
 HELP_WRAPPER_2 (help_actions_show, "actions", "show")
 HELP_WRAPPER_2 (help_actions_runners, "actions", "runners")
+HELP_WRAPPER_2 (help_actions_artifacts, "actions", "artifacts")
+HELP_WRAPPER_2 (help_actions_artifact, "actions", "artifact")
+HELP_WRAPPER_3 (help_actions_artifact_download, "actions", "artifact", "download")
 HELP_WRAPPER_2 (help_actions_dispatch, "actions", "dispatch")
 HELP_WRAPPER_2 (help_actions_secret, "actions", "secret")
 HELP_WRAPPER_2 (help_actions_var, "actions", "var")
@@ -2866,6 +3210,7 @@ HELP_WRAPPER_2 (help_release_list, "release", "list")
 HELP_WRAPPER_2 (help_release_create, "release", "create")
 HELP_WRAPPER_2 (help_release_edit, "release", "edit")
 HELP_WRAPPER_2 (help_release_asset, "release", "asset")
+HELP_WRAPPER_3 (help_release_asset_upload, "release", "asset", "upload")
 HELP_WRAPPER_2 (help_tag_list, "tag", "list")
 HELP_WRAPPER_2 (help_package_list, "package", "list")
 HELP_WRAPPER_2 (help_package_show, "package", "show")
@@ -4168,6 +4513,99 @@ static int cmd_release_delete_by_tag (int argc, char **argv, ApiClient *api, CbG
   return CLI_OK;
 }
 
+static int cmd_release_asset_upload (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
+{
+  const char **positional;
+  const char **fv;
+  int *fb;
+  int npos = parse_flags (argc, argv, RELEASE_ASSET_UPLOAD_FLAGS, &positional, &fv, &fb);
+  if (npos < 0)
+    return CLI_USAGE;
+  if (npos < 2) {
+    fprintf (stderr, "Error: asset upload requires repo and release-id\n");
+    help_release_asset_upload ();
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+
+  int file_idx = find_flag_idx (RELEASE_ASSET_UPLOAD_FLAGS, "--file");
+  const char *file_path = fv[file_idx];
+  if (!file_path) {
+    fprintf (stderr, "Error: --file <path> is required (use --file - for stdin)\n");
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+
+  char owner[128], repo[128];
+  if (require_owner_repo (positional[0], owner, sizeof (owner),
+                          repo, sizeof (repo), api)
+      != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  int64_t release_id = atol (positional[1]);
+  if (release_id <= 0) {
+    fprintf (stderr, "Error: invalid release ID '%s'\n", positional[1]);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_USAGE;
+  }
+
+  char *data = NULL;
+  size_t data_len = 0;
+  if (read_input_file (file_path, &data, &data_len) != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+
+  /* The asset name is --name, or the basename of --file. */
+  int name_idx = find_flag_idx (RELEASE_ASSET_UPLOAD_FLAGS, "--name");
+  const char *filename = fv[name_idx];
+  if (!filename) {
+    if (strcmp (file_path, "-") == 0) {
+      fprintf (stderr, "Error: --name <name> is required when reading from stdin\n");
+      free (data);
+      free (positional);
+      free (fv);
+      free (fb);
+      return CLI_USAGE;
+    }
+    const char *base = strrchr (file_path, '/');
+    filename = base ? base + 1 : file_path;
+  }
+
+  Attachment asset;
+  memset (&asset, 0, sizeof (asset));
+  int rc = api_release_asset_upload (api, owner, repo, release_id,
+                                     filename, data, data_len, &asset);
+  free (data);
+  if (rc != API_OK) {
+    print_api_error (rc, api->last_error);
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
+  }
+  if (!gf->quiet)
+    printf ("Uploaded %s to release #%lld (asset #%lld, %lld bytes)\n",
+            filename, (long long)release_id,
+            (long long)asset.id, (long long)asset.size);
+  attachment_free (&asset);
+  free (positional);
+  free (fv);
+  free (fb);
+  return CLI_OK;
+}
+
 static int cmd_release_asset_list (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf)
 {
   if (argc < 2) {
@@ -4357,6 +4795,8 @@ static int cmd_release (int argc, char **argv, ApiClient *api, CbGlobalFlags *gf
     char **a_argv = rest_argv + 1;
     if (strcmp (asub, "list") == 0)
       return cmd_release_asset_list (a_argc, a_argv, api, gf);
+    if (strcmp (asub, "upload") == 0)
+      return cmd_release_asset_upload (a_argc, a_argv, api, gf);
     if (strcmp (asub, "show") == 0)
       return cmd_release_asset_show (a_argc, a_argv, api, gf);
     if (strcmp (asub, "edit") == 0)
@@ -7658,60 +8098,11 @@ static int cmd_package_upload (int argc, char **argv, ApiClient *api, CbGlobalFl
   /* Read file contents into memory */
   char *data = NULL;
   size_t data_len = 0;
-  if (strcmp (file_path, "-") == 0) {
-    FILE *f = cb_open_memstream (&data, &data_len);
-    if (!f) {
-      fprintf (stderr, "Error: failed to read stdin\n");
-      free (positional);
-      free (fv);
-      free (fb);
-      return CLI_ERR;
-    }
-    char buf[4096];
-    size_t n;
-    while ((n = fread (buf, 1, sizeof (buf), stdin)) > 0)
-      fwrite (buf, 1, n, f);
-    cb_close_memstream (f);
-  } else {
-    FILE *f = fopen (file_path, "rb");
-    if (!f) {
-      fprintf (stderr, "Error: cannot open '%s': %s\n", file_path, strerror (errno));
-      free (positional);
-      free (fv);
-      free (fb);
-      return CLI_ERR;
-    }
-    fseek (f, 0, SEEK_END);
-    long sz = ftell (f);
-    fseek (f, 0, SEEK_SET);
-    if (sz < 0) {
-      fprintf (stderr, "Error: cannot determine size of '%s'\n", file_path);
-      fclose (f);
-      free (positional);
-      free (fv);
-      free (fb);
-      return CLI_ERR;
-    }
-    data_len = (size_t)sz;
-    data = malloc (data_len > 0 ? data_len : 1);
-    if (!data) {
-      fprintf (stderr, "Error: out of memory\n");
-      fclose (f);
-      free (positional);
-      free (fv);
-      free (fb);
-      return CLI_ERR;
-    }
-    if (data_len > 0 && fread (data, 1, data_len, f) != data_len) {
-      fprintf (stderr, "Error: failed to read '%s'\n", file_path);
-      free (data);
-      fclose (f);
-      free (positional);
-      free (fv);
-      free (fb);
-      return CLI_ERR;
-    }
-    fclose (f);
+  if (read_input_file (file_path, &data, &data_len) != 0) {
+    free (positional);
+    free (fv);
+    free (fb);
+    return CLI_ERR;
   }
 
   /* Derive filename from --file path (basename) */

@@ -654,6 +654,45 @@ static void test_help_branch_lists_protection (void)
   cb_unsetenv ("CB_TOKEN");
 }
 
+static void test_help_actions_artifacts (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "actions", "artifacts", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "cb actions artifacts [owner/]repo [--limit N]") != NULL);
+  ASSERT_TRUE (strstr (buf, "--limit") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_actions_artifact_download (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "actions", "artifact", "download", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "cb actions artifact download [owner/]repo <artifact-id|name> [--output <path>]") != NULL);
+  ASSERT_TRUE (strstr (buf, "--output") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_actions_lists_artifacts (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[8192];
+  const char *args[] = { "actions", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "artifacts") != NULL);
+  ASSERT_TRUE (strstr (buf, "artifact") != NULL);
+  cb_unsetenv ("CB_TOKEN");
+}
+
 static void test_help_without_token (void)
 {
   /* Help comes from the command tree and is answered before the config is
@@ -668,6 +707,8 @@ static void test_help_without_token (void)
     { "branch", "protect", "--help", NULL },
     { "repo", "mirror", "add", "--help", NULL },
     { "actions", "secret", "set", "--help", NULL },
+    { "actions", "artifacts", "--help", NULL },
+    { "actions", "artifact", "download", "--help", NULL },
     { "pr", "edit", "--help", NULL },
   };
   for (size_t i = 0; i < sizeof (paths) / sizeof (paths[0]); i++) {
@@ -714,6 +755,60 @@ static void test_cli_org_create_visibility (void)
   ASSERT_TRUE (mock_server_all_matched (&server));
 
   teardown_server ();
+}
+
+static void test_cli_release_asset_upload (void)
+{
+  MockResponse resp = {
+    .method = "POST",
+    .path = "/api/v1/repos/thomasc/myproj/releases/7/assets?name=cb-test-upload.txt",
+    .status = 201
+  };
+  set_body (&resp, "{\"id\":99,\"name\":\"cb-test-upload.txt\",\"size\":5,\"download_count\":0}");
+  setup_server (&resp, 1);
+
+  /* Write a small file for the upload to read. */
+  const char *file = "cb-test-upload.txt";
+  FILE *f = fopen (file, "wb");
+  ASSERT_NOT_NULL (f);
+  fputs ("hello", f);
+  fclose (f);
+
+  const char *args[] = { "release", "asset", "upload", "thomasc/myproj", "7",
+                         "--file", file, NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (mock_server_all_matched (&server));
+
+  remove (file);
+  teardown_server ();
+}
+
+static void test_cli_release_asset_upload_stdin_needs_name (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+
+  const char *args[] = { "release", "asset", "upload", "thomasc/myproj", "7",
+                         "--file", "-", NULL };
+  int rc = run_cli (args);
+  ASSERT_EQ (rc, CLI_USAGE);
+
+  cb_unsetenv ("CB_TOKEN");
+}
+
+static void test_help_release_asset_upload (void)
+{
+  cb_setenv ("CB_TOKEN", "tok", 1);
+  cb_unsetenv ("CB_BASE_URL");
+  char buf[4096];
+  const char *args[] = { "release", "asset", "upload", "--help", NULL };
+  int rc = run_cli_captured (args, buf, sizeof (buf));
+  ASSERT_EQ (rc, CLI_OK);
+  ASSERT_TRUE (strstr (buf, "cb release asset upload [owner/]repo <release-id> --file <path> [--name <name>]") != NULL);
+  ASSERT_TRUE (strstr (buf, "--file") != NULL);
+  ASSERT_TRUE (strstr (buf, "--name") != NULL);
+  cb_unsetenv ("CB_TOKEN");
 }
 
 static void test_help_org_create (void)
@@ -1178,11 +1273,17 @@ int main (int argc, char *argv[])
   RUN_TEST (test_help_topic_set);
   RUN_TEST (test_help_branch_protect);
   RUN_TEST (test_help_branch_lists_protection);
+  RUN_TEST (test_help_actions_artifacts);
+  RUN_TEST (test_help_actions_artifact_download);
+  RUN_TEST (test_help_actions_lists_artifacts);
   RUN_TEST (test_help_without_token);
 
   RUN_TEST (test_cli_org_create);
   RUN_TEST (test_cli_org_create_visibility);
   RUN_TEST (test_help_org_create);
+  RUN_TEST (test_cli_release_asset_upload);
+  RUN_TEST (test_cli_release_asset_upload_stdin_needs_name);
+  RUN_TEST (test_help_release_asset_upload);
   RUN_TEST (test_cli_org_create_no_args);
 
   RUN_TEST (test_cli_quiet_list);

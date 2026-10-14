@@ -224,6 +224,24 @@ typedef struct
   char *stopped;
 } ActionRun;
 
+/* Action artifact — a file uploaded by a workflow run */
+typedef struct
+{
+  int64_t id;
+  int64_t run_id; /* the run's database id (ActionRun.id) */
+  char *name;
+  int64_t size_in_bytes;
+  int expired;
+  char *created_at;
+  char *expires_at;
+} ActionArtifact;
+
+/* Free an ActionArtifact struct */
+void action_artifact_free (ActionArtifact *art);
+
+/* Free an array of ActionArtifacts */
+void action_artifact_array_free (ActionArtifact *arr, size_t count);
+
 /* Action runner — CI runner info */
 typedef struct
 {
@@ -247,19 +265,28 @@ typedef struct
   char *name;
 } ActionSecret;
 
-/* List action runs for a repository. Caller frees with action_run_array_free. */
+/* List action runs for a repository. limit <= 0 uses the server default.
+ * Caller frees with action_run_array_free. */
 int api_action_run_list (ApiClient *a, const char *owner, const char *repo,
-                         ActionRun **out, size_t *count);
+                         int limit, ActionRun **out, size_t *count);
 
 /* Get a single action run by its run number (index_in_repo, the #N shown in actions list).
  * Caller frees with action_run_free. */
 int api_action_run_show (ApiClient *a, const char *owner, const char *repo,
                          int64_t run_number, ActionRun *out);
 
+/* List artifacts uploaded by the repository's workflow runs. limit <= 0 uses
+ * the server default. Caller frees with action_artifact_array_free. */
+int api_action_artifact_list (ApiClient *a, const char *owner, const char *repo,
+                              int limit, ActionArtifact **out, size_t *count);
+
+/* Download an artifact as a ZIP archive. *out is malloc'd; the caller frees. */
+int api_action_artifact_download (ApiClient *a, const char *owner, const char *repo,
+                                  int64_t artifact_id, char **out, size_t *out_len);
+
 /* List runners available to a repository. Caller frees with action_runner_array_free. */
 int api_action_runner_list (ApiClient *a, const char *owner, const char *repo,
                             ActionRunner **out, size_t *count);
-
 /* Dispatch a workflow by filename. ref is the git ref (e.g. "master"), may be NULL. */
 int api_action_dispatch (ApiClient *a, const char *owner, const char *repo,
                          const char *workflowfile, const char *ref);
@@ -450,6 +477,12 @@ int api_release_asset_edit (ApiClient *a, const char *owner, const char *repo,
                             const char *name, Attachment *out);
 int api_release_asset_delete (ApiClient *a, const char *owner, const char *repo,
                               int64_t release_id, int64_t asset_id);
+
+/* Upload a release asset. Sends the raw file body; `filename` becomes the
+ * asset name. `out` may be NULL. */
+int api_release_asset_upload (ApiClient *a, const char *owner, const char *repo,
+                              int64_t release_id, const char *filename,
+                              const char *data, size_t len, Attachment *out);
 
 void release_free (Release *r);
 void release_array_free (Release *arr, size_t count);

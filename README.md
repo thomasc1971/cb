@@ -448,6 +448,8 @@ cb release delete thomasc/myproj 42 --yes
 cb release delete-tag thomasc/myproj v1.0.0 --yes
 
 cb release asset list thomasc/myproj 42
+cb release asset upload thomasc/myproj 42 --file ./binary.tar.gz
+cb release asset upload thomasc/myproj 42 --file - --name binary.tar.gz < ./binary.tar.gz
 cb release asset edit thomasc/myproj 42 7 --name new-filename.zip
 cb release asset delete thomasc/myproj 42 7 --yes
 ```
@@ -642,10 +644,11 @@ cb wiki delete thomasc/myproj OldPage --yes
 
 #### `cb actions list [owner/]repo`
 
-List recent workflow runs.
+List recent workflow runs. `--limit N` shows at most `N` runs.
 
 ```bash
 cb actions list thomasc/cb
+cb actions list thomasc/cb --limit 5
 cb actions list thomasc/cb --json
 ```
 
@@ -707,6 +710,28 @@ List CI runners available to the repository.
 
 ```bash
 cb actions runners thomasc/cb
+```
+
+#### `cb actions artifacts [owner/]repo`
+
+List the artifacts uploaded by workflow runs, most recent first. `--limit N`
+shows at most `N` artifacts.
+
+```bash
+cb actions artifacts thomasc/cb
+cb actions artifacts thomasc/cb --limit 5 --json
+```
+
+#### `cb actions artifact download [owner/]repo <artifact-id|name>`
+
+Download a workflow artifact. Artifacts are ZIP archives; the command writes
+them to stdout unless `--output <path>` is given (`--output -` means stdout).
+The artifact can be identified by numeric id (from `actions artifacts`) or by
+name, in which case the first match wins.
+
+```bash
+cb actions artifact download thomasc/cb cb-darwin-arm64 --output artifact.zip
+cb actions artifact download thomasc/cb 8446522 > artifact.zip
 ```
 
 #### `cb actions dispatch [owner/]repo <workflow-file>`
