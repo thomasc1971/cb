@@ -126,13 +126,14 @@ A command-line tool for managing repositories, issues, pull requests, releases, 
 
 Pre-built binaries are available from the [Codeberg releases page](https://codeberg.org/thomasc/cb/releases).
 
-| File                               | Platform       | Contents                                  |
-| ---------------------------------- | -------------- | ----------------------------------------- |
-| `cb-<version>-linux-amd64.tar.gz`  | Linux x86_64   | `cb` binary + `COPYING` + `README.md`     |
-| `cb-<version>-darwin-amd64.tar.gz` | macOS x86_64   | `cb` binary + `COPYING` + `README.md`     |
-| `cb-<version>-windows-amd64.zip`   | Windows x86_64 | `cb.exe` + DLLs + `COPYING` + `README.md` |
+| File                               | Platform                    | Contents                                  |
+| ---------------------------------- | --------------------------- | ----------------------------------------- |
+| `cb-<version>-linux-amd64.tar.gz`  | Linux x86_64                | `cb` binary + `COPYING` + `README.md`     |
+| `cb-<version>-darwin-amd64.tar.gz` | macOS x86_64 (Intel)        | `cb` binary + `COPYING` + `README.md`     |
+| `cb-<version>-darwin-arm64.tar.gz` | macOS arm64 (Apple Silicon) | `cb` binary + `COPYING` + `README.md`     |
+| `cb-<version>-windows-amd64.zip`   | Windows x86_64              | `cb.exe` + DLLs + `COPYING` + `README.md` |
 
-The Linux and macOS tarballs contain the `cb` binary, GPLv3 license text, and README. The macOS build statically links LibreSSL, so there are no external dylib dependencies. The Windows ZIP contains `cb.exe`, the required LibreSSL DLLs, the license text, and README.
+The Linux and macOS tarballs contain the `cb` binary, GPLv3 license text, and README. The macOS builds statically link LibreSSL, so there are no external dylib dependencies. The Windows ZIP contains `cb.exe`, the required LibreSSL DLLs, the license text, and README.
 
 ## Build
 
@@ -760,7 +761,7 @@ cb package download thomasc mylib 1.0.0 dist.tar.gz > dist.tar.gz
 
 ## CI/CD
 
-The project uses [Forgejo Actions](https://codeberg.org/thomasc/cb/actions) with Codeberg's hosted runners. On every push to `master`, the pipeline builds and tests `cb` on Linux, cross-compiles a Windows binary (MinGW), and cross-compiles a macOS binary (zig cc + static LibreSSL). On tag pushes (`v*`), it creates a release with downloadable binaries for all three platforms.
+The project uses [Forgejo Actions](https://codeberg.org/thomasc/cb/actions) with Codeberg's hosted runners. On every push to `master`, the pipeline builds and tests `cb` on Linux, cross-compiles a Windows binary (MinGW), and cross-compiles macOS binaries for both x86_64 and arm64 (Apple Silicon) with zig cc + static LibreSSL. On tag pushes (`v*`), it creates a release with downloadable binaries for all four targets.
 
 Workflow configuration: [`.forgejo/workflows/build.yml`](.forgejo/workflows/build.yml)
 

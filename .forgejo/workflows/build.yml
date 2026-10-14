@@ -90,6 +90,19 @@ jobs:
           path: cb-windows-amd64.zip
 
   build-macos:
+    strategy:
+      matrix:
+        include:
+          # arch is the artifact name (Go-style), libressl_arch is the GNU
+          # triple the pre-built static libtls.a package is named after.
+          - arch: amd64
+            libressl_arch: x86_64
+            zig_target: x86_64-macos
+            host: x86_64-apple-darwin
+          - arch: arm64
+            libressl_arch: aarch64
+            zig_target: aarch64-macos
+            host: aarch64-apple-darwin
     runs-on: codeberg-small
     steps:
       - uses: https://code.forgejo.org/actions/checkout@v6
@@ -97,7 +110,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends \
-            wget ca-certificates xz-utils curl make
+            wget ca-certificates xz-utils curl make file
       - name: Install zig
         run: |
           curl -L https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz -o zig.tar.xz
@@ -105,28 +118,36 @@ jobs:
           echo "$PWD/zig-x86_64-linux-0.16.0" >> $GITHUB_PATH
       - name: Download pre-built LibreSSL for macOS
         run: |
-          wget -q https://codeberg.org/api/packages/thomasc/generic/libressl-macos/4.3.2/libressl-4.3.2-macos-x86_64.tar.gz
+          wget -q https://codeberg.org/api/packages/thomasc/generic/libressl-macos/4.3.2/libressl-4.3.2-macos-${{ matrix.libressl_arch }}.tar.gz
           mkdir -p /tmp/libressl-macos
-          tar xzf libressl-4.3.2-macos-x86_64.tar.gz -C /tmp/libressl-macos
+          tar xzf libressl-4.3.2-macos-${{ matrix.libressl_arch }}.tar.gz -C /tmp/libressl-macos
       - name: Build cb for macOS
         run: |
           autoreconf -fi
-          CC="zig cc -target x86_64-macos" ./configure --host=x86_64-apple-darwin \
+          CC="zig cc -target ${{ matrix.zig_target }}" ./configure --host=${{ matrix.host }} \
             LIBTLS_CFLAGS="-I/tmp/libressl-macos/include" \
             LIBTLS_LIBS="-L/tmp/libressl-macos/lib -ltls" \
             --disable-werror
           make
+      - name: Verify binary architecture
+        run: |
+          file src/cb
+          case "${{ matrix.arch }}" in
+            amd64) want=x86_64 ;;
+            arm64) want=arm64 ;;
+          esac
+          file src/cb | grep -q "Mach-O 64-bit $want executable"
       - name: Prepare artifact
         run: |
-          mkdir -p cb-darwin-amd64
-          cp src/cb cb-darwin-amd64/cb
-          cp COPYING cb-darwin-amd64/COPYING
-          cp README.md cb-darwin-amd64/README.md
-          tar czf cb-darwin-amd64.tar.gz cb-darwin-amd64
+          mkdir -p cb-darwin-${{ matrix.arch }}
+          cp src/cb cb-darwin-${{ matrix.arch }}/cb
+          cp COPYING cb-darwin-${{ matrix.arch }}/COPYING
+          cp README.md cb-darwin-${{ matrix.arch }}/README.md
+          tar czf cb-darwin-${{ matrix.arch }}.tar.gz cb-darwin-${{ matrix.arch }}
       - uses: https://code.forgejo.org/actions/upload-artifact@v3
         with:
-          name: cb-darwin-amd64
-          path: cb-darwin-amd64.tar.gz
+          name: cb-darwin-${{ matrix.arch }}
+          path: cb-darwin-${{ matrix.arch }}.tar.gz
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -148,6 +169,10 @@ jobs:
           path: release
       - uses: https://code.forgejo.org/actions/download-artifact@v3
         with:
+          name: cb-darwin-arm64
+          path: release
+      - uses: https://code.forgejo.org/actions/download-artifact@v3
+        with:
           name: cb-source-dist
           path: release
       - name: Rename artifacts and generate checksums
@@ -157,10 +182,12 @@ jobs:
           mv cb-linux-amd64.tar.gz cb-${V}-linux-amd64.tar.gz
           mv cb-windows-amd64.zip cb-${V}-windows-amd64.zip
           mv cb-darwin-amd64.tar.gz cb-${V}-darwin-amd64.tar.gz
+          mv cb-darwin-arm64.tar.gz cb-${V}-darwin-arm64.tar.gz
           mv cb-source-dist.tar.gz cb-${V}-source.tar.gz
           sha256sum cb-${V}-linux-amd64.tar.gz > cb-${V}-linux-amd64.tar.gz.sha256
           sha256sum cb-${V}-windows-amd64.zip > cb-${V}-windows-amd64.zip.sha256
           sha256sum cb-${V}-darwin-amd64.tar.gz > cb-${V}-darwin-amd64.tar.gz.sha256
+          sha256sum cb-${V}-darwin-arm64.tar.gz > cb-${V}-darwin-arm64.tar.gz.sha256
           sha256sum cb-${V}-source.tar.gz > cb-${V}-source.tar.gz.sha256
       - uses: https://code.forgejo.org/actions/forgejo-release@v2.13.1
         with:
